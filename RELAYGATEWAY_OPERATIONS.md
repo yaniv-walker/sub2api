@@ -2,7 +2,7 @@
 
 ## 1. 上线前准备
 
-- 腾讯云新加坡 Linux 云服务器，建议 Ubuntu 24.04 LTS。
+- 腾讯云新加坡轻量应用服务器，首发可使用 2 vCPU / 4 GB / 60 GB SSD；建议 Ubuntu 24.04 LTS、x86_64 架构。
 - 一个已解析到服务器公网 IP 的 HTTPS 域名。
 - 腾讯云 COS 私有存储桶，地域优先与服务器一致。
 - 仅允许当前业务用途的上游 API 凭据。
@@ -19,7 +19,9 @@
 5. 在 `deploy` 目录执行 `docker compose config --quiet`，确认无误后执行 `docker compose up -d`。
 6. 用 `docker compose ps` 和 `curl -fsS http://127.0.0.1:8080/health` 检查健康状态。
 
-`deploy/docker-compose.yml` 中的应用、PostgreSQL 和 Redis 镜像已固定到 digest。升级前先完成备份与恢复演练，再单独更新 digest。
+`deploy/docker-compose.yml` 中的应用、PostgreSQL 和 Redis 镜像已固定到 digest。轻量服务器只作为 MVP 配置，接近 20 个活跃用户或出现持续内存压力后升级套餐；接近 50 个峰值流式并发时迁移到 8 vCPU / 16 GB CVM。升级前先完成备份与恢复演练，再单独更新 digest。
+
+轻量服务器升级前确认目标套餐仍在新加坡可售，并保留快照和 COS 备份。轻量服务器升级到更高套餐通常可以保留实例数据和公网地址，但迁移到 CVM、跨架构或跨地域不保证一键完成，应按“新建实例 → 恢复备份 → 切换 DNS”准备回滚方案。
 
 ## 3. 运行时配置
 
@@ -80,6 +82,8 @@
 - 健康检查：`curl -fsS http://127.0.0.1:8080/health`
 
 日志不得记录完整 API Key、JWT、Cookie、SMTP 密码、COS Secret 或完整会话内容。排查请求时优先使用时间、请求 ID、模型、HTTP 状态和脱敏后的用户/API Key 标识。
+
+2 核 4 GB 首发实例建议额外设置：Docker 日志单文件不超过 100 MB、最多保留 3 个轮转文件；PostgreSQL 最大连接数先控制在 50 以内；定期检查内存、磁盘、流量包和容器重启次数。
 
 ## 7. 大陆访问验收
 
