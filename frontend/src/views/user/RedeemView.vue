@@ -74,6 +74,18 @@
               <Icon v-else name="checkCircle" size="md" class="mr-2" />
               {{ submitting ? t('redeem.redeeming') : t('redeem.redeemButton') }}
             </button>
+
+            <a
+              v-if="purchaseUrl"
+              data-testid="purchase-redeem-code"
+              :href="purchaseUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-secondary w-full py-3"
+            >
+              <Icon name="externalLink" size="md" class="mr-2" />
+              {{ t('redeem.purchaseCode') }}
+            </a>
           </form>
         </div>
       </div>
@@ -351,6 +363,7 @@ import { redeemAPI, authAPI, type RedeemHistoryItem } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { formatDateTime } from '@/utils/format'
+import { sanitizeUrl } from '@/utils/url'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -376,6 +389,7 @@ const errorMessage = ref('')
 const history = ref<RedeemHistoryItem[]>([])
 const loadingHistory = ref(false)
 const contactInfo = ref('')
+const purchaseUrl = ref('')
 
 // Helper functions for history display
 const isBalanceType = (type: string) => {
@@ -481,6 +495,9 @@ onMounted(async () => {
   try {
     const settings = await authAPI.getPublicSettings()
     contactInfo.value = settings.contact_info || ''
+    purchaseUrl.value = settings.purchase_subscription_enabled
+      ? sanitizeUrl(settings.purchase_subscription_url || '')
+      : ''
   } catch (error) {
     console.error('Failed to load contact info:', error)
   }
