@@ -16,7 +16,7 @@ services:
   # Sub2API Application
   # ===========================================================================
   sub2api:
-    image: weishaw/sub2api:latest
+    image: ghcr.io/wei-shaw/sub2api@sha256:0e7518b1cde5722ecaf31129d4dc0837d400ddfeaec56de4cc5a6c13f2ef3ab8
     container_name: sub2api
     restart: unless-stopped
     security_opt:
@@ -30,6 +30,10 @@ services:
     volumes:
       # Data persistence (config.yaml will be auto-generated here)
       - sub2api_data:/app/data
+      # RelayGateway 用户指南作为站内 Markdown 页面提供，保持仓库文档为唯一来源。
+      - ../RELAYGATEWAY_USER_GUIDE.md:/app/data/pages/relaygateway-guide.md:ro
+      # 正式店铺 URL 配置前提供明确占位页，避免导航落到无效地址。
+      - ../RELAYGATEWAY_STORE.md:/app/data/pages/liandong-shop.md:ro
       # Optional: Mount custom config.yaml (uncomment and create the file first)
       # Copy config.example.yaml to config.yaml, modify it, then uncomment:
       # - ./config.yaml:/app/data/config.yaml
@@ -227,7 +231,7 @@ services:
   # PostgreSQL Database
   # ===========================================================================
   postgres:
-    image: postgres:18-alpine
+    image: postgres@sha256:d3e1620b530c944afa6e887d22eb899824da68e19c52024bf98f5220c88a65b2
     container_name: sub2api-postgres
     restart: unless-stopped
     ulimits:
@@ -273,7 +277,7 @@ services:
   # Redis Cache
   # ===========================================================================
   redis:
-    image: redis:8-alpine
+    image: redis@sha256:978f0e01593e65eed801f2402944efcd936d43b5027e4908a7897baf88ed6241
     container_name: sub2api-redis
     restart: unless-stopped
     ulimits:

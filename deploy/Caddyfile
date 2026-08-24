@@ -8,8 +8,8 @@
 	}
 }
 
-# 修改为你的域名
-api.sub2api.com {
+# 通过 RELAYGATEWAY_DOMAIN 注入正式域名，例如 api.relay-gateway.xyz。
+{$RELAYGATEWAY_DOMAIN} {
 	# This baseline assumes clients connect directly to Caddy. When Caddy is
 	# behind a CDN, configure explicit trusted proxy CIDRs and {client_ip} as
 	# documented in EDGE_SECURITY.md; {remote_host} would otherwise be the CDN.
@@ -94,7 +94,7 @@ api.sub2api.com {
 	# 日志配置
 	# =========================================================================
 	log {
-		output file /var/log/caddy/sub2api.log {
+		output file /var/log/caddy/relaygateway.log {
 			roll_size 50mb
 			roll_keep 10
 			roll_keep_for 720h
