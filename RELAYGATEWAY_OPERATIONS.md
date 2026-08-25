@@ -75,11 +75,14 @@
    - 绑定分组：选择目标 OpenAI 分组；
    - 计费模型来源：`upstream`，优先使用上游返回的 usage；
    - 限制模型：开启，只允许绑定分组中已上架的模型；
-   - 模型计费明细、模型映射：首版留空，沿用分组和上游模型配置；
+   - 模型计费明细：开启模型限制时必须加入允许调用的模型；价格留空可沿用系统基础价格；
+   - 模型映射：没有别名或上游模型转换需求时留空；
    - 账号统计单独计费：关闭，避免重复覆盖分组账单。
 5. 保存后回到渠道详情，确认状态、绑定分组、模型限制和计费来源正确。
 
-当前生产环境已按上述默认创建 `RelayGateway OpenAI` 渠道，绑定 OpenAI 分组；该渠道没有单独覆盖模型价格，分组当前倍率仍为 `1x`。调整对外售价前，应先在分组中改倍率并完成一次测试请求。
+当前生产环境已按上述默认创建 `RelayGateway OpenAI` 渠道，绑定 OpenAI 分组，并将已验证的 OpenAI 文本模型加入渠道白名单；渠道没有单独覆盖模型价格，分组当前倍率仍为 `1x`。调整对外售价前，应先在分组中改倍率并完成一次测试请求。
+
+注意：`restrict_models=true` 且 `model_pricing=[]` 表示不允许任何模型，不是“沿用全部模型”。此时调度日志会出现 `channel_upstream_restricted`，客户端收到 503。修复方式是在模型计费明细中加入允许模型，或明确关闭模型限制。
 
 ### 5.3 计费来源选择
 
@@ -97,7 +100,16 @@
   "name": "RelayGateway OpenAI",
   "description": "RelayGateway OpenAI 付费路由",
   "group_ids": [2],
-  "model_pricing": [],
+  "model_pricing": [
+    {
+      "platform": "openai",
+      "models": ["gpt-5.5"],
+      "billing_mode": "token",
+      "input_price": null,
+      "output_price": null,
+      "intervals": []
+    }
+  ],
   "model_mapping": {},
   "billing_model_source": "upstream",
   "restrict_models": true,
@@ -116,6 +128,22 @@
 3. 分别执行一次非流式和流式请求，检查 HTTP 状态、首 Token、usage、余额扣减和用量记录。
 4. 上游异常时先把渠道设为 disabled；确认用户请求不再路由到该渠道后，再处理账号或分组。
 5. 误配模型/价格时优先使用渠道编辑恢复上一版配置；只有确认无历史用量依赖时才删除渠道。
+
+### 5.6 端到端监控
+
+在“管理后台 → 渠道监控”新建监控：
+
+- 名称：`RelayGateway OpenAI 端到端监控`；
+- Provider：OpenAI；API 模式：Chat Completions；
+- Endpoint：`https://relay-gateway.xyz`；
+- API Key：使用专门绑定目标分组、低额度的监控 Key，不使用管理员令牌或上游凭据；
+- 检测模式：`quota_probe`；关联账号选择对应 OpenAI OAuth 账号；
+- 主模型：`gpt-5.5`；额外模型首版留空；
+- 周期：300 秒；抖动：30 秒；启用。
+
+保存后执行一次“立即检测”，必须同时满足：模型状态 `operational`、延迟有值、配额快照 `success=true`。生产已按此配置启用；该监控每次会产生一次小额真实模型调用。若只需零成本监控账号配额，将检测模式改为 `quota`，但它不能验证用户入口、API Key、渠道限制和模型响应是否正常。
+
+监控异常排查顺序：公网健康检查 → 用户 API Key 状态 → 渠道模型白名单 → 分组可用账号 → 上游账号凭据/配额 → 最近监控历史与相同 request ID 的应用日志。不要在日志或工单中粘贴完整 API Key。
 
 ## 6. PostgreSQL 备份
 
