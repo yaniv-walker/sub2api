@@ -273,6 +273,7 @@ export default {
       used: '已使用',
       searchCodes: '搜索兑换码或邮箱...',
       exportCsv: '导出 CSV',
+      exportUnusedTxt: '导出未使用 TXT',
       batchUpdate: '批量修改',
       batchUpdateTitle: '批量修改兑换码',
       selectedCount: '已选择 {count} 个兑换码',

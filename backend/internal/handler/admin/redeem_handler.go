@@ -462,3 +462,42 @@ func (h *RedeemHandler) Export(c *gin.Context) {
 	c.Header("Content-Disposition", "attachment; filename=redeem_codes.csv")
 	c.Data(200, "text/csv", buf.Bytes())
 }
+
+// ExportUnusedTXT 导出未使用兑换码为纯文本，每行一个卡密。
+// 查询参数 type、search 用于筛选商品类型或卡密内容；status 固定为 unused，避免导出已使用卡密。
+func (h *RedeemHandler) ExportUnusedTXT(c *gin.Context) {
+	codeType := c.Query("type")
+	search := strings.TrimSpace(c.Query("search"))
+	if len(search) > 100 {
+		search = search[:100]
+	}
+
+	const pageSize = 10000
+	page := 1
+	var buf bytes.Buffer
+	for {
+		codes, total, err := h.adminService.ListRedeemCodes(
+			c.Request.Context(), page, pageSize, codeType, service.StatusUnused, search, "id", "asc",
+		)
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		for _, code := range codes {
+			// 兑换码由系统生成且不允许换行；去除异常换行仍保证导出文件一行一组。
+			value := strings.NewReplacer("\r", "", "\n", "").Replace(code.Code)
+			if value != "" {
+				buf.WriteString(value)
+				buf.WriteByte('\n')
+			}
+		}
+		if len(codes) == 0 || int64(page*pageSize) >= total {
+			break
+		}
+		page++
+	}
+
+	c.Header("Content-Type", "text/plain; charset=utf-8")
+	c.Header("Content-Disposition", "attachment; filename=redeem-codes-unused.txt")
+	c.Data(200, "text/plain; charset=utf-8", buf.Bytes())
+}

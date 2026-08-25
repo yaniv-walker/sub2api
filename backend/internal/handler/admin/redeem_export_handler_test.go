@@ -47,3 +47,20 @@ func TestRedeemExportSortDefaults(t *testing.T) {
 	require.Equal(t, "id", adminSvc.lastListRedeemCodes.sortBy)
 	require.Equal(t, "desc", adminSvc.lastListRedeemCodes.sortOrder)
 }
+
+func TestRedeemExportUnusedTXTForcesUnusedAndWritesOneCodePerLine(t *testing.T) {
+	router, adminSvc := setupRedeemExportRouter()
+	h := NewRedeemHandler(adminSvc, nil)
+	router.GET("/api/v1/admin/redeem-codes/export-unused.txt", h.ExportUnusedTXT)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/redeem-codes/export-unused.txt?status=used&type=balance", nil)
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Contains(t, rec.Header().Get("Content-Type"), "text/plain")
+	require.Contains(t, rec.Header().Get("Content-Disposition"), "redeem-codes-unused.txt")
+	require.Equal(t, "unused", adminSvc.lastListRedeemCodes.status)
+	require.Equal(t, "balance", adminSvc.lastListRedeemCodes.codeType)
+	require.Equal(t, "R-TEST\n", rec.Body.String())
+}

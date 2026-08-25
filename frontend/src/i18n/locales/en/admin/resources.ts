@@ -266,6 +266,7 @@ export default {
       },
       userPrefix: 'User #{id}',
       exportCsv: 'Export CSV',
+      exportUnusedTxt: 'Export unused TXT',
       batchUpdate: 'Batch Update',
       batchUpdateTitle: 'Batch Update Redeem Codes',
       selectedCount: '{count} redeem code(s) selected',

@@ -191,6 +191,18 @@ export async function exportCodes(filters?: {
   return response.data
 }
 
+/** 导出未使用兑换码为 TXT，每行一个卡密。 */
+export async function exportUnusedTXT(filters?: {
+  type?: RedeemCodeType
+  search?: string
+}): Promise<Blob> {
+  const response = await apiClient.get('/admin/redeem-codes/export-unused.txt', {
+    params: filters,
+    responseType: 'blob'
+  })
+  return response.data
+}
+
 export const redeemAPI = {
   list,
   getById,
@@ -200,7 +212,8 @@ export const redeemAPI = {
   batchUpdate,
   expire,
   getStats,
-  exportCodes
+  exportCodes,
+  exportUnusedTXT
 }
 
 export default redeemAPI

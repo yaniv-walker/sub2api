@@ -39,6 +39,9 @@
             <button @click="handleExportCodes" class="btn btn-secondary">
               {{ t('admin.redeem.exportCsv') }}
             </button>
+            <button @click="handleExportUnusedTXT" class="btn btn-secondary">
+              {{ t('admin.redeem.exportUnusedTxt') }}
+            </button>
             <button
               data-test="batch-update-open"
               @click="openBatchUpdateDialog"
@@ -1085,6 +1088,27 @@ const handleExportCodes = async () => {
   } catch (error: any) {
     appStore.showError(error.response?.data?.detail || t('admin.redeem.failedToExport'))
     console.error('Error exporting codes:', error)
+  }
+}
+
+const handleExportUnusedTXT = async () => {
+  try {
+    const blob = await adminAPI.redeem.exportUnusedTXT({
+      type: (filters.type || undefined) as RedeemCodeType | undefined,
+      search: searchQuery.value.trim() || undefined
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `redeem-codes-unused-${new Date().toISOString().split('T')[0]}.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+    appStore.showSuccess(t('admin.redeem.codesExported'))
+  } catch (error: any) {
+    appStore.showError(error.response?.data?.detail || t('admin.redeem.failedToExport'))
+    console.error('Error exporting unused redeem codes:', error)
   }
 }
 
