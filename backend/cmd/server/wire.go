@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -14,11 +15,13 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
+	"github.com/Wei-Shaw/sub2api/internal/plugin"
 	"github.com/Wei-Shaw/sub2api/internal/repository"
 	"github.com/Wei-Shaw/sub2api/internal/securityaudit"
 	"github.com/Wei-Shaw/sub2api/internal/server"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
+	upstreammonitor "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor"
 
 	"github.com/google/wire"
 	"github.com/redis/go-redis/v9"
@@ -46,6 +49,10 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 
 		// Server layer ProviderSet
 		server.ProviderSet,
+
+		// Plugin layer ProviderSets
+		upstreammonitor.ProviderSet,
+		provideInternalPluginManager,
 
 		// Privacy client factory for OpenAI training opt-out
 		providePrivacyClientFactory,
@@ -79,6 +86,11 @@ func providePluginHostInfo(buildInfo handler.BuildInfo) service.PluginHostInfo {
 		Version:   buildInfo.Version,
 		BuildType: buildInfo.BuildType,
 	}
+}
+
+// provideInternalPluginManager creates the internal plugin manager for first-party plugins
+func provideInternalPluginManager(logger *slog.Logger) *plugin.Manager {
+	return plugin.NewManager(logger)
 }
 
 func provideCleanup(

@@ -115,6 +115,54 @@ type PluginConfig struct {
 	MaxUploadBytes       int64             `mapstructure:"max_upload_bytes"`
 	MaxUncompressedBytes int64             `mapstructure:"max_uncompressed_bytes"`
 	StartTimeoutSeconds  int               `mapstructure:"start_timeout_seconds"`
+
+	// UpstreamMonitor 上游监控插件配置
+	UpstreamMonitor UpstreamMonitorPluginConfig `mapstructure:"upstream_monitor"`
+}
+
+// UpstreamMonitorPluginConfig 上游监控插件配置
+type UpstreamMonitorPluginConfig struct {
+	Enabled     bool                               `mapstructure:"enabled"`
+	AutoMigrate bool                               `mapstructure:"auto_migrate"`
+	Features    UpstreamMonitorFeaturesConfig      `mapstructure:"features"`
+	Cache       UpstreamMonitorCacheConfig         `mapstructure:"cache"`
+	Alerts      UpstreamMonitorAlertsConfig        `mapstructure:"alerts"`
+	Prediction  UpstreamMonitorPredictionConfig    `mapstructure:"prediction"`
+	Accounts    []UpstreamMonitorAccountConfig     `mapstructure:"accounts"`
+}
+
+// UpstreamMonitorAccountConfig 上游账号配置
+type UpstreamMonitorAccountConfig struct {
+	ID           int64  `mapstructure:"id"`
+	Name         string `mapstructure:"name"`
+	Type         string `mapstructure:"type"` // "sub2api" or "nexapi"
+	ApiKey       string `mapstructure:"api_key"`
+	Enabled      bool   `mapstructure:"enabled"`
+	Description  string `mapstructure:"description"`
+}
+
+type UpstreamMonitorFeaturesConfig struct {
+	BalanceMonitoring     bool `mapstructure:"balance_monitoring"`
+	ErrorAnalysis         bool `mapstructure:"error_analysis"`
+	UsagePrediction       bool `mapstructure:"usage_prediction"`
+	ConcurrencyMonitoring bool `mapstructure:"concurrency_monitoring"`
+}
+
+type UpstreamMonitorCacheConfig struct {
+	Enabled        bool   `mapstructure:"enabled"`
+	TTL            int    `mapstructure:"ttl"` // seconds
+	RedisKeyPrefix string `mapstructure:"redis_key_prefix"`
+}
+
+type UpstreamMonitorAlertsConfig struct {
+	LowBalanceThreshold    float64 `mapstructure:"low_balance_threshold"`
+	HighErrorRateThreshold float64 `mapstructure:"high_error_rate_threshold"`
+}
+
+type UpstreamMonitorPredictionConfig struct {
+	Algorithm     string `mapstructure:"algorithm"`
+	WindowDays    int    `mapstructure:"window_days"`
+	MinDataPoints int    `mapstructure:"min_data_points"`
 }
 
 type LogConfig struct {
