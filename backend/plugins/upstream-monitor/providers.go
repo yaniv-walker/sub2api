@@ -2,6 +2,7 @@ package upstreammonitor
 
 import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	hostservice "github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/handler"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/repository"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/service"
@@ -22,12 +23,19 @@ var ProviderSet = wire.NewSet(
 	ProvideUsagePredictor,
 
 	// Handler layer
+	ProvideAccountProvider,
 	handler.NewMonitorHandler,
 
 	// Plugin
 	ProvidePluginConfig,
 	NewPluginWithHandler,
 )
+
+// ProvideAccountProvider keeps the plugin dependent on the narrow handler
+// contract while sourcing accounts from the host database repository.
+func ProvideAccountProvider(repo hostservice.AccountRepository) handler.AccountProvider {
+	return repo
+}
 
 // ProvidePluginConfig extracts the plugin config from the main config.
 func ProvidePluginConfig(cfg *config.Config) *config.UpstreamMonitorPluginConfig {

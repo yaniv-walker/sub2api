@@ -84,6 +84,7 @@
  - 2026-09-21：核对并修复 Windows 启动端口异常。机器上的 `E:\\app\\data\\config.yaml` 因无条件加入 `/app/data` 搜索路径而覆盖仓库配置，导致实际端口为 3000 且插件配置缺失。配置加载和 setup 数据目录现在仅在非 Windows 系统启用 `/app/data`；Windows 默认使用当前目录 `config.yaml`。`internal/config`、`internal/setup` 测试通过，实跑确认插件初始化、路由注册及 `Server started on 0.0.0.0:8080` 均出现。
 - 2026-09-21：完成任务 6；新增稳定事件载荷，主网关成功/失败转发和管理员账号删除均触发插件钩子。失败事件写入 `upstream_error_records`，账号删除幂等清理错误记录和余额快照，成功事件写入结构化运行日志；插件仓储通过 Wire 注入。异步事件使用脱离请求取消的上下文，避免客户端断开导致记录丢失。
 - 2026-09-21：任务 8 继续保留未完成。定向插件、服务和网关测试可编译；Windows 全量 handler 测试仍有既有 `TestResolvePageImagePath` 路径语义失败，需单独跨平台修复后再宣称全量通过。
+- 2026-09-21：修复账号数据边界。插件 handler 不再读取 `config.yaml` 中的账号列表，改为注入主系统 `AccountRepository`，直接读取后台管理员维护的 `accounts` 表；仅纳入 active、`upstream` 类型、含 API Key 且可识别为 `sub2api`/`nexapi` 的账号。类型优先取账号扩展字段，否则从 `base_url` 推导；补充边界单元测试，并同步 Wire 与 README。插件定向测试通过。
 
 ## 启动端口与插件日志核验
 

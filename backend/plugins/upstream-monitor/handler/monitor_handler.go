@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	hostservice "github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/service"
 	"github.com/gin-gonic/gin"
 )
@@ -15,6 +17,7 @@ type MonitorHandler struct {
 	aggregator *service.BalanceAggregator
 	analyzer   *service.ErrorAnalyzer
 	predictor  *service.UsagePredictor
+	accounts   AccountProvider
 	config     *config.UpstreamMonitorPluginConfig
 }
 
@@ -24,6 +27,7 @@ func NewMonitorHandler(
 	aggregator *service.BalanceAggregator,
 	analyzer *service.ErrorAnalyzer,
 	predictor *service.UsagePredictor,
+	accounts AccountProvider,
 	config *config.UpstreamMonitorPluginConfig,
 ) *MonitorHandler {
 	return &MonitorHandler{
@@ -31,6 +35,7 @@ func NewMonitorHandler(
 		aggregator: aggregator,
 		analyzer:   analyzer,
 		predictor:  predictor,
+		accounts:   accounts,
 		config:     config,
 	}
 }
@@ -62,8 +67,12 @@ func (h *MonitorHandler) RegisterRoutes(router *gin.RouterGroup) {
 func (h *MonitorHandler) GetOverview(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get enabled accounts from config
-	accounts := h.getEnabledAccounts()
+	managed, err := h.loadActiveAccounts(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	accounts := monitorInfos(managed)
 	if len(accounts) == 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"total_balance":     0,
@@ -117,19 +126,31 @@ func (h *MonitorHandler) GetOverview(c *gin.Context) {
 	})
 }
 
-// getEnabledAccounts returns a list of enabled accounts from config
-func (h *MonitorHandler) getEnabledAccounts() []service.AccountInfo {
-	accounts := make([]service.AccountInfo, 0)
-	for _, acc := range h.config.Accounts {
-		if acc.Enabled {
-			accounts = append(accounts, service.AccountInfo{
-				ID:           acc.ID,
-				UpstreamType: acc.Type,
-				ApiKey:       acc.ApiKey,
-			})
-		}
+// loadActiveAccounts reads administrator-managed accounts from the host repository.
+func (h *MonitorHandler) loadActiveAccounts(ctx context.Context) ([]monitorAccount, error) {
+	accounts, err := h.accounts.ListActive(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return accounts
+	return monitorAccounts(accounts), nil
+}
+func monitorInfos(accounts []monitorAccount) []service.AccountInfo {
+	result := make([]service.AccountInfo, 0, len(accounts))
+	for _, account := range accounts {
+		result = append(result, account.info)
+	}
+	return result
+}
+func (h *MonitorHandler) loadAccount(ctx context.Context, id int64) (*monitorAccount, error) {
+	account, err := h.accounts.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	info, ok := monitorAccountInfo(account)
+	if !ok {
+		return nil, hostservice.ErrAccountNotFound
+	}
+	return &monitorAccount{account: account, info: info}, nil
 }
 
 // ListAccounts lists all upstream accounts.
@@ -138,34 +159,30 @@ func (h *MonitorHandler) ListAccounts(c *gin.Context) {
 	platform := c.Query("platform") // "sub2api" or "nexapi"
 	status := c.Query("status")     // "active", "inactive", etc.
 
-	// Get all accounts from config
-	accounts := h.config.Accounts
+	managed, err := h.loadActiveAccounts(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
 	// Build response
 	result := make([]gin.H, 0)
-	for _, acc := range accounts {
+	for _, item := range managed {
+		acc, info := item.account, item.info
 		// Apply filters
-		if platform != "" && acc.Type != platform {
+		if platform != "" && info.UpstreamType != platform {
 			continue
 		}
-		if status != "" && acc.Enabled && status != "active" {
+		if status != "" && status != "active" {
 			continue
-		}
-		if status != "" && !acc.Enabled && status != "inactive" {
-			continue
-		}
-
-		accountStatus := "active"
-		if !acc.Enabled {
-			accountStatus = "inactive"
 		}
 
 		result = append(result, gin.H{
 			"id":          acc.ID,
 			"name":        acc.Name,
-			"type":        acc.Type,
-			"status":      accountStatus,
-			"description": acc.Description,
+			"type":        info.UpstreamType,
+			"status":      "active",
+			"description": acc.Notes,
 		})
 	}
 
@@ -177,7 +194,7 @@ func (h *MonitorHandler) ListAccounts(c *gin.Context) {
 
 // GetAccountDetail returns detailed information for a specific account.
 func (h *MonitorHandler) GetAccountDetail(c *gin.Context) {
-	_ = c.Request.Context() // ctx reserved for future use
+	ctx := c.Request.Context()
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -185,30 +202,17 @@ func (h *MonitorHandler) GetAccountDetail(c *gin.Context) {
 		return
 	}
 
-	// Find account in config
-	var account *config.UpstreamMonitorAccountConfig
-	for i := range h.config.Accounts {
-		if h.config.Accounts[i].ID == id {
-			account = &h.config.Accounts[i]
-			break
-		}
-	}
-
-	if account == nil {
+	managed, err := h.loadAccount(ctx, id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Account not found"})
 		return
 	}
 
 	// Fetch current info
-	info, err := h.fetcher.FetchInfo(account.ID, account.Type, account.ApiKey)
+	info, err := h.fetcher.FetchInfo(managed.info.ID, managed.info.UpstreamType, managed.info.ApiKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
-	}
-
-	status := "active"
-	if !account.Enabled {
-		status = "inactive"
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -217,15 +221,15 @@ func (h *MonitorHandler) GetAccountDetail(c *gin.Context) {
 		"type":         info.Type,
 		"balance":      info.Balance,
 		"concurrency":  info.Concurrency,
-		"status":       status,
-		"description":  account.Description,
+		"status":       "active",
+		"description":  managed.account.Notes,
 		"last_updated": nil, // Would need to track this in database
 	})
 }
 
 // RefreshBalance refreshes the balance for a specific account.
 func (h *MonitorHandler) RefreshBalance(c *gin.Context) {
-	_ = c.Request.Context() // ctx reserved for future use
+	ctx := c.Request.Context()
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -233,27 +237,14 @@ func (h *MonitorHandler) RefreshBalance(c *gin.Context) {
 		return
 	}
 
-	// Find account in config
-	var account *config.UpstreamMonitorAccountConfig
-	for i := range h.config.Accounts {
-		if h.config.Accounts[i].ID == id {
-			account = &h.config.Accounts[i]
-			break
-		}
-	}
-
-	if account == nil {
+	managed, err := h.loadAccount(ctx, id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Account not found"})
 		return
 	}
 
-	if !account.Enabled {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Account is disabled"})
-		return
-	}
-
 	// Fetch current balance
-	info, err := h.fetcher.FetchInfo(account.ID, account.Type, account.ApiKey)
+	info, err := h.fetcher.FetchInfo(managed.info.ID, managed.info.UpstreamType, managed.info.ApiKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -283,21 +274,13 @@ func (h *MonitorHandler) GetErrorStats(c *gin.Context) {
 		}
 	}
 
-	// Find account in config to get type
-	var accountType string
-	for _, acc := range h.config.Accounts {
-		if acc.ID == id {
-			accountType = acc.Type
-			break
-		}
-	}
-
-	if accountType == "" {
+	managed, err := h.loadAccount(ctx, id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Account not found"})
 		return
 	}
 
-	stats, err := h.analyzer.GetErrorStats(ctx, accountType, id, days)
+	stats, err := h.analyzer.GetErrorStats(ctx, managed.info.UpstreamType, id, days)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -323,21 +306,13 @@ func (h *MonitorHandler) GetUsageAnalysis(c *gin.Context) {
 		}
 	}
 
-	// Find account in config to get type
-	var accountType string
-	for _, acc := range h.config.Accounts {
-		if acc.ID == id {
-			accountType = acc.Type
-			break
-		}
-	}
-
-	if accountType == "" {
+	managed, err := h.loadAccount(ctx, id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Account not found"})
 		return
 	}
 
-	snapshots, err := h.predictor.Snapshots(ctx, accountType, id, days)
+	snapshots, err := h.predictor.Snapshots(ctx, managed.info.UpstreamType, id, days)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -365,21 +340,13 @@ func (h *MonitorHandler) GetPrediction(c *gin.Context) {
 		return
 	}
 
-	// Find account in config to get type
-	var accountType string
-	for _, acc := range h.config.Accounts {
-		if acc.ID == id {
-			accountType = acc.Type
-			break
-		}
-	}
-
-	if accountType == "" {
+	managed, err := h.loadAccount(ctx, id)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Account not found"})
 		return
 	}
 
-	prediction, err := h.predictor.PredictFromHistory(ctx, accountType, id)
+	prediction, err := h.predictor.PredictFromHistory(ctx, managed.info.UpstreamType, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -392,8 +359,12 @@ func (h *MonitorHandler) GetPrediction(c *gin.Context) {
 func (h *MonitorHandler) RefreshAllBalances(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	// Get enabled accounts from config
-	accounts := h.getEnabledAccounts()
+	managed, err := h.loadActiveAccounts(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	accounts := monitorInfos(managed)
 	if len(accounts) == 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"refreshed_count": 0,
