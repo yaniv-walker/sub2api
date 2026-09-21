@@ -171,8 +171,20 @@ func (p *Plugin) runMigrations(ctx context.Context) error {
 	if p.entClient == nil {
 		return fmt.Errorf("ent client is nil, cannot run migrations")
 	}
-	// The host owns the complete Ent schema migration. Calling Schema.Create here
-	// would attempt to migrate unrelated application tables as a plugin side effect.
-	p.logger.Info("Skipping plugin migration; using host-managed Ent schema", "context_present", ctx != nil)
+	// Create only the plugin-owned configuration table. Calling the global Ent
+	// schema migration here would also mutate unrelated host tables.
+	_, err := p.entClient.ExecContext(ctx, `
+CREATE TABLE IF NOT EXISTS upstream_monitor_upstreams (
+    id BIGSERIAL PRIMARY KEY,
+    base_url VARCHAR(500) NOT NULL UNIQUE,
+    name VARCHAR(200) NOT NULL DEFAULT '',
+    upstream_type VARCHAR(20) NOT NULL CHECK (upstream_type IN ('sub2api', 'nexapi')),
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`)
+	if err != nil {
+		return fmt.Errorf("create upstream monitor configuration table: %w", err)
+	}
 	return nil
 }
