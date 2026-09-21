@@ -29,9 +29,14 @@ func TestMonitorAccountInfoUsesHostAccountData(t *testing.T) {
 			wantType: "sub2api", wantOK: true,
 		},
 		{
-			name:    "non upstream filtered",
-			account: service.Account{ID: 4, Type: service.AccountTypeAPIKey, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key", "base_url": "https://api.sub2api.com"}},
+			name:    "ordinary api key filtered",
+			account: service.Account{ID: 4, Type: service.AccountTypeAPIKey, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key"}},
 			wantOK:  false,
+		},
+		{
+			name:     "api key custom upstream included",
+			account:  service.Account{ID: 8, Type: service.AccountTypeAPIKey, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key", "base_url": "https://gateway.example.com"}},
+			wantType: "sub2api", wantOK: true,
 		},
 		{
 			name:    "inactive filtered",
@@ -44,8 +49,8 @@ func TestMonitorAccountInfoUsesHostAccountData(t *testing.T) {
 			wantOK:  false,
 		},
 		{
-			name:    "unknown upstream filtered",
-			account: service.Account{ID: 7, Type: service.AccountTypeUpstream, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key", "base_url": "https://example.com"}},
+			name:     "unknown upstream filtered",
+			account:  service.Account{ID: 7, Type: service.AccountTypeUpstream, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key", "base_url": "https://example.com"}},
 			wantType: "sub2api", wantOK: true,
 		},
 	}
@@ -66,10 +71,11 @@ func TestMonitorAccountInfoUsesHostAccountData(t *testing.T) {
 func TestMonitorAccountsFiltersHostAccounts(t *testing.T) {
 	accounts := []service.Account{
 		{ID: 1, Type: service.AccountTypeUpstream, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key", "base_url": "https://api.sub2api.com"}},
-		{ID: 2, Type: service.AccountTypeAPIKey, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key", "base_url": "https://api.sub2api.com"}},
+		{ID: 2, Type: service.AccountTypeAPIKey, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key"}},
+		{ID: 3, Type: service.AccountTypeAPIKey, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key", "base_url": "https://gateway.example.com"}},
 	}
 	got := monitorAccounts(accounts)
-	if len(got) != 1 || got[0].account.ID != 1 {
-		t.Fatalf("monitorAccounts returned %+v, want only active upstream account 1", got)
+	if len(got) != 2 || got[0].account.ID != 1 || got[1].account.ID != 3 {
+		t.Fatalf("monitorAccounts returned %+v, want upstream accounts 1 and 3", got)
 	}
 }

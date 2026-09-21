@@ -86,6 +86,7 @@
 - 2026-09-21：任务 8 继续保留未完成。定向插件、服务和网关测试可编译；Windows 全量 handler 测试仍有既有 `TestResolvePageImagePath` 路径语义失败，需单独跨平台修复后再宣称全量通过。
 - 2026-09-21：修复账号数据边界。插件 handler 不再读取 `config.yaml` 中的账号列表，改为注入主系统 `AccountRepository`，直接读取后台管理员维护的 `accounts` 表；仅纳入 active、`upstream` 类型、含 API Key 且可识别为 `sub2api`/`nexapi` 的账号。类型优先取账号扩展字段，否则从 `base_url` 推导；补充边界单元测试，并同步 Wire 与 README。插件定向测试通过。
 - 2026-09-21：补充自定义域名兼容。`type=upstream` 本身只表示透传账号，无法单独区分监控协议；类型现在优先取账号扩展字段、明确的 platform，再从 URL 推导，仍无法区分时默认 `sub2api`，避免后台账号因自定义域名被过滤。NexAPI 可在账号扩展字段设置 `upstream_monitor_type=nexapi`。
+- 2026-09-21：根据后台实际数据修正账号资格：管理页面创建的上游账号保存为 `type=apikey`，因此现在同时纳入带 `credentials.base_url` 的 API Key 账号；普通无 `base_url` 的 API Key 账号仍排除。补充对应单元测试。
 
 ## 启动端口与插件日志核验
 

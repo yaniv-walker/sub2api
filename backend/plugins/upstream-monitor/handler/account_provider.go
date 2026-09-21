@@ -34,7 +34,7 @@ func monitorAccounts(accounts []service.Account) []monitorAccount {
 }
 
 func monitorAccountInfo(account *service.Account) (monitorservice.AccountInfo, bool) {
-	if account == nil || account.Type != service.AccountTypeUpstream || !account.IsActive() {
+	if account == nil || !account.IsActive() || !isMonitorAccount(account) {
 		return monitorservice.AccountInfo{}, false
 	}
 	typeName := upstreamMonitorType(account)
@@ -43,6 +43,16 @@ func monitorAccountInfo(account *service.Account) (monitorservice.AccountInfo, b
 		return monitorservice.AccountInfo{}, false
 	}
 	return monitorservice.AccountInfo{ID: account.ID, UpstreamType: typeName, ApiKey: apiKey}, true
+}
+
+// isMonitorAccount accepts both the legacy upstream type and the type emitted
+// by the admin UI for API-key based custom upstreams. Ordinary API-key accounts
+// without a custom base URL remain outside the monitor.
+func isMonitorAccount(account *service.Account) bool {
+	if account.Type == service.AccountTypeUpstream {
+		return true
+	}
+	return account.Type == service.AccountTypeAPIKey && strings.TrimSpace(account.GetCredential("base_url")) != ""
 }
 
 func upstreamMonitorType(account *service.Account) string {
