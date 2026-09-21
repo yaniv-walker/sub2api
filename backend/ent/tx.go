@@ -80,6 +80,8 @@ type Tx struct {
 	UpstreamBalanceSnapshot *UpstreamBalanceSnapshotClient
 	// UpstreamErrorRecord is the client for interacting with the UpstreamErrorRecord builders.
 	UpstreamErrorRecord *UpstreamErrorRecordClient
+	// UpstreamMonitorUpstream is the client for interacting with the UpstreamMonitorUpstream builders.
+	UpstreamMonitorUpstream *UpstreamMonitorUpstreamClient
 	// UsageCleanupTask is the client for interacting with the UsageCleanupTask builders.
 	UsageCleanupTask *UsageCleanupTaskClient
 	// UsageLog is the client for interacting with the UsageLog builders.
@@ -260,6 +262,7 @@ func (tx *Tx) init() {
 	tx.TLSFingerprintProfile = NewTLSFingerprintProfileClient(tx.config)
 	tx.UpstreamBalanceSnapshot = NewUpstreamBalanceSnapshotClient(tx.config)
 	tx.UpstreamErrorRecord = NewUpstreamErrorRecordClient(tx.config)
+	tx.UpstreamMonitorUpstream = NewUpstreamMonitorUpstreamClient(tx.config)
 	tx.UsageCleanupTask = NewUsageCleanupTaskClient(tx.config)
 	tx.UsageLog = NewUsageLogClient(tx.config)
 	tx.User = NewUserClient(tx.config)

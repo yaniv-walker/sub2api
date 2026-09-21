@@ -45,6 +45,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/tlsfingerprintprofile"
 	"github.com/Wei-Shaw/sub2api/ent/upstreambalancesnapshot"
 	"github.com/Wei-Shaw/sub2api/ent/upstreamerrorrecord"
+	"github.com/Wei-Shaw/sub2api/ent/upstreammonitorupstream"
 	"github.com/Wei-Shaw/sub2api/ent/usagecleanuptask"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
 	"github.com/Wei-Shaw/sub2api/ent/user"
@@ -146,6 +147,7 @@ func checkColumn(t, c string) error {
 			tlsfingerprintprofile.Table:         tlsfingerprintprofile.ValidColumn,
 			upstreambalancesnapshot.Table:       upstreambalancesnapshot.ValidColumn,
 			upstreamerrorrecord.Table:           upstreamerrorrecord.ValidColumn,
+			upstreammonitorupstream.Table:       upstreammonitorupstream.ValidColumn,
 			usagecleanuptask.Table:              usagecleanuptask.ValidColumn,
 			usagelog.Table:                      usagelog.ValidColumn,
 			user.Table:                          user.ValidColumn,

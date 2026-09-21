@@ -3,6 +3,8 @@ package handler
 import (
 	"testing"
 
+	"github.com/Wei-Shaw/sub2api/ent"
+	"github.com/Wei-Shaw/sub2api/ent/upstreammonitorupstream"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 )
 
@@ -65,6 +67,32 @@ func TestMonitorAccountInfoUsesHostAccountData(t *testing.T) {
 				t.Fatalf("upstream type = %q, want %q", info.UpstreamType, tt.wantType)
 			}
 		})
+	}
+}
+
+func TestGroupMonitorAccountsUsesOneConfiguredUpstreamPerOrigin(t *testing.T) {
+	accounts := monitorAccounts([]service.Account{
+		{ID: 1, Type: service.AccountTypeAPIKey, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key-1", "base_url": "https://Gateway.Example.com/v1"}},
+		{ID: 2, Type: service.AccountTypeAPIKey, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key-2", "base_url": "https://gateway.example.com/v1/chat/completions"}},
+	})
+	configs := []*ent.UpstreamMonitorUpstream{{
+		ID: 9, BaseURL: "https://gateway.example.com", Name: "Primary relay",
+		UpstreamType: upstreammonitorupstream.UpstreamTypeNexapi, Enabled: true,
+	}}
+
+	got := groupMonitorAccounts(accounts, configs)
+	if len(got) != 1 {
+		t.Fatalf("group count = %d, want 1", len(got))
+	}
+	if got[0].ID != 9 || got[0].Type != "nexapi" || !got[0].Configured {
+		t.Fatalf("configured upstream = %+v", got[0])
+	}
+	if len(got[0].Accounts) != 2 {
+		t.Fatalf("account count = %d, want 2", len(got[0].Accounts))
+	}
+	infos := monitorUpstreamInfos(got)
+	if len(infos) != 1 || infos[0].BaseURL != "https://gateway.example.com" || infos[0].UpstreamType != "nexapi" {
+		t.Fatalf("fetch inputs = %+v", infos)
 	}
 }
 

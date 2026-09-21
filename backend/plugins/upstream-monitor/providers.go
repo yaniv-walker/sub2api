@@ -14,6 +14,7 @@ var ProviderSet = wire.NewSet(
 	// Repository layer
 	repository.NewBalanceSnapshotRepository,
 	repository.NewErrorRecordRepository,
+	repository.NewUpstreamRepository,
 	repository.NewRepositories,
 
 	// Service layer

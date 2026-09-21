@@ -105,6 +105,9 @@ type UpstreamBalanceSnapshot func(*sql.Selector)
 // UpstreamErrorRecord is the predicate function for upstreamerrorrecord builders.
 type UpstreamErrorRecord func(*sql.Selector)
 
+// UpstreamMonitorUpstream is the predicate function for upstreammonitorupstream builders.
+type UpstreamMonitorUpstream func(*sql.Selector)
+
 // UsageCleanupTask is the predicate function for usagecleanuptask builders.
 type UsageCleanupTask func(*sql.Selector)
 

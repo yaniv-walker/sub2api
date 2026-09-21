@@ -1650,6 +1650,22 @@ var (
 			},
 		},
 	}
+	// UpstreamMonitorUpstreamsColumns holds the columns for the "upstream_monitor_upstreams" table.
+	UpstreamMonitorUpstreamsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "base_url", Type: field.TypeString, Unique: true, Size: 500},
+		{Name: "name", Type: field.TypeString, Size: 200, Default: ""},
+		{Name: "upstream_type", Type: field.TypeEnum, Enums: []string{"sub2api", "nexapi"}},
+		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// UpstreamMonitorUpstreamsTable holds the schema information for the "upstream_monitor_upstreams" table.
+	UpstreamMonitorUpstreamsTable = &schema.Table{
+		Name:       "upstream_monitor_upstreams",
+		Columns:    UpstreamMonitorUpstreamsColumns,
+		PrimaryKey: []*schema.Column{UpstreamMonitorUpstreamsColumns[0]},
+	}
 	// UsageCleanupTasksColumns holds the columns for the "usage_cleanup_tasks" table.
 	UsageCleanupTasksColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -2176,6 +2192,7 @@ var (
 		TLSFingerprintProfilesTable,
 		UpstreamBalanceSnapshotsTable,
 		UpstreamErrorRecordsTable,
+		UpstreamMonitorUpstreamsTable,
 		UsageCleanupTasksTable,
 		UsageLogsTable,
 		UsersTable,
@@ -2309,6 +2326,9 @@ func init() {
 	}
 	UpstreamErrorRecordsTable.Annotation = &entsql.Annotation{
 		Table: "upstream_error_records",
+	}
+	UpstreamMonitorUpstreamsTable.Annotation = &entsql.Annotation{
+		Table: "upstream_monitor_upstreams",
 	}
 	UsageCleanupTasksTable.Annotation = &entsql.Annotation{
 		Table: "usage_cleanup_tasks",

@@ -57,7 +57,9 @@ upstream_monitor:
     min_data_points: 7
 ```
 
-账号不在 YAML 中维护。插件直接读取后台管理员在账号管理页面添加的账号，且纳入状态为 active、包含 API Key 的 `upstream` 账号，以及带有 `credentials.base_url` 的 API Key 透传账号（后台界面创建的上游账号使用此形式）。类型识别优先使用账号扩展字段 `upstream_monitor_type`/`upstream_type`，其次使用明确的 `platform` 或 `base_url`；自定义域名无法区分时默认按 `sub2api` 处理，NexAPI 账号应在后台扩展字段明确设置为 `nexapi`。YAML 仅用于插件开关、阈值、缓存和预测参数。
+账号不在 YAML 中维护。插件直接读取后台管理员维护的 active 账号，并将 `credentials.base_url` 规范化为协议、主机和端口组成的上游根地址；`/v1`、`/v1/chat/completions` 等模型请求路径不会参与归组。同一根地址下的多个 API Key 账号视为同一个中转站的不同分组，余额只查询和统计一次。
+
+上游类型和启用状态保存在插件独立表 `upstream_monitor_upstreams`，不会写入主程序账号表。管理员可通过插件接口明确指定 `sub2api` 或 `nexapi`；未配置时仅提供自动识别结果作为默认值。YAML 只用于插件开关、阈值、缓存和预测参数。
 
 ### 2. 数据库迁移
 
@@ -73,6 +75,26 @@ upstream_monitor:
 插件已通过 Wire 依赖注入自动集成到主程序，无需额外配置。
 
 ## API 接口
+
+### 上游发现与配置
+
+```http
+GET /api/v1/plugins/upstream-monitor/upstreams
+```
+
+返回按根地址归并的上游、配置状态和关联账号 ID。保存或覆盖管理员配置：
+
+```http
+PUT /api/v1/plugins/upstream-monitor/upstreams
+Content-Type: application/json
+
+{
+  "base_url": "https://gateway.example.com/v1",
+  "name": "主力中转站",
+  "type": "sub2api",
+  "enabled": true
+}
+```
 
 ### 概览统计
 ```

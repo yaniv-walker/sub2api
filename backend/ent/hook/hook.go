@@ -405,6 +405,18 @@ func (f UpstreamErrorRecordFunc) Mutate(ctx context.Context, m ent.Mutation) (en
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UpstreamErrorRecordMutation", m)
 }
 
+// The UpstreamMonitorUpstreamFunc type is an adapter to allow the use of ordinary
+// function as UpstreamMonitorUpstream mutator.
+type UpstreamMonitorUpstreamFunc func(context.Context, *ent.UpstreamMonitorUpstreamMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f UpstreamMonitorUpstreamFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.UpstreamMonitorUpstreamMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UpstreamMonitorUpstreamMutation", m)
+}
+
 // The UsageCleanupTaskFunc type is an adapter to allow the use of ordinary
 // function as UsageCleanupTask mutator.
 type UsageCleanupTaskFunc func(context.Context, *ent.UsageCleanupTaskMutation) (ent.Value, error)

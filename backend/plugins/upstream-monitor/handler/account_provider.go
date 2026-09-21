@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/Wei-Shaw/sub2api/ent"
+	"github.com/Wei-Shaw/sub2api/ent/upstreammonitorupstream"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	monitorservice "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/service"
 )
@@ -16,9 +18,76 @@ type AccountProvider interface {
 	GetByID(ctx context.Context, id int64) (*service.Account, error)
 }
 
+// UpstreamProvider is the plugin-owned configuration boundary.
+type UpstreamProvider interface {
+	List(ctx context.Context) ([]*ent.UpstreamMonitorUpstream, error)
+	Upsert(ctx context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool) (*ent.UpstreamMonitorUpstream, error)
+}
+
 type monitorAccount struct {
 	account *service.Account
 	info    monitorservice.AccountInfo
+}
+
+type monitorUpstream struct {
+	ID         int64
+	BaseURL    string
+	Name       string
+	Type       string
+	Configured bool
+	Enabled    bool
+	Accounts   []monitorAccount
+}
+
+func groupMonitorAccounts(accounts []monitorAccount, configs []*ent.UpstreamMonitorUpstream) []monitorUpstream {
+	configByURL := make(map[string]*ent.UpstreamMonitorUpstream, len(configs))
+	for _, config := range configs {
+		configByURL[config.BaseURL] = config
+	}
+
+	byURL := make(map[string]*monitorUpstream)
+	order := make([]string, 0)
+	for _, account := range accounts {
+		rootURL, err := monitorservice.NormalizeUpstreamBaseURL(account.info.BaseURL)
+		if err != nil {
+			continue
+		}
+		upstream := byURL[rootURL]
+		if upstream == nil {
+			upstream = &monitorUpstream{BaseURL: rootURL, Type: account.info.UpstreamType, Enabled: true}
+			if config := configByURL[rootURL]; config != nil {
+				upstream.ID = config.ID
+				upstream.Name = config.Name
+				upstream.Type = string(config.UpstreamType)
+				upstream.Configured = true
+				upstream.Enabled = config.Enabled
+			}
+			byURL[rootURL] = upstream
+			order = append(order, rootURL)
+		}
+		account.info.BaseURL = rootURL
+		account.info.UpstreamType = upstream.Type
+		upstream.Accounts = append(upstream.Accounts, account)
+	}
+
+	result := make([]monitorUpstream, 0, len(order))
+	for _, rootURL := range order {
+		result = append(result, *byURL[rootURL])
+	}
+	return result
+}
+
+func monitorUpstreamInfos(upstreams []monitorUpstream) []monitorservice.AccountInfo {
+	result := make([]monitorservice.AccountInfo, 0, len(upstreams))
+	for _, upstream := range upstreams {
+		if !upstream.Enabled || len(upstream.Accounts) == 0 {
+			continue
+		}
+		// Balance belongs to the upstream, so query it once with one of its
+		// associated credentials instead of once per account/group.
+		result = append(result, upstream.Accounts[0].info)
+	}
+	return result
 }
 
 func monitorAccounts(accounts []service.Account) []monitorAccount {

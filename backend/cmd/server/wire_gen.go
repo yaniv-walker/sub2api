@@ -345,7 +345,8 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	errorAnalyzer := service2.NewErrorAnalyzer(errorRecordRepository, logger)
 	usagePredictor := upstreammonitor.ProvideUsagePredictor(upstreamMonitorPluginConfig, balanceSnapshotRepository)
 	monitorAccountProvider := upstreammonitor.ProvideAccountProvider(accountRepository)
-	monitorHandler := handler2.NewMonitorHandler(upstreamInfoFetcher, balanceAggregator, errorAnalyzer, usagePredictor, monitorAccountProvider, upstreamMonitorPluginConfig)
+	upstreamRepository := repository2.NewUpstreamRepository(client)
+	monitorHandler := handler2.NewMonitorHandler(upstreamInfoFetcher, balanceAggregator, errorAnalyzer, usagePredictor, monitorAccountProvider, upstreamRepository, upstreamMonitorPluginConfig)
 	plugin := upstreammonitor.NewPluginWithHandler(upstreamMonitorPluginConfig, redisClient, client, logger, monitorHandler, errorRecordRepository, balanceSnapshotRepository)
 	manager, err := provideInternalPluginManager(logger, plugin)
 	if err != nil {
