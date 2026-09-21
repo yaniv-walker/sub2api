@@ -4,23 +4,27 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/plugin"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/handler"
+	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/repository"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 )
 
 // Plugin implements the plugin.Plugin interface for upstream monitoring.
 type Plugin struct {
-	config      *config.UpstreamMonitorPluginConfig
-	handler     *handler.MonitorHandler
-	logger      *slog.Logger
-	redisClient *redis.Client
-	entClient   *ent.Client
-	enabled     bool
+	config           *config.UpstreamMonitorPluginConfig
+	handler          *handler.MonitorHandler
+	logger           *slog.Logger
+	redisClient      *redis.Client
+	entClient        *ent.Client
+	errorRecords     *repository.ErrorRecordRepository
+	balanceSnapshots *repository.BalanceSnapshotRepository
+	enabled          bool
 }
 
 // NewPluginWithHandler creates a new upstream monitor plugin instance with injected handler.
@@ -30,18 +34,22 @@ func NewPluginWithHandler(
 	entClient *ent.Client,
 	logger *slog.Logger,
 	handler *handler.MonitorHandler,
+	errorRecords *repository.ErrorRecordRepository,
+	balanceSnapshots *repository.BalanceSnapshotRepository,
 ) *Plugin {
 	if logger == nil {
 		logger = slog.Default()
 	}
 
 	return &Plugin{
-		config:      cfg,
-		redisClient: redisClient,
-		entClient:   entClient,
-		logger:      logger.With("plugin", "upstream-monitor"),
-		handler:     handler,
-		enabled:     cfg.Enabled,
+		config:           cfg,
+		redisClient:      redisClient,
+		entClient:        entClient,
+		logger:           logger.With("plugin", "upstream-monitor"),
+		handler:          handler,
+		errorRecords:     errorRecords,
+		balanceSnapshots: balanceSnapshots,
+		enabled:          cfg.Enabled,
 	}
 }
 
@@ -107,16 +115,51 @@ func (p *Plugin) Cleanup() error {
 func (p *Plugin) registerHooks() {
 	hookManager := plugin.GetGlobalHookManager()
 
-	// Listen for request failed events to record errors.
-	hookManager.Register(plugin.HookAfterRequestFailed, func(ctx context.Context, data interface{}) error {
-		p.logger.Debug("Received request failed event", "data", data)
+	hookManager.Register(plugin.HookAfterRequestCompleted, func(ctx context.Context, data interface{}) error {
+		event, ok := data.(plugin.RequestEvent)
+		if !ok {
+			return fmt.Errorf("unexpected request completed event type %T", data)
+		}
+		p.logger.Info("Upstream request completed", "account_id", event.AccountID, "upstream_type", event.UpstreamType, "model", event.Model, "request_id", event.RequestID)
 		return nil
+	})
+
+	hookManager.Register(plugin.HookAfterRequestFailed, func(ctx context.Context, data interface{}) error {
+		event, ok := data.(plugin.RequestEvent)
+		if !ok {
+			return fmt.Errorf("unexpected request failed event type %T", data)
+		}
+		if p.errorRecords == nil {
+			return fmt.Errorf("error record repository is nil")
+		}
+		occurredAt := event.OccurredAt
+		if occurredAt.IsZero() {
+			occurredAt = time.Now()
+		}
+		errorType := event.ErrorType
+		if errorType == "" {
+			errorType = "upstream_error"
+		}
+		_, err := p.errorRecords.Create(ctx, event.UpstreamType, event.AccountID, errorType, event.ErrorMessage, event.HTTPStatus, occurredAt)
+		return err
 	})
 
 	// Listen for account deleted events to clean up plugin data
 	hookManager.Register(plugin.HookAfterAccountDeleted, func(ctx context.Context, data interface{}) error {
-		// TODO: Clean up plugin data for the deleted account
-		p.logger.Debug("Received account deleted event", "data", data)
+		event, ok := data.(plugin.AccountDeletedEvent)
+		if !ok {
+			return fmt.Errorf("unexpected account deleted event type %T", data)
+		}
+		if p.errorRecords != nil {
+			if _, err := p.errorRecords.DeleteByAccount(ctx, event.UpstreamType, event.AccountID); err != nil {
+				return err
+			}
+		}
+		if p.balanceSnapshots != nil {
+			if _, err := p.balanceSnapshots.DeleteByAccount(ctx, event.UpstreamType, event.AccountID); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 

@@ -25,6 +25,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/openai"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
+	pluginhooks "github.com/Wei-Shaw/sub2api/internal/plugin"
 	"github.com/Wei-Shaw/sub2api/internal/securityaudit"
 	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -57,6 +58,27 @@ type GatewayHandler struct {
 	maxAccountSwitchesGemini  int
 	cfg                       *config.Config
 	settingService            *service.SettingService
+}
+
+func triggerUpstreamRequestEvent(ctx context.Context, hook pluginhooks.HookType, account *service.Account, model, requestID string, err error) {
+	if account == nil {
+		return
+	}
+	event := pluginhooks.RequestEvent{AccountID: account.ID, UpstreamType: account.Platform, Model: model, RequestID: requestID, OccurredAt: time.Now()}
+	if err != nil {
+		event.ErrorMessage = err.Error()
+		event.ErrorType = "upstream_error"
+		var failoverErr *service.UpstreamFailoverError
+		if errors.As(err, &failoverErr) {
+			event.HTTPStatus = &failoverErr.StatusCode
+			event.ErrorType = string(failoverErr.Reason)
+			if event.ErrorType == "" {
+				event.ErrorType = "upstream_error"
+			}
+		}
+	}
+	// Hook handlers persist independently of the client request lifecycle.
+	pluginhooks.GetGlobalHookManager().TriggerAsync(context.WithoutCancel(ctx), hook, event)
 }
 
 // NewGatewayHandler creates a new GatewayHandler
@@ -493,6 +515,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 				accountReleaseFunc()
 			}
 			if err != nil {
+				triggerUpstreamRequestEvent(c.Request.Context(), pluginhooks.HookAfterRequestFailed, account, reqModel, "", err)
 				var failoverErr *service.UpstreamFailoverError
 				if errors.As(err, &failoverErr) {
 					// 流式内容已写入客户端，无法撤销，禁止 failover 以防止流拼接腐化
@@ -538,6 +561,8 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 				reqLog.Error("gateway.forward_failed", forwardFailedFields...)
 				return
 			}
+
+			triggerUpstreamRequestEvent(c.Request.Context(), pluginhooks.HookAfterRequestCompleted, account, reqModel, result.RequestID, nil)
 
 			// RPM 计数递增（Forward 成功后）
 			// 注意：TOCTOU 竞态是已知且可接受的设计权衡，与 WindowCost 一致的 soft-limit 模式。
@@ -969,6 +994,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 			}
 
 			if err != nil {
+				triggerUpstreamRequestEvent(c.Request.Context(), pluginhooks.HookAfterRequestFailed, account, reqModel, "", err)
 				// Beta policy block: return 400 immediately, no failover
 				var betaBlockedErr *service.BetaBlockedError
 				if errors.As(err, &betaBlockedErr) {
@@ -1078,6 +1104,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 				// 避免上游已产生消耗的请求完全漏记（#5148）。failover 错误恒定 result=nil，
 				// 不会走到这里重复计费。
 				if result != nil {
+					triggerUpstreamRequestEvent(c.Request.Context(), pluginhooks.HookAfterRequestFailed, account, reqModel, result.RequestID, err)
 					submitForwardUsage(result)
 					// 上游已接受并计量本次会话（流中断），会话槽保持既有语义
 					upstreamServedSession = true
@@ -1105,6 +1132,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 				}
 			}
 
+			triggerUpstreamRequestEvent(c.Request.Context(), pluginhooks.HookAfterRequestCompleted, account, reqModel, result.RequestID, nil)
 			submitForwardUsage(result)
 			// 转发成功，会话槽保持既有空闲超时语义
 			upstreamServedSession = true
