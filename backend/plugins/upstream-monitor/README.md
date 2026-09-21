@@ -57,7 +57,7 @@ upstream_monitor:
     min_data_points: 7
 ```
 
-账号不在 YAML 中维护。插件直接读取后台管理员在账号管理页面添加的账号，且只纳入状态为 active、类型为 `upstream`、包含 API Key 并能识别为 `sub2api` 或 `nexapi` 的账号。YAML 仅用于插件开关、阈值、缓存和预测参数；`base_url` 可用于自动识别上游类型，也可在账号的扩展字段中设置 `upstream_monitor_type` 或 `upstream_type`。
+账号不在 YAML 中维护。插件直接读取后台管理员在账号管理页面添加的账号，且只纳入状态为 active、类型为 `upstream` 且包含 API Key 的账号。类型识别优先使用账号扩展字段 `upstream_monitor_type`/`upstream_type`，其次使用明确的 `platform` 或 `base_url`；自定义域名无法区分时默认按 `sub2api` 处理，NexAPI 账号应在后台扩展字段明确设置为 `nexapi`。YAML 仅用于插件开关、阈值、缓存和预测参数。
 
 ### 2. 数据库迁移
 

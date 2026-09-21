@@ -53,6 +53,12 @@ func upstreamMonitorType(account *service.Account) string {
 			}
 		}
 	}
+	// Some imported accounts store the monitor protocol in platform rather
+	// than in extra. Treat only the plugin's explicit protocol names as such;
+	// unrelated host platform names must not change the selection.
+	if normalized := normalizeUpstreamType(account.Platform); normalized != "" {
+		return normalized
+	}
 	baseURL := account.GetCredential("base_url")
 	host := strings.ToLower(baseURL)
 	if parsed, err := url.Parse(baseURL); err == nil {
@@ -64,7 +70,11 @@ func upstreamMonitorType(account *service.Account) string {
 	case strings.Contains(host, "nexapi"):
 		return "nexapi"
 	default:
-		return ""
+		// The host account type already establishes that this is a managed
+		// upstream account. Sub2API is the monitor's default protocol; an
+		// account using NexAPI should set upstream_monitor_type/upstream_type
+		// in its backend account extra data.
+		return "sub2api"
 	}
 }
 

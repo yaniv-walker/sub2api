@@ -46,7 +46,7 @@ func TestMonitorAccountInfoUsesHostAccountData(t *testing.T) {
 		{
 			name:    "unknown upstream filtered",
 			account: service.Account{ID: 7, Type: service.AccountTypeUpstream, Status: service.StatusActive, Credentials: map[string]any{"api_key": "key", "base_url": "https://example.com"}},
-			wantOK:  false,
+			wantType: "sub2api", wantOK: true,
 		},
 	}
 
