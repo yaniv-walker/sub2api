@@ -206,8 +206,12 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 		return nil, fmt.Errorf("API error: %s", apiResp.Msg)
 	}
 
-	// NexAPI conversion: remaining_quota / 431778 = balance_cny
-	balanceCNY := float64(apiResp.Data.RemainingQuota) / 431778.0
+	remainingQuota := apiResp.Data.RemainingQuota
+	if remainingQuota == 0 && apiResp.Data.Quota > apiResp.Data.UsedQuota {
+		remainingQuota = apiResp.Data.Quota - apiResp.Data.UsedQuota
+	}
+	// NexAPI conversion: remaining quota / 431778 = balance_cny.
+	balanceCNY := float64(remainingQuota) / 431778.0
 
 	status := "inactive"
 	if apiResp.Data.Status == 1 {
@@ -227,7 +231,7 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 	f.logger.Info("NexAPI info fetched successfully",
 		"account_id", accountID,
 		"balance", info.Balance,
-		"quota", apiResp.Data.RemainingQuota,
+		"quota", remainingQuota,
 		"status", info.Status,
 	)
 

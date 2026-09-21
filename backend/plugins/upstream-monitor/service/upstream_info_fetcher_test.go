@@ -40,9 +40,8 @@ func TestFetchInfoUsesAccountUpstreamRoot(t *testing.T) {
 }
 
 func TestFetchSub2APIInfo_Success(t *testing.T) {
-	// Mock Sub2API server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/v1/balance", r.URL.Path)
+		assert.Equal(t, "/api/user/self", r.URL.Path)
 		assert.Equal(t, "Bearer test-key", r.Header.Get("Authorization"))
 
 		resp := Sub2APIResponse{
@@ -59,15 +58,15 @@ func TestFetchSub2APIInfo_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Note: In real implementation, we'd need dependency injection for the base URL
-	// For now, this test demonstrates the expected behavior
-	t.Log("This test demonstrates expected behavior - actual implementation needs URL injection")
+	info, err := NewUpstreamInfoFetcher(nil).FetchInfo(1, "sub2api", server.URL+"/v1", "test-key")
+	require.NoError(t, err)
+	assert.Equal(t, 48.76, info.Balance)
+	assert.Equal(t, "Test Account", info.Name)
 }
 
 func TestFetchNexAPIInfo_Success(t *testing.T) {
-	// Mock NexAPI server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/v1/user/info", r.URL.Path)
+		assert.Equal(t, "/api/user/self", r.URL.Path)
 		assert.Equal(t, "Bearer test-key", r.Header.Get("Authorization"))
 
 		resp := NexAPIResponse{
@@ -76,7 +75,6 @@ func TestFetchNexAPIInfo_Success(t *testing.T) {
 		}
 		resp.Data.Quota = 48838015
 		resp.Data.UsedQuota = 6661985
-		resp.Data.RemainingQuota = 42176030
 		resp.Data.Name = "NexAPI Test"
 		resp.Data.Status = 1
 
@@ -85,7 +83,10 @@ func TestFetchNexAPIInfo_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	t.Log("This test demonstrates expected NexAPI behavior")
+	info, err := NewUpstreamInfoFetcher(nil).FetchInfo(2, "nexapi", server.URL+"/v1/chat/completions", "test-key")
+	require.NoError(t, err)
+	assert.InDelta(t, 97.68, info.Balance, 0.01)
+	assert.Equal(t, "NexAPI Test", info.Name)
 }
 
 func TestFetchInfo_UnsupportedType(t *testing.T) {
