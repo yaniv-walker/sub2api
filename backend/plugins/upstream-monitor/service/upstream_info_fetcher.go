@@ -7,6 +7,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -41,7 +43,7 @@ type UpstreamInfo struct {
 }
 
 // FetchInfo fetches upstream information for a given account.
-func (f *UpstreamInfoFetcher) FetchInfo(accountID int64, upstreamType string, apiKey string) (*UpstreamInfo, error) {
+func (f *UpstreamInfoFetcher) FetchInfo(accountID int64, upstreamType, baseURL, apiKey string) (*UpstreamInfo, error) {
 	f.logger.Debug("Fetching upstream info",
 		"account_id", accountID,
 		"upstream_type", upstreamType,
@@ -49,15 +51,35 @@ func (f *UpstreamInfoFetcher) FetchInfo(accountID int64, upstreamType string, ap
 
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
+	rootURL, err := NormalizeUpstreamBaseURL(baseURL)
+	if err != nil {
+		return nil, err
+	}
 
 	switch upstreamType {
 	case "sub2api":
-		return f.fetchSub2APIInfo(ctx, accountID, apiKey)
+		return f.fetchSub2APIInfo(ctx, accountID, rootURL, apiKey)
 	case "nexapi":
-		return f.fetchNexAPIInfo(ctx, accountID, apiKey)
+		return f.fetchNexAPIInfo(ctx, accountID, rootURL, apiKey)
 	default:
 		return nil, fmt.Errorf("unsupported upstream type: %s", upstreamType)
 	}
+}
+
+// NormalizeUpstreamBaseURL reduces an account's model endpoint to the shared
+// upstream origin. Accounts with the same origin belong to the same upstream.
+func NormalizeUpstreamBaseURL(raw string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return "", fmt.Errorf("invalid upstream base_url %q", raw)
+	}
+	parsed.Scheme = strings.ToLower(parsed.Scheme)
+	parsed.Host = strings.ToLower(parsed.Host)
+	parsed.Path = ""
+	parsed.RawPath = ""
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return strings.TrimRight(parsed.String(), "/"), nil
 }
 
 // Sub2APIResponse represents the response from Sub2API balance query
@@ -65,19 +87,19 @@ type Sub2APIResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
 	Data    struct {
-		Balance     float64 `json:"balance"`      // CNY
-		Concurrency int     `json:"concurrency"`  // 并发数
-		Status      string  `json:"status"`       // active/inactive
-		Name        string  `json:"name"`         // 账号名称
+		Balance     float64 `json:"balance"`     // CNY
+		Concurrency int     `json:"concurrency"` // 并发数
+		Status      string  `json:"status"`      // active/inactive
+		Name        string  `json:"name"`        // 账号名称
 	} `json:"data"`
 }
 
 // fetchSub2APIInfo fetches information from Sub2API.
-func (f *UpstreamInfoFetcher) fetchSub2APIInfo(ctx context.Context, accountID int64, apiKey string) (*UpstreamInfo, error) {
+func (f *UpstreamInfoFetcher) fetchSub2APIInfo(ctx context.Context, accountID int64, rootURL, apiKey string) (*UpstreamInfo, error) {
 	f.logger.Debug("Fetching Sub2API info", "account_id", accountID)
 
 	// Sub2API API endpoint
-	url := "https://api.sub2api.com/v1/balance"
+	url := rootURL + "/api/user/self"
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -108,7 +130,7 @@ func (f *UpstreamInfoFetcher) fetchSub2APIInfo(ctx context.Context, accountID in
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	if !apiResp.Success {
+	if !apiResp.Success && apiResp.Message != "" {
 		return nil, fmt.Errorf("API error: %s", apiResp.Message)
 	}
 
@@ -136,20 +158,20 @@ type NexAPIResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 	Data struct {
-		Quota         int64  `json:"quota"`          // 总配额
-		UsedQuota     int64  `json:"used_quota"`     // 已用配额
-		RemainingQuota int64 `json:"remaining_quota"` // 剩余配额
-		Name          string `json:"name"`           // 账号名称
-		Status        int    `json:"status"`         // 1=active, 0=inactive
+		Quota          int64  `json:"quota"`           // 总配额
+		UsedQuota      int64  `json:"used_quota"`      // 已用配额
+		RemainingQuota int64  `json:"remaining_quota"` // 剩余配额
+		Name           string `json:"name"`            // 账号名称
+		Status         int    `json:"status"`          // 1=active, 0=inactive
 	} `json:"data"`
 }
 
 // fetchNexAPIInfo fetches information from NexAPI.
-func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int64, apiKey string) (*UpstreamInfo, error) {
+func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int64, rootURL, apiKey string) (*UpstreamInfo, error) {
 	f.logger.Debug("Fetching NexAPI info", "account_id", accountID)
 
 	// NexAPI API endpoint
-	url := "https://api.nexapi.cc/v1/user/info"
+	url := rootURL + "/api/user/self"
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {

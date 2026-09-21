@@ -39,10 +39,11 @@ func monitorAccountInfo(account *service.Account) (monitorservice.AccountInfo, b
 	}
 	typeName := upstreamMonitorType(account)
 	apiKey := account.GetCredential("api_key")
-	if typeName == "" || apiKey == "" {
+	baseURL := account.GetCredential("base_url")
+	if typeName == "" || apiKey == "" || baseURL == "" {
 		return monitorservice.AccountInfo{}, false
 	}
-	return monitorservice.AccountInfo{ID: account.ID, UpstreamType: typeName, ApiKey: apiKey}, true
+	return monitorservice.AccountInfo{ID: account.ID, UpstreamType: typeName, BaseURL: baseURL, ApiKey: apiKey}, true
 }
 
 // isMonitorAccount accepts both the legacy upstream type and the type emitted

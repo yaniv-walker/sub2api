@@ -11,10 +11,10 @@ import (
 
 // BalanceAggregator aggregates balance information from multiple upstream accounts.
 type BalanceAggregator struct {
-	fetcher         *UpstreamInfoFetcher
-	snapshotRepo    *repository.BalanceSnapshotRepository
-	logger          *slog.Logger
-	saveSnapshots   bool
+	fetcher       *UpstreamInfoFetcher
+	snapshotRepo  *repository.BalanceSnapshotRepository
+	logger        *slog.Logger
+	saveSnapshots bool
 }
 
 // NewBalanceAggregator creates a new balance aggregator.
@@ -36,16 +36,17 @@ func NewBalanceAggregator(
 
 // AggregatedBalance contains aggregated balance information.
 type AggregatedBalance struct {
-	TotalBalance float64                   `json:"total_balance"`
-	ByType       map[string]float64        `json:"by_type"`
-	ByAccount    map[int64]*UpstreamInfo   `json:"by_account"`
-	Errors       map[int64]string          `json:"errors,omitempty"`
+	TotalBalance float64                 `json:"total_balance"`
+	ByType       map[string]float64      `json:"by_type"`
+	ByAccount    map[int64]*UpstreamInfo `json:"by_account"`
+	Errors       map[int64]string        `json:"errors,omitempty"`
 }
 
 // AccountInfo represents basic account information for fetching.
 type AccountInfo struct {
 	ID           int64
 	UpstreamType string
+	BaseURL      string
 	ApiKey       string
 }
 
@@ -74,7 +75,7 @@ func (a *BalanceAggregator) Aggregate(ctx context.Context, accounts []AccountInf
 		go func(account AccountInfo) {
 			defer wg.Done()
 
-			info, err := a.fetcher.FetchInfo(account.ID, account.UpstreamType, account.ApiKey)
+			info, err := a.fetcher.FetchInfo(account.ID, account.UpstreamType, account.BaseURL, account.ApiKey)
 
 			mu.Lock()
 			defer mu.Unlock()

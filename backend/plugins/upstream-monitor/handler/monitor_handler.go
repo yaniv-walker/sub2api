@@ -209,7 +209,7 @@ func (h *MonitorHandler) GetAccountDetail(c *gin.Context) {
 	}
 
 	// Fetch current info
-	info, err := h.fetcher.FetchInfo(managed.info.ID, managed.info.UpstreamType, managed.info.ApiKey)
+	info, err := h.fetcher.FetchInfo(managed.info.ID, managed.info.UpstreamType, managed.info.BaseURL, managed.info.ApiKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -244,7 +244,7 @@ func (h *MonitorHandler) RefreshBalance(c *gin.Context) {
 	}
 
 	// Fetch current balance
-	info, err := h.fetcher.FetchInfo(managed.info.ID, managed.info.UpstreamType, managed.info.ApiKey)
+	info, err := h.fetcher.FetchInfo(managed.info.ID, managed.info.UpstreamType, managed.info.BaseURL, managed.info.ApiKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

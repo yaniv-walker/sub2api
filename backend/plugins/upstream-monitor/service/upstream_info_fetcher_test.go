@@ -10,6 +10,35 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNormalizeUpstreamBaseURL(t *testing.T) {
+	tests := map[string]string{
+		"https://Gateway.Example.com/v1":                  "https://gateway.example.com",
+		"https://gateway.example.com/v1/chat/completions": "https://gateway.example.com",
+		"http://127.0.0.1:3000/api/openai/v1":             "http://127.0.0.1:3000",
+	}
+	for input, want := range tests {
+		got, err := NormalizeUpstreamBaseURL(input)
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+	}
+}
+
+func TestFetchInfoUsesAccountUpstreamRoot(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/user/self", r.URL.Path)
+		assert.Equal(t, "Bearer test-key", r.Header.Get("Authorization"))
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{"balance": 48.76, "concurrency": 20, "status": "active", "name": "Shared upstream"},
+		})
+	}))
+	defer server.Close()
+
+	fetcher := NewUpstreamInfoFetcher(nil)
+	info, err := fetcher.FetchInfo(1, "sub2api", server.URL+"/v1/chat/completions", "test-key")
+	require.NoError(t, err)
+	assert.Equal(t, 48.76, info.Balance)
+}
+
 func TestFetchSub2APIInfo_Success(t *testing.T) {
 	// Mock Sub2API server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +91,7 @@ func TestFetchNexAPIInfo_Success(t *testing.T) {
 func TestFetchInfo_UnsupportedType(t *testing.T) {
 	fetcher := NewUpstreamInfoFetcher(nil)
 
-	_, err := fetcher.FetchInfo(1, "unknown", "test-key")
+	_, err := fetcher.FetchInfo(1, "unknown", "https://example.com/v1", "test-key")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported upstream type")
 }
