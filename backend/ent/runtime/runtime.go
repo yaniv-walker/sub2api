@@ -37,6 +37,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/setting"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
 	"github.com/Wei-Shaw/sub2api/ent/tlsfingerprintprofile"
+	"github.com/Wei-Shaw/sub2api/ent/upstreambalancesnapshot"
+	"github.com/Wei-Shaw/sub2api/ent/upstreamerrorrecord"
 	"github.com/Wei-Shaw/sub2api/ent/usagecleanuptask"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
 	"github.com/Wei-Shaw/sub2api/ent/user"
@@ -1929,6 +1931,32 @@ func init() {
 	tlsfingerprintprofileDescEnableGrease := tlsfingerprintprofileFields[2].Descriptor()
 	// tlsfingerprintprofile.DefaultEnableGrease holds the default value on creation for the enable_grease field.
 	tlsfingerprintprofile.DefaultEnableGrease = tlsfingerprintprofileDescEnableGrease.Default.(bool)
+	upstreambalancesnapshotFields := schema.UpstreamBalanceSnapshot{}.Fields()
+	_ = upstreambalancesnapshotFields
+	// upstreambalancesnapshotDescUpstreamType is the schema descriptor for upstream_type field.
+	upstreambalancesnapshotDescUpstreamType := upstreambalancesnapshotFields[0].Descriptor()
+	// upstreambalancesnapshot.UpstreamTypeValidator is a validator for the "upstream_type" field. It is called by the builders before save.
+	upstreambalancesnapshot.UpstreamTypeValidator = upstreambalancesnapshotDescUpstreamType.Validators[0].(func(string) error)
+	// upstreambalancesnapshotDescCurrency is the schema descriptor for currency field.
+	upstreambalancesnapshotDescCurrency := upstreambalancesnapshotFields[3].Descriptor()
+	// upstreambalancesnapshot.DefaultCurrency holds the default value on creation for the currency field.
+	upstreambalancesnapshot.DefaultCurrency = upstreambalancesnapshotDescCurrency.Default.(string)
+	// upstreambalancesnapshot.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	upstreambalancesnapshot.CurrencyValidator = upstreambalancesnapshotDescCurrency.Validators[0].(func(string) error)
+	// upstreambalancesnapshotDescSnapshotAt is the schema descriptor for snapshot_at field.
+	upstreambalancesnapshotDescSnapshotAt := upstreambalancesnapshotFields[4].Descriptor()
+	// upstreambalancesnapshot.DefaultSnapshotAt holds the default value on creation for the snapshot_at field.
+	upstreambalancesnapshot.DefaultSnapshotAt = upstreambalancesnapshotDescSnapshotAt.Default.(func() time.Time)
+	upstreamerrorrecordFields := schema.UpstreamErrorRecord{}.Fields()
+	_ = upstreamerrorrecordFields
+	// upstreamerrorrecordDescUpstreamType is the schema descriptor for upstream_type field.
+	upstreamerrorrecordDescUpstreamType := upstreamerrorrecordFields[0].Descriptor()
+	// upstreamerrorrecord.UpstreamTypeValidator is a validator for the "upstream_type" field. It is called by the builders before save.
+	upstreamerrorrecord.UpstreamTypeValidator = upstreamerrorrecordDescUpstreamType.Validators[0].(func(string) error)
+	// upstreamerrorrecordDescErrorType is the schema descriptor for error_type field.
+	upstreamerrorrecordDescErrorType := upstreamerrorrecordFields[2].Descriptor()
+	// upstreamerrorrecord.ErrorTypeValidator is a validator for the "error_type" field. It is called by the builders before save.
+	upstreamerrorrecord.ErrorTypeValidator = upstreamerrorrecordDescErrorType.Validators[0].(func(string) error)
 	usagecleanuptaskMixin := schema.UsageCleanupTask{}.Mixin()
 	usagecleanuptaskMixinFields0 := usagecleanuptaskMixin[0].Fields()
 	_ = usagecleanuptaskMixinFields0

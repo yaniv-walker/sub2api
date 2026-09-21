@@ -19,7 +19,7 @@ type UpstreamInfo struct {
 	ErrorStats        *ErrorStats         `json:"error_stats,omitempty"`
 	UsageStats        *UsageStats         `json:"usage_stats,omitempty"`
 	Prediction        *BalancePrediction  `json:"prediction,omitempty"`
-	Extra             map[string]interface `json:"extra,omitempty"`
+	Extra             map[string]interface{} `json:"extra,omitempty"`
 }
 
 // GroupAssociation represents the mapping between local groups and upstream groups.

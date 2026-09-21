@@ -28,10 +28,11 @@ import (
 )
 
 type Application struct {
-	Server        *http.Server
-	PromptAudit   *securityaudit.PromptService
-	PluginManager *service.PluginManager
-	Cleanup       func()
+	Server                *http.Server
+	PromptAudit           *securityaudit.PromptService
+	PluginManager         *service.PluginManager
+	InternalPluginManager *plugin.Manager
+	Cleanup               func()
 }
 
 func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
@@ -65,7 +66,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		provideCleanup,
 
 		// Application struct
-		wire.Struct(new(Application), "Server", "PromptAudit", "PluginManager", "Cleanup"),
+		wire.Struct(new(Application), "Server", "PromptAudit", "PluginManager", "InternalPluginManager", "Cleanup"),
 	)
 	return nil, nil
 }
@@ -89,8 +90,12 @@ func providePluginHostInfo(buildInfo handler.BuildInfo) service.PluginHostInfo {
 }
 
 // provideInternalPluginManager creates the internal plugin manager for first-party plugins
-func provideInternalPluginManager(logger *slog.Logger) *plugin.Manager {
-	return plugin.NewManager(logger)
+func provideInternalPluginManager(logger *slog.Logger, upstream *upstreammonitor.Plugin) (*plugin.Manager, error) {
+	manager := plugin.NewManager(logger)
+	if err := manager.Register(upstream); err != nil {
+		return nil, err
+	}
+	return manager, nil
 }
 
 func provideCleanup(
@@ -140,6 +145,7 @@ func provideCleanup(
 	openAIAutoReset *service.OpenAIQuotaAutoResetService,
 	promptAudit *securityaudit.PromptService,
 	pluginManager *service.PluginManager,
+	internalPluginManager *plugin.Manager,
 ) func() {
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -155,6 +161,12 @@ func provideCleanup(
 			{"PluginManager", func() error {
 				if pluginManager != nil {
 					pluginManager.Stop()
+				}
+				return nil
+			}},
+			{"InternalPluginManager", func() error {
+				if internalPluginManager != nil {
+					internalPluginManager.CleanupAll()
 				}
 				return nil
 			}},

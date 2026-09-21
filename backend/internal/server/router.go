@@ -96,8 +96,7 @@ func SetupRouter(
 
 	// 注册内部插件路由
 	if internalPluginManager != nil {
-		pluginsGroup := r.Group("/api/v1/plugins")
-		internalPluginManager.RegisterAllRoutes(pluginsGroup)
+		internalPluginManager.RegisterAllRoutes(r, gin.HandlerFunc(adminAuth))
 	}
 
 	return r

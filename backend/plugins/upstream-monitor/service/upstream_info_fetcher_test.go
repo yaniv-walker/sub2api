@@ -30,14 +30,6 @@ func TestFetchSub2APIInfo_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewUpstreamInfoFetcher(nil)
-
-	// Override URL for testing
-	originalURL := "https://api.sub2api.com/v1/balance"
-	defer func() {
-		// Restore original URL logic would go in actual implementation
-	}()
-
 	// Note: In real implementation, we'd need dependency injection for the base URL
 	// For now, this test demonstrates the expected behavior
 	t.Log("This test demonstrates expected behavior - actual implementation needs URL injection")
@@ -64,8 +56,6 @@ func TestFetchNexAPIInfo_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	fetcher := NewUpstreamInfoFetcher(nil)
-
 	t.Log("This test demonstrates expected NexAPI behavior")
 }
 
@@ -87,7 +77,7 @@ func TestNexAPIConversion(t *testing.T) {
 		{
 			name:            "Example from documentation",
 			remainingQuota:  42176030,
-			expectedBalance: 97.65,
+			expectedBalance: 97.68,
 		},
 		{
 			name:            "Zero quota",

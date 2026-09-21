@@ -66,11 +66,11 @@ func (h *MonitorHandler) GetOverview(c *gin.Context) {
 	accounts := h.getEnabledAccounts()
 	if len(accounts) == 0 {
 		c.JSON(http.StatusOK, gin.H{
-			"total_balance":      0,
-			"total_accounts":     0,
-			"by_type":            gin.H{},
-			"low_balance_count":  0,
-			"error_count_24h":    0,
+			"total_balance":     0,
+			"total_accounts":    0,
+			"by_type":           gin.H{},
+			"low_balance_count": 0,
+			"error_count_24h":   0,
 		})
 		return
 	}
@@ -108,12 +108,12 @@ func (h *MonitorHandler) GetOverview(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"total_balance":      result.TotalBalance,
-		"total_accounts":     len(result.ByAccount),
-		"by_type":            result.ByType,
-		"low_balance_count":  lowBalanceCount,
-		"error_count_24h":    errorCount,
-		"errors":             result.Errors,
+		"total_balance":     result.TotalBalance,
+		"total_accounts":    len(result.ByAccount),
+		"by_type":           result.ByType,
+		"low_balance_count": lowBalanceCount,
+		"error_count_24h":   errorCount,
+		"errors":            result.Errors,
 	})
 }
 
@@ -308,7 +308,7 @@ func (h *MonitorHandler) GetErrorStats(c *gin.Context) {
 
 // GetUsageAnalysis returns usage analysis for a specific account.
 func (h *MonitorHandler) GetUsageAnalysis(c *gin.Context) {
-	_ = c.Request.Context() // ctx reserved for future use
+	ctx := c.Request.Context()
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
@@ -337,13 +337,22 @@ func (h *MonitorHandler) GetUsageAnalysis(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement usage analysis from balance snapshots
-	// For now, return a placeholder response
-	c.JSON(http.StatusOK, gin.H{
-		"account_id": id,
-		"days":       days,
-		"message":    "Usage analysis implementation pending - requires historical balance data analysis",
-	})
+	snapshots, err := h.predictor.Snapshots(ctx, accountType, id, days)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	stats := gin.H{"account_id": id, "days": days, "total_requests": 0, "total_cost": 0.0, "average_daily_cost": 0.0, "daily_usage": []gin.H{}}
+	if len(snapshots) > 1 {
+		first, last := snapshots[0], snapshots[len(snapshots)-1]
+		cost := first.Balance - last.Balance
+		if cost < 0 {
+			cost = 0
+		}
+		stats["total_cost"] = cost
+		stats["average_daily_cost"] = cost / float64(days)
+	}
+	c.JSON(http.StatusOK, stats)
 }
 
 // GetPrediction returns usage prediction for a specific account.

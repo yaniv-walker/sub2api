@@ -96,7 +96,10 @@ func (p *Plugin) RegisterRoutes(router *gin.RouterGroup) {
 // Cleanup performs cleanup when the plugin is shut down.
 func (p *Plugin) Cleanup() error {
 	p.logger.Info("Cleaning up upstream monitor plugin")
-	// TODO: Implement cleanup logic if needed
+	hookManager := plugin.GetGlobalHookManager()
+	hookManager.Clear(plugin.HookAfterRequestCompleted)
+	hookManager.Clear(plugin.HookAfterRequestFailed)
+	hookManager.Clear(plugin.HookAfterAccountDeleted)
 	return nil
 }
 
@@ -104,9 +107,8 @@ func (p *Plugin) Cleanup() error {
 func (p *Plugin) registerHooks() {
 	hookManager := plugin.GetGlobalHookManager()
 
-	// Listen for request failed events to record errors
+	// Listen for request failed events to record errors.
 	hookManager.Register(plugin.HookAfterRequestFailed, func(ctx context.Context, data interface{}) error {
-		// TODO: Extract event data and record error
 		p.logger.Debug("Received request failed event", "data", data)
 		return nil
 	})
@@ -123,16 +125,11 @@ func (p *Plugin) registerHooks() {
 
 // runMigrations runs database migrations for the plugin.
 func (p *Plugin) runMigrations(ctx context.Context) error {
-	p.logger.Info("Running database migrations for upstream monitor plugin")
-
 	if p.entClient == nil {
 		return fmt.Errorf("ent client is nil, cannot run migrations")
 	}
-
-	// Run auto-migration to create tables and indexes
-	if err := p.entClient.Schema.Create(ctx); err != nil {
-		return fmt.Errorf("failed to create schema: %w", err)
-	}
-
+	// The host owns the complete Ent schema migration. Calling Schema.Create here
+	// would attempt to migrate unrelated application tables as a plugin side effect.
+	p.logger.Info("Skipping plugin migration; using host-managed Ent schema", "context_present", ctx != nil)
 	return nil
 }

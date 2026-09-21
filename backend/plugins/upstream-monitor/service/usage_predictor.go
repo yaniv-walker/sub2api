@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/repository"
 )
 
@@ -12,6 +13,15 @@ import (
 type UsagePredictor struct {
 	config       *PredictionConfig
 	snapshotRepo *repository.BalanceSnapshotRepository
+}
+
+// Snapshots 查询指定账号时间范围内按时间排序的余额快照，供用量聚合使用。
+func (p *UsagePredictor) Snapshots(ctx context.Context, upstreamType string, accountID int64, days int) ([]*ent.UpstreamBalanceSnapshot, error) {
+	if days <= 0 {
+		days = 30
+	}
+	end := time.Now()
+	return p.snapshotRepo.GetByAccountTimeRange(ctx, upstreamType, accountID, end.AddDate(0, 0, -days), end)
 }
 
 // PredictionConfig contains configuration for usage prediction.

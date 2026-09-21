@@ -46,6 +46,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/setting"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
 	"github.com/Wei-Shaw/sub2api/ent/tlsfingerprintprofile"
+	"github.com/Wei-Shaw/sub2api/ent/upstreambalancesnapshot"
+	"github.com/Wei-Shaw/sub2api/ent/upstreamerrorrecord"
 	"github.com/Wei-Shaw/sub2api/ent/usagecleanuptask"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
 	"github.com/Wei-Shaw/sub2api/ent/user"
@@ -125,6 +127,10 @@ type Client struct {
 	SubscriptionPlan *SubscriptionPlanClient
 	// TLSFingerprintProfile is the client for interacting with the TLSFingerprintProfile builders.
 	TLSFingerprintProfile *TLSFingerprintProfileClient
+	// UpstreamBalanceSnapshot is the client for interacting with the UpstreamBalanceSnapshot builders.
+	UpstreamBalanceSnapshot *UpstreamBalanceSnapshotClient
+	// UpstreamErrorRecord is the client for interacting with the UpstreamErrorRecord builders.
+	UpstreamErrorRecord *UpstreamErrorRecordClient
 	// UsageCleanupTask is the client for interacting with the UsageCleanupTask builders.
 	UsageCleanupTask *UsageCleanupTaskClient
 	// UsageLog is the client for interacting with the UsageLog builders.
@@ -183,6 +189,8 @@ func (c *Client) init() {
 	c.Setting = NewSettingClient(c.config)
 	c.SubscriptionPlan = NewSubscriptionPlanClient(c.config)
 	c.TLSFingerprintProfile = NewTLSFingerprintProfileClient(c.config)
+	c.UpstreamBalanceSnapshot = NewUpstreamBalanceSnapshotClient(c.config)
+	c.UpstreamErrorRecord = NewUpstreamErrorRecordClient(c.config)
 	c.UsageCleanupTask = NewUsageCleanupTaskClient(c.config)
 	c.UsageLog = NewUsageLogClient(c.config)
 	c.User = NewUserClient(c.config)
@@ -314,6 +322,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Setting:                       NewSettingClient(cfg),
 		SubscriptionPlan:              NewSubscriptionPlanClient(cfg),
 		TLSFingerprintProfile:         NewTLSFingerprintProfileClient(cfg),
+		UpstreamBalanceSnapshot:       NewUpstreamBalanceSnapshotClient(cfg),
+		UpstreamErrorRecord:           NewUpstreamErrorRecordClient(cfg),
 		UsageCleanupTask:              NewUsageCleanupTaskClient(cfg),
 		UsageLog:                      NewUsageLogClient(cfg),
 		User:                          NewUserClient(cfg),
@@ -372,6 +382,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Setting:                       NewSettingClient(cfg),
 		SubscriptionPlan:              NewSubscriptionPlanClient(cfg),
 		TLSFingerprintProfile:         NewTLSFingerprintProfileClient(cfg),
+		UpstreamBalanceSnapshot:       NewUpstreamBalanceSnapshotClient(cfg),
+		UpstreamErrorRecord:           NewUpstreamErrorRecordClient(cfg),
 		UsageCleanupTask:              NewUsageCleanupTaskClient(cfg),
 		UsageLog:                      NewUsageLogClient(cfg),
 		User:                          NewUserClient(cfg),
@@ -417,9 +429,10 @@ func (c *Client) Use(hooks ...Hook) {
 		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
 		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
 		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.TLSFingerprintProfile, c.UpstreamBalanceSnapshot, c.UpstreamErrorRecord,
+		c.UsageCleanupTask, c.UsageLog, c.User, c.UserAllowedGroup,
+		c.UserAttributeDefinition, c.UserAttributeValue, c.UserPlatformQuota,
+		c.UserSubscription,
 	} {
 		n.Use(hooks...)
 	}
@@ -437,9 +450,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
 		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
 		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.TLSFingerprintProfile, c.UpstreamBalanceSnapshot, c.UpstreamErrorRecord,
+		c.UsageCleanupTask, c.UsageLog, c.User, c.UserAllowedGroup,
+		c.UserAttributeDefinition, c.UserAttributeValue, c.UserPlatformQuota,
+		c.UserSubscription,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -510,6 +524,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.SubscriptionPlan.mutate(ctx, m)
 	case *TLSFingerprintProfileMutation:
 		return c.TLSFingerprintProfile.mutate(ctx, m)
+	case *UpstreamBalanceSnapshotMutation:
+		return c.UpstreamBalanceSnapshot.mutate(ctx, m)
+	case *UpstreamErrorRecordMutation:
+		return c.UpstreamErrorRecord.mutate(ctx, m)
 	case *UsageCleanupTaskMutation:
 		return c.UsageCleanupTask.mutate(ctx, m)
 	case *UsageLogMutation:
@@ -5351,6 +5369,272 @@ func (c *TLSFingerprintProfileClient) mutate(ctx context.Context, m *TLSFingerpr
 	}
 }
 
+// UpstreamBalanceSnapshotClient is a client for the UpstreamBalanceSnapshot schema.
+type UpstreamBalanceSnapshotClient struct {
+	config
+}
+
+// NewUpstreamBalanceSnapshotClient returns a client for the UpstreamBalanceSnapshot from the given config.
+func NewUpstreamBalanceSnapshotClient(c config) *UpstreamBalanceSnapshotClient {
+	return &UpstreamBalanceSnapshotClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `upstreambalancesnapshot.Hooks(f(g(h())))`.
+func (c *UpstreamBalanceSnapshotClient) Use(hooks ...Hook) {
+	c.hooks.UpstreamBalanceSnapshot = append(c.hooks.UpstreamBalanceSnapshot, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `upstreambalancesnapshot.Intercept(f(g(h())))`.
+func (c *UpstreamBalanceSnapshotClient) Intercept(interceptors ...Interceptor) {
+	c.inters.UpstreamBalanceSnapshot = append(c.inters.UpstreamBalanceSnapshot, interceptors...)
+}
+
+// Create returns a builder for creating a UpstreamBalanceSnapshot entity.
+func (c *UpstreamBalanceSnapshotClient) Create() *UpstreamBalanceSnapshotCreate {
+	mutation := newUpstreamBalanceSnapshotMutation(c.config, OpCreate)
+	return &UpstreamBalanceSnapshotCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of UpstreamBalanceSnapshot entities.
+func (c *UpstreamBalanceSnapshotClient) CreateBulk(builders ...*UpstreamBalanceSnapshotCreate) *UpstreamBalanceSnapshotCreateBulk {
+	return &UpstreamBalanceSnapshotCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UpstreamBalanceSnapshotClient) MapCreateBulk(slice any, setFunc func(*UpstreamBalanceSnapshotCreate, int)) *UpstreamBalanceSnapshotCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UpstreamBalanceSnapshotCreateBulk{err: fmt.Errorf("calling to UpstreamBalanceSnapshotClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UpstreamBalanceSnapshotCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &UpstreamBalanceSnapshotCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for UpstreamBalanceSnapshot.
+func (c *UpstreamBalanceSnapshotClient) Update() *UpstreamBalanceSnapshotUpdate {
+	mutation := newUpstreamBalanceSnapshotMutation(c.config, OpUpdate)
+	return &UpstreamBalanceSnapshotUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *UpstreamBalanceSnapshotClient) UpdateOne(_m *UpstreamBalanceSnapshot) *UpstreamBalanceSnapshotUpdateOne {
+	mutation := newUpstreamBalanceSnapshotMutation(c.config, OpUpdateOne, withUpstreamBalanceSnapshot(_m))
+	return &UpstreamBalanceSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *UpstreamBalanceSnapshotClient) UpdateOneID(id int64) *UpstreamBalanceSnapshotUpdateOne {
+	mutation := newUpstreamBalanceSnapshotMutation(c.config, OpUpdateOne, withUpstreamBalanceSnapshotID(id))
+	return &UpstreamBalanceSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for UpstreamBalanceSnapshot.
+func (c *UpstreamBalanceSnapshotClient) Delete() *UpstreamBalanceSnapshotDelete {
+	mutation := newUpstreamBalanceSnapshotMutation(c.config, OpDelete)
+	return &UpstreamBalanceSnapshotDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *UpstreamBalanceSnapshotClient) DeleteOne(_m *UpstreamBalanceSnapshot) *UpstreamBalanceSnapshotDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *UpstreamBalanceSnapshotClient) DeleteOneID(id int64) *UpstreamBalanceSnapshotDeleteOne {
+	builder := c.Delete().Where(upstreambalancesnapshot.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &UpstreamBalanceSnapshotDeleteOne{builder}
+}
+
+// Query returns a query builder for UpstreamBalanceSnapshot.
+func (c *UpstreamBalanceSnapshotClient) Query() *UpstreamBalanceSnapshotQuery {
+	return &UpstreamBalanceSnapshotQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeUpstreamBalanceSnapshot},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a UpstreamBalanceSnapshot entity by its id.
+func (c *UpstreamBalanceSnapshotClient) Get(ctx context.Context, id int64) (*UpstreamBalanceSnapshot, error) {
+	return c.Query().Where(upstreambalancesnapshot.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *UpstreamBalanceSnapshotClient) GetX(ctx context.Context, id int64) *UpstreamBalanceSnapshot {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *UpstreamBalanceSnapshotClient) Hooks() []Hook {
+	return c.hooks.UpstreamBalanceSnapshot
+}
+
+// Interceptors returns the client interceptors.
+func (c *UpstreamBalanceSnapshotClient) Interceptors() []Interceptor {
+	return c.inters.UpstreamBalanceSnapshot
+}
+
+func (c *UpstreamBalanceSnapshotClient) mutate(ctx context.Context, m *UpstreamBalanceSnapshotMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&UpstreamBalanceSnapshotCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&UpstreamBalanceSnapshotUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&UpstreamBalanceSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&UpstreamBalanceSnapshotDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown UpstreamBalanceSnapshot mutation op: %q", m.Op())
+	}
+}
+
+// UpstreamErrorRecordClient is a client for the UpstreamErrorRecord schema.
+type UpstreamErrorRecordClient struct {
+	config
+}
+
+// NewUpstreamErrorRecordClient returns a client for the UpstreamErrorRecord from the given config.
+func NewUpstreamErrorRecordClient(c config) *UpstreamErrorRecordClient {
+	return &UpstreamErrorRecordClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `upstreamerrorrecord.Hooks(f(g(h())))`.
+func (c *UpstreamErrorRecordClient) Use(hooks ...Hook) {
+	c.hooks.UpstreamErrorRecord = append(c.hooks.UpstreamErrorRecord, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `upstreamerrorrecord.Intercept(f(g(h())))`.
+func (c *UpstreamErrorRecordClient) Intercept(interceptors ...Interceptor) {
+	c.inters.UpstreamErrorRecord = append(c.inters.UpstreamErrorRecord, interceptors...)
+}
+
+// Create returns a builder for creating a UpstreamErrorRecord entity.
+func (c *UpstreamErrorRecordClient) Create() *UpstreamErrorRecordCreate {
+	mutation := newUpstreamErrorRecordMutation(c.config, OpCreate)
+	return &UpstreamErrorRecordCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of UpstreamErrorRecord entities.
+func (c *UpstreamErrorRecordClient) CreateBulk(builders ...*UpstreamErrorRecordCreate) *UpstreamErrorRecordCreateBulk {
+	return &UpstreamErrorRecordCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UpstreamErrorRecordClient) MapCreateBulk(slice any, setFunc func(*UpstreamErrorRecordCreate, int)) *UpstreamErrorRecordCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UpstreamErrorRecordCreateBulk{err: fmt.Errorf("calling to UpstreamErrorRecordClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UpstreamErrorRecordCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &UpstreamErrorRecordCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for UpstreamErrorRecord.
+func (c *UpstreamErrorRecordClient) Update() *UpstreamErrorRecordUpdate {
+	mutation := newUpstreamErrorRecordMutation(c.config, OpUpdate)
+	return &UpstreamErrorRecordUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *UpstreamErrorRecordClient) UpdateOne(_m *UpstreamErrorRecord) *UpstreamErrorRecordUpdateOne {
+	mutation := newUpstreamErrorRecordMutation(c.config, OpUpdateOne, withUpstreamErrorRecord(_m))
+	return &UpstreamErrorRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *UpstreamErrorRecordClient) UpdateOneID(id int64) *UpstreamErrorRecordUpdateOne {
+	mutation := newUpstreamErrorRecordMutation(c.config, OpUpdateOne, withUpstreamErrorRecordID(id))
+	return &UpstreamErrorRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for UpstreamErrorRecord.
+func (c *UpstreamErrorRecordClient) Delete() *UpstreamErrorRecordDelete {
+	mutation := newUpstreamErrorRecordMutation(c.config, OpDelete)
+	return &UpstreamErrorRecordDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *UpstreamErrorRecordClient) DeleteOne(_m *UpstreamErrorRecord) *UpstreamErrorRecordDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *UpstreamErrorRecordClient) DeleteOneID(id int64) *UpstreamErrorRecordDeleteOne {
+	builder := c.Delete().Where(upstreamerrorrecord.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &UpstreamErrorRecordDeleteOne{builder}
+}
+
+// Query returns a query builder for UpstreamErrorRecord.
+func (c *UpstreamErrorRecordClient) Query() *UpstreamErrorRecordQuery {
+	return &UpstreamErrorRecordQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeUpstreamErrorRecord},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a UpstreamErrorRecord entity by its id.
+func (c *UpstreamErrorRecordClient) Get(ctx context.Context, id int64) (*UpstreamErrorRecord, error) {
+	return c.Query().Where(upstreamerrorrecord.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *UpstreamErrorRecordClient) GetX(ctx context.Context, id int64) *UpstreamErrorRecord {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *UpstreamErrorRecordClient) Hooks() []Hook {
+	return c.hooks.UpstreamErrorRecord
+}
+
+// Interceptors returns the client interceptors.
+func (c *UpstreamErrorRecordClient) Interceptors() []Interceptor {
+	return c.inters.UpstreamErrorRecord
+}
+
+func (c *UpstreamErrorRecordClient) mutate(ctx context.Context, m *UpstreamErrorRecordMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&UpstreamErrorRecordCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&UpstreamErrorRecordUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&UpstreamErrorRecordUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&UpstreamErrorRecordDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown UpstreamErrorRecord mutation op: %q", m.Op())
+	}
+}
+
 // UsageCleanupTaskClient is a client for the UsageCleanupTask schema.
 type UsageCleanupTaskClient struct {
 	config
@@ -6848,9 +7132,9 @@ type (
 		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
 		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
 		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
-		TLSFingerprintProfile, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
-		UserAttributeDefinition, UserAttributeValue, UserPlatformQuota,
-		UserSubscription []ent.Hook
+		TLSFingerprintProfile, UpstreamBalanceSnapshot, UpstreamErrorRecord,
+		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
+		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Hook
 	}
 	inters struct {
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
@@ -6860,9 +7144,9 @@ type (
 		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
 		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
 		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
-		TLSFingerprintProfile, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
-		UserAttributeDefinition, UserAttributeValue, UserPlatformQuota,
-		UserSubscription []ent.Interceptor
+		TLSFingerprintProfile, UpstreamBalanceSnapshot, UpstreamErrorRecord,
+		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
+		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Interceptor
 	}
 )
 

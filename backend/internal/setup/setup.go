@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -52,13 +53,15 @@ func GetDataDir() string {
 
 	// Check if /app/data exists and is writable (Docker environment)
 	dockerDataDir := "/app/data"
-	if info, err := os.Stat(dockerDataDir); err == nil && info.IsDir() {
-		// Try to check if writable by creating a temp file
-		testFile := dockerDataDir + "/.write_test"
-		if f, err := os.Create(testFile); err == nil {
-			_ = f.Close()
-			_ = os.Remove(testFile)
-			return dockerDataDir
+	if runtime.GOOS != "windows" {
+		if info, err := os.Stat(dockerDataDir); err == nil && info.IsDir() {
+			// Try to check if writable by creating a temp file
+			testFile := dockerDataDir + "/.write_test"
+			if f, err := os.Create(testFile); err == nil {
+				_ = f.Close()
+				_ = os.Remove(testFile)
+				return dockerDataDir
+			}
 		}
 	}
 
