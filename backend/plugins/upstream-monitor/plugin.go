@@ -80,13 +80,14 @@ func (p *Plugin) Init(ctx context.Context) error {
 		"features", fmt.Sprintf("%+v", p.config.Features),
 	)
 
-	// Run database migrations if enabled
-	if p.config.AutoMigrate {
-		if err := p.runMigrations(ctx); err != nil {
-			return fmt.Errorf("failed to run migrations: %w", err)
-		}
-		p.logger.Info("Database migrations completed successfully")
+	// The plugin-owned configuration table is required by the routes, so it
+	// must always be ensured when the enabled plugin starts. AutoMigrate is
+	// retained for compatibility with older config files but cannot disable
+	// this minimal, isolated bootstrap.
+	if err := p.runMigrations(ctx); err != nil {
+		return fmt.Errorf("failed to initialize plugin tables: %w", err)
 	}
+	p.logger.Info("Plugin-owned database tables ready")
 
 	// Register event hooks
 	p.registerHooks()
