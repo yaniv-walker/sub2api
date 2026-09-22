@@ -25,10 +25,10 @@ func TestNormalizeUpstreamBaseURL(t *testing.T) {
 
 func TestFetchInfoUsesAccountUpstreamRoot(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/api/user/self", r.URL.Path)
+		assert.Equal(t, "/v1/usage", r.URL.Path)
 		assert.Equal(t, "Bearer test-key", r.Header.Get("Authorization"))
 		_ = json.NewEncoder(w).Encode(map[string]any{
-			"data": map[string]any{"balance": 48.76, "concurrency": 20, "status": "active", "name": "Shared upstream"},
+			"mode": "unrestricted", "isValid": true, "balance": 48.76, "remaining": 48.76,
 		})
 	}))
 	defer server.Close()
@@ -41,27 +41,21 @@ func TestFetchInfoUsesAccountUpstreamRoot(t *testing.T) {
 
 func TestFetchSub2APIInfo_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/api/user/self", r.URL.Path)
+		assert.Equal(t, "/v1/usage", r.URL.Path)
 		assert.Equal(t, "Bearer test-key", r.Header.Get("Authorization"))
 
-		resp := Sub2APIResponse{
-			Success: true,
-			Message: "OK",
-		}
-		resp.Data.Balance = 48.76
-		resp.Data.Concurrency = 20
-		resp.Data.Status = "active"
-		resp.Data.Name = "Test Account"
-
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"mode": "quota_limited", "isValid": true, "status": "active",
+			"quota": map[string]any{"limit": 100.0, "used": 51.24, "remaining": 48.76, "unit": "USD"},
+		})
 	}))
 	defer server.Close()
 
 	info, err := NewUpstreamInfoFetcher(nil).FetchInfo(1, "sub2api", server.URL+"/v1", "test-key")
 	require.NoError(t, err)
 	assert.Equal(t, 48.76, info.Balance)
-	assert.Equal(t, "Test Account", info.Name)
+	assert.Equal(t, "active", info.Status)
 }
 
 func TestFetchNexAPIInfo_Success(t *testing.T) {

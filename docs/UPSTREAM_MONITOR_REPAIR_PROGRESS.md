@@ -90,6 +90,7 @@
 - 2026-09-22：按补充业务设计将余额维度从“账号”调整为“上游中转站”。插件规范化账号 `base_url`，去除 `/v1` 等模型接口路径，相同协议/主机/端口的账号归为同一上游，余额批量刷新只查询一次。
 - 2026-09-22：新增插件独立表 `upstream_monitor_upstreams` 与 `GET/PUT /upstreams` 管理接口。上游名称、`sub2api`/`nexapi` 类型及启用状态按根地址保存，不修改主程序账号表；管理员配置优先于自动识别。抓取器改为在账号所属上游根地址后拼接 `/api/user/self`，修复固定公共域名导致的 404。
 - 2026-09-22：修复插件表初始化受 `auto_migrate=false` 阻断的问题。插件启用时始终创建自身的 `upstream_monitor_upstreams` 表；该初始化只涉及插件表，不会执行主程序全库迁移。
+- 2026-09-22：实测自定义 Sub2API 上游的 `/api/user/self` 返回 404，确认当前宿主对 API Key 暴露的自省接口为 `/v1/usage`。Sub2API 抓取器改用该端点并兼容 `balance`、`remaining`、`quota.remaining`；NexAPI 保持 `/api/user/self`。真实 HTTP fixture 覆盖接口路径、认证头和解析结果。
 
 ## 启动端口与插件日志核验
 

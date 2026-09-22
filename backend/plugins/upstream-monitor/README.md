@@ -167,10 +167,10 @@ GET /api/v1/plugins/upstream-monitor/accounts/:id/prediction
 ## 支持的上游类型
 
 ### Sub2API
-- 接口：`/api/user/self`
+- 接口：`/v1/usage`（使用后台账号的 API Key）
 - 认证：Bearer Token
-- 余额字段：`balance`（直接为人民币）
-- 无需货币换算
+- 余额字段：依次兼容 `balance`、`remaining`、`quota.remaining`
+- 同一上游只选取一个关联账号凭据查询，避免重复累计统一额度
 
 ### NexAPI
 - 接口：`/api/user/self`

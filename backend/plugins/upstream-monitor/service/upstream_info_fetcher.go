@@ -82,24 +82,24 @@ func NormalizeUpstreamBaseURL(raw string) (string, error) {
 	return strings.TrimRight(parsed.String(), "/"), nil
 }
 
-// Sub2APIResponse represents the response from Sub2API balance query
+// Sub2APIResponse represents the API-key self-service usage response.
 type Sub2APIResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-	Data    struct {
-		Balance     float64 `json:"balance"`     // CNY
-		Concurrency int     `json:"concurrency"` // 并发数
-		Status      string  `json:"status"`      // active/inactive
-		Name        string  `json:"name"`        // 账号名称
-	} `json:"data"`
+	Mode      string   `json:"mode"`
+	IsValid   bool     `json:"isValid"`
+	Status    string   `json:"status"`
+	PlanName  string   `json:"planName"`
+	Balance   *float64 `json:"balance"`
+	Remaining *float64 `json:"remaining"`
+	Quota     *struct {
+		Remaining float64 `json:"remaining"`
+	} `json:"quota"`
 }
 
 // fetchSub2APIInfo fetches information from Sub2API.
 func (f *UpstreamInfoFetcher) fetchSub2APIInfo(ctx context.Context, accountID int64, rootURL, apiKey string) (*UpstreamInfo, error) {
 	f.logger.Debug("Fetching Sub2API info", "account_id", accountID)
 
-	// Sub2API API endpoint
-	url := rootURL + "/api/user/self"
+	url := rootURL + "/v1/usage"
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -130,17 +130,30 @@ func (f *UpstreamInfoFetcher) fetchSub2APIInfo(ctx context.Context, accountID in
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	if !apiResp.Success && apiResp.Message != "" {
-		return nil, fmt.Errorf("API error: %s", apiResp.Message)
+	if !apiResp.IsValid {
+		return nil, fmt.Errorf("Sub2API reports API key as invalid")
+	}
+	balance := 0.0
+	switch {
+	case apiResp.Balance != nil:
+		balance = *apiResp.Balance
+	case apiResp.Remaining != nil:
+		balance = *apiResp.Remaining
+	case apiResp.Quota != nil:
+		balance = apiResp.Quota.Remaining
+	}
+	status := apiResp.Status
+	if status == "" && apiResp.IsValid {
+		status = "active"
 	}
 
 	info := &UpstreamInfo{
 		AccountID:   accountID,
-		Name:        apiResp.Data.Name,
+		Name:        apiResp.PlanName,
 		Type:        "sub2api",
-		Balance:     apiResp.Data.Balance, // Already in CNY
-		Concurrency: apiResp.Data.Concurrency,
-		Status:      apiResp.Data.Status,
+		Balance:     balance,
+		Concurrency: 0,
+		Status:      status,
 		ApiKey:      apiKey,
 	}
 
