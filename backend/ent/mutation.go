@@ -44774,6 +44774,7 @@ type UpstreamMonitorUpstreamMutation struct {
 	base_url      *string
 	name          *string
 	upstream_type *upstreammonitorupstream.UpstreamType
+	access_token  *string
 	enabled       *bool
 	created_at    *time.Time
 	updated_at    *time.Time
@@ -44989,6 +44990,55 @@ func (m *UpstreamMonitorUpstreamMutation) ResetUpstreamType() {
 	m.upstream_type = nil
 }
 
+// SetAccessToken sets the "access_token" field.
+func (m *UpstreamMonitorUpstreamMutation) SetAccessToken(s string) {
+	m.access_token = &s
+}
+
+// AccessToken returns the value of the "access_token" field in the mutation.
+func (m *UpstreamMonitorUpstreamMutation) AccessToken() (r string, exists bool) {
+	v := m.access_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAccessToken returns the old "access_token" field's value of the UpstreamMonitorUpstream entity.
+// If the UpstreamMonitorUpstream object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UpstreamMonitorUpstreamMutation) OldAccessToken(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAccessToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAccessToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAccessToken: %w", err)
+	}
+	return oldValue.AccessToken, nil
+}
+
+// ClearAccessToken clears the value of the "access_token" field.
+func (m *UpstreamMonitorUpstreamMutation) ClearAccessToken() {
+	m.access_token = nil
+	m.clearedFields[upstreammonitorupstream.FieldAccessToken] = struct{}{}
+}
+
+// AccessTokenCleared returns if the "access_token" field was cleared in this mutation.
+func (m *UpstreamMonitorUpstreamMutation) AccessTokenCleared() bool {
+	_, ok := m.clearedFields[upstreammonitorupstream.FieldAccessToken]
+	return ok
+}
+
+// ResetAccessToken resets all changes to the "access_token" field.
+func (m *UpstreamMonitorUpstreamMutation) ResetAccessToken() {
+	m.access_token = nil
+	delete(m.clearedFields, upstreammonitorupstream.FieldAccessToken)
+}
+
 // SetEnabled sets the "enabled" field.
 func (m *UpstreamMonitorUpstreamMutation) SetEnabled(b bool) {
 	m.enabled = &b
@@ -45131,7 +45181,7 @@ func (m *UpstreamMonitorUpstreamMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UpstreamMonitorUpstreamMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.base_url != nil {
 		fields = append(fields, upstreammonitorupstream.FieldBaseURL)
 	}
@@ -45140,6 +45190,9 @@ func (m *UpstreamMonitorUpstreamMutation) Fields() []string {
 	}
 	if m.upstream_type != nil {
 		fields = append(fields, upstreammonitorupstream.FieldUpstreamType)
+	}
+	if m.access_token != nil {
+		fields = append(fields, upstreammonitorupstream.FieldAccessToken)
 	}
 	if m.enabled != nil {
 		fields = append(fields, upstreammonitorupstream.FieldEnabled)
@@ -45164,6 +45217,8 @@ func (m *UpstreamMonitorUpstreamMutation) Field(name string) (ent.Value, bool) {
 		return m.Name()
 	case upstreammonitorupstream.FieldUpstreamType:
 		return m.UpstreamType()
+	case upstreammonitorupstream.FieldAccessToken:
+		return m.AccessToken()
 	case upstreammonitorupstream.FieldEnabled:
 		return m.Enabled()
 	case upstreammonitorupstream.FieldCreatedAt:
@@ -45185,6 +45240,8 @@ func (m *UpstreamMonitorUpstreamMutation) OldField(ctx context.Context, name str
 		return m.OldName(ctx)
 	case upstreammonitorupstream.FieldUpstreamType:
 		return m.OldUpstreamType(ctx)
+	case upstreammonitorupstream.FieldAccessToken:
+		return m.OldAccessToken(ctx)
 	case upstreammonitorupstream.FieldEnabled:
 		return m.OldEnabled(ctx)
 	case upstreammonitorupstream.FieldCreatedAt:
@@ -45220,6 +45277,13 @@ func (m *UpstreamMonitorUpstreamMutation) SetField(name string, value ent.Value)
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetUpstreamType(v)
+		return nil
+	case upstreammonitorupstream.FieldAccessToken:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAccessToken(v)
 		return nil
 	case upstreammonitorupstream.FieldEnabled:
 		v, ok := value.(bool)
@@ -45271,7 +45335,11 @@ func (m *UpstreamMonitorUpstreamMutation) AddField(name string, value ent.Value)
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *UpstreamMonitorUpstreamMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(upstreammonitorupstream.FieldAccessToken) {
+		fields = append(fields, upstreammonitorupstream.FieldAccessToken)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -45284,6 +45352,11 @@ func (m *UpstreamMonitorUpstreamMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *UpstreamMonitorUpstreamMutation) ClearField(name string) error {
+	switch name {
+	case upstreammonitorupstream.FieldAccessToken:
+		m.ClearAccessToken()
+		return nil
+	}
 	return fmt.Errorf("unknown UpstreamMonitorUpstream nullable field %s", name)
 }
 
@@ -45299,6 +45372,9 @@ func (m *UpstreamMonitorUpstreamMutation) ResetField(name string) error {
 		return nil
 	case upstreammonitorupstream.FieldUpstreamType:
 		m.ResetUpstreamType()
+		return nil
+	case upstreammonitorupstream.FieldAccessToken:
+		m.ResetAccessToken()
 		return nil
 	case upstreammonitorupstream.FieldEnabled:
 		m.ResetEnabled()

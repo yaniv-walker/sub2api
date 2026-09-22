@@ -92,9 +92,12 @@ Content-Type: application/json
   "base_url": "https://gateway.example.com/v1",
   "name": "主力中转站",
   "type": "sub2api",
-  "enabled": true
+  "enabled": true,
+  "access_token": "可选的上游用户访问令牌"
 }
 ```
+
+`access_token` 是只写字段，适用于 NexAPI 等不能使用模型 API Key 查询统一余额的上游。令牌使用主程序现有 AES-GCM 加密能力保存在插件表中，后续响应只返回 `has_access_token`，不会回显明文或密文。省略该字段会保留已保存的令牌。
 
 ### 概览统计
 ```
@@ -174,7 +177,7 @@ GET /api/v1/plugins/upstream-monitor/accounts/:id/prediction
 
 ### NexAPI
 - 接口：`/api/user/self`
-- 认证：Bearer Token
+- 认证：优先使用上游配置的用户访问令牌；未配置时才回退到关联账号 API Key
 - 配额字段：`quota`（总配额）、`used_quota`（已用配额）
 - 换算公式：`balance = (quota - used_quota) / 431778`
 

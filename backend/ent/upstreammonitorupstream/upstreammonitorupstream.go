@@ -20,6 +20,8 @@ const (
 	FieldName = "name"
 	// FieldUpstreamType holds the string denoting the upstream_type field in the database.
 	FieldUpstreamType = "upstream_type"
+	// FieldAccessToken holds the string denoting the access_token field in the database.
+	FieldAccessToken = "access_token"
 	// FieldEnabled holds the string denoting the enabled field in the database.
 	FieldEnabled = "enabled"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -36,6 +38,7 @@ var Columns = []string{
 	FieldBaseURL,
 	FieldName,
 	FieldUpstreamType,
+	FieldAccessToken,
 	FieldEnabled,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -112,6 +115,11 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // ByUpstreamType orders the results by the upstream_type field.
 func ByUpstreamType(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpstreamType, opts...).ToFunc()
+}
+
+// ByAccessToken orders the results by the access_token field.
+func ByAccessToken(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAccessToken, opts...).ToFunc()
 }
 
 // ByEnabled orders the results by the enabled field.

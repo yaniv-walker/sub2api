@@ -70,6 +70,26 @@ func (_u *UpstreamMonitorUpstreamUpdate) SetNillableUpstreamType(v *upstreammoni
 	return _u
 }
 
+// SetAccessToken sets the "access_token" field.
+func (_u *UpstreamMonitorUpstreamUpdate) SetAccessToken(v string) *UpstreamMonitorUpstreamUpdate {
+	_u.mutation.SetAccessToken(v)
+	return _u
+}
+
+// SetNillableAccessToken sets the "access_token" field if the given value is not nil.
+func (_u *UpstreamMonitorUpstreamUpdate) SetNillableAccessToken(v *string) *UpstreamMonitorUpstreamUpdate {
+	if v != nil {
+		_u.SetAccessToken(*v)
+	}
+	return _u
+}
+
+// ClearAccessToken clears the value of the "access_token" field.
+func (_u *UpstreamMonitorUpstreamUpdate) ClearAccessToken() *UpstreamMonitorUpstreamUpdate {
+	_u.mutation.ClearAccessToken()
+	return _u
+}
+
 // SetEnabled sets the "enabled" field.
 func (_u *UpstreamMonitorUpstreamUpdate) SetEnabled(v bool) *UpstreamMonitorUpstreamUpdate {
 	_u.mutation.SetEnabled(v)
@@ -172,6 +192,12 @@ func (_u *UpstreamMonitorUpstreamUpdate) sqlSave(ctx context.Context) (_node int
 	if value, ok := _u.mutation.UpstreamType(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldUpstreamType, field.TypeEnum, value)
 	}
+	if value, ok := _u.mutation.AccessToken(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldAccessToken, field.TypeString, value)
+	}
+	if _u.mutation.AccessTokenCleared() {
+		_spec.ClearField(upstreammonitorupstream.FieldAccessToken, field.TypeString)
+	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldEnabled, field.TypeBool, value)
 	}
@@ -237,6 +263,26 @@ func (_u *UpstreamMonitorUpstreamUpdateOne) SetNillableUpstreamType(v *upstreamm
 	if v != nil {
 		_u.SetUpstreamType(*v)
 	}
+	return _u
+}
+
+// SetAccessToken sets the "access_token" field.
+func (_u *UpstreamMonitorUpstreamUpdateOne) SetAccessToken(v string) *UpstreamMonitorUpstreamUpdateOne {
+	_u.mutation.SetAccessToken(v)
+	return _u
+}
+
+// SetNillableAccessToken sets the "access_token" field if the given value is not nil.
+func (_u *UpstreamMonitorUpstreamUpdateOne) SetNillableAccessToken(v *string) *UpstreamMonitorUpstreamUpdateOne {
+	if v != nil {
+		_u.SetAccessToken(*v)
+	}
+	return _u
+}
+
+// ClearAccessToken clears the value of the "access_token" field.
+func (_u *UpstreamMonitorUpstreamUpdateOne) ClearAccessToken() *UpstreamMonitorUpstreamUpdateOne {
+	_u.mutation.ClearAccessToken()
 	return _u
 }
 
@@ -371,6 +417,12 @@ func (_u *UpstreamMonitorUpstreamUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if value, ok := _u.mutation.UpstreamType(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldUpstreamType, field.TypeEnum, value)
+	}
+	if value, ok := _u.mutation.AccessToken(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldAccessToken, field.TypeString, value)
+	}
+	if _u.mutation.AccessTokenCleared() {
+		_spec.ClearField(upstreammonitorupstream.FieldAccessToken, field.TypeString)
 	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldEnabled, field.TypeBool, value)

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,6 +22,7 @@ type MonitorHandler struct {
 	predictor  *service.UsagePredictor
 	accounts   AccountProvider
 	upstreams  UpstreamProvider
+	encryptor  hostservice.SecretEncryptor
 	config     *config.UpstreamMonitorPluginConfig
 }
 
@@ -32,6 +34,7 @@ func NewMonitorHandler(
 	predictor *service.UsagePredictor,
 	accounts AccountProvider,
 	upstreams UpstreamProvider,
+	encryptor hostservice.SecretEncryptor,
 	config *config.UpstreamMonitorPluginConfig,
 ) *MonitorHandler {
 	return &MonitorHandler{
@@ -41,6 +44,7 @@ func NewMonitorHandler(
 		predictor:  predictor,
 		accounts:   accounts,
 		upstreams:  upstreams,
+		encryptor:  encryptor,
 		config:     config,
 	}
 }
@@ -165,7 +169,25 @@ func (h *MonitorHandler) loadMonitorUpstreams(ctx context.Context) ([]monitorUps
 	if err != nil {
 		return nil, err
 	}
-	return groupMonitorAccounts(monitorAccounts(accounts), configs), nil
+	grouped := groupMonitorAccounts(monitorAccounts(accounts), configs)
+	if err := h.applyMonitoringTokens(grouped); err != nil {
+		return nil, err
+	}
+	return grouped, nil
+}
+
+func (h *MonitorHandler) applyMonitoringTokens(grouped []monitorUpstream) error {
+	for i := range grouped {
+		if grouped[i].AccessToken == nil || len(grouped[i].Accounts) == 0 {
+			continue
+		}
+		token, err := h.encryptor.Decrypt(*grouped[i].AccessToken)
+		if err != nil {
+			return fmt.Errorf("decrypt monitoring token for %s: %w", grouped[i].BaseURL, err)
+		}
+		grouped[i].Accounts[0].info.ApiKey = token
+	}
+	return nil
 }
 func monitorInfos(accounts []monitorAccount) []service.AccountInfo {
 	result := make([]service.AccountInfo, 0, len(accounts))
@@ -188,6 +210,9 @@ func (h *MonitorHandler) loadAccount(ctx context.Context, id int64) (*monitorAcc
 		return nil, err
 	}
 	grouped := groupMonitorAccounts([]monitorAccount{{account: account, info: info}}, configs)
+	if err := h.applyMonitoringTokens(grouped); err != nil {
+		return nil, err
+	}
 	if len(grouped) != 1 || !grouped[0].Enabled {
 		return nil, hostservice.ErrAccountNotFound
 	}
@@ -211,16 +236,18 @@ func (h *MonitorHandler) ListUpstreams(c *gin.Context) {
 			"id": upstream.ID, "name": upstream.Name, "base_url": upstream.BaseURL,
 			"type": upstream.Type, "configured": upstream.Configured, "enabled": upstream.Enabled,
 			"account_count": len(accountIDs), "account_ids": accountIDs,
+			"has_access_token": upstream.AccessToken != nil,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"upstreams": result, "total": len(result)})
 }
 
 type configureUpstreamRequest struct {
-	BaseURL string `json:"base_url" binding:"required"`
-	Name    string `json:"name"`
-	Type    string `json:"type" binding:"required"`
-	Enabled *bool  `json:"enabled"`
+	BaseURL     string  `json:"base_url" binding:"required"`
+	Name        string  `json:"name"`
+	Type        string  `json:"type" binding:"required"`
+	Enabled     *bool   `json:"enabled"`
+	AccessToken *string `json:"access_token"`
 }
 
 // ConfigureUpstream stores type and enablement in the plugin's own table.
@@ -244,12 +271,26 @@ func (h *MonitorHandler) ConfigureUpstream(c *gin.Context) {
 	if request.Enabled != nil {
 		enabled = *request.Enabled
 	}
-	configured, err := h.upstreams.Upsert(c.Request.Context(), rootURL, strings.TrimSpace(request.Name), upstreammonitorupstream.UpstreamType(typeName), enabled)
+	var encryptedToken *string
+	if request.AccessToken != nil && strings.TrimSpace(*request.AccessToken) != "" {
+		encrypted, err := h.encryptor.Encrypt(strings.TrimSpace(*request.AccessToken))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encrypt access token"})
+			return
+		}
+		encryptedToken = &encrypted
+	}
+	configured, err := h.upstreams.Upsert(c.Request.Context(), rootURL, strings.TrimSpace(request.Name), upstreammonitorupstream.UpstreamType(typeName), enabled, encryptedToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, configured)
+	c.JSON(http.StatusOK, gin.H{
+		"id": configured.ID, "base_url": configured.BaseURL, "name": configured.Name,
+		"upstream_type": configured.UpstreamType, "enabled": configured.Enabled,
+		"has_access_token": configured.AccessToken != nil,
+		"created_at":       configured.CreatedAt, "updated_at": configured.UpdatedAt,
+	})
 }
 
 // ListAccounts lists all upstream accounts.

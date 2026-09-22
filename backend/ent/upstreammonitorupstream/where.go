@@ -64,6 +64,11 @@ func Name(v string) predicate.UpstreamMonitorUpstream {
 	return predicate.UpstreamMonitorUpstream(sql.FieldEQ(FieldName, v))
 }
 
+// AccessToken applies equality check predicate on the "access_token" field. It's identical to AccessTokenEQ.
+func AccessToken(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldEQ(FieldAccessToken, v))
+}
+
 // Enabled applies equality check predicate on the "enabled" field. It's identical to EnabledEQ.
 func Enabled(v bool) predicate.UpstreamMonitorUpstream {
 	return predicate.UpstreamMonitorUpstream(sql.FieldEQ(FieldEnabled, v))
@@ -227,6 +232,81 @@ func UpstreamTypeIn(vs ...UpstreamType) predicate.UpstreamMonitorUpstream {
 // UpstreamTypeNotIn applies the NotIn predicate on the "upstream_type" field.
 func UpstreamTypeNotIn(vs ...UpstreamType) predicate.UpstreamMonitorUpstream {
 	return predicate.UpstreamMonitorUpstream(sql.FieldNotIn(FieldUpstreamType, vs...))
+}
+
+// AccessTokenEQ applies the EQ predicate on the "access_token" field.
+func AccessTokenEQ(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldEQ(FieldAccessToken, v))
+}
+
+// AccessTokenNEQ applies the NEQ predicate on the "access_token" field.
+func AccessTokenNEQ(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldNEQ(FieldAccessToken, v))
+}
+
+// AccessTokenIn applies the In predicate on the "access_token" field.
+func AccessTokenIn(vs ...string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldIn(FieldAccessToken, vs...))
+}
+
+// AccessTokenNotIn applies the NotIn predicate on the "access_token" field.
+func AccessTokenNotIn(vs ...string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldNotIn(FieldAccessToken, vs...))
+}
+
+// AccessTokenGT applies the GT predicate on the "access_token" field.
+func AccessTokenGT(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldGT(FieldAccessToken, v))
+}
+
+// AccessTokenGTE applies the GTE predicate on the "access_token" field.
+func AccessTokenGTE(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldGTE(FieldAccessToken, v))
+}
+
+// AccessTokenLT applies the LT predicate on the "access_token" field.
+func AccessTokenLT(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldLT(FieldAccessToken, v))
+}
+
+// AccessTokenLTE applies the LTE predicate on the "access_token" field.
+func AccessTokenLTE(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldLTE(FieldAccessToken, v))
+}
+
+// AccessTokenContains applies the Contains predicate on the "access_token" field.
+func AccessTokenContains(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldContains(FieldAccessToken, v))
+}
+
+// AccessTokenHasPrefix applies the HasPrefix predicate on the "access_token" field.
+func AccessTokenHasPrefix(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldHasPrefix(FieldAccessToken, v))
+}
+
+// AccessTokenHasSuffix applies the HasSuffix predicate on the "access_token" field.
+func AccessTokenHasSuffix(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldHasSuffix(FieldAccessToken, v))
+}
+
+// AccessTokenIsNil applies the IsNil predicate on the "access_token" field.
+func AccessTokenIsNil() predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldIsNull(FieldAccessToken))
+}
+
+// AccessTokenNotNil applies the NotNil predicate on the "access_token" field.
+func AccessTokenNotNil() predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldNotNull(FieldAccessToken))
+}
+
+// AccessTokenEqualFold applies the EqualFold predicate on the "access_token" field.
+func AccessTokenEqualFold(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldEqualFold(FieldAccessToken, v))
+}
+
+// AccessTokenContainsFold applies the ContainsFold predicate on the "access_token" field.
+func AccessTokenContainsFold(v string) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldContainsFold(FieldAccessToken, v))
 }
 
 // EnabledEQ applies the EQ predicate on the "enabled" field.

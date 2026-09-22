@@ -1656,6 +1656,7 @@ var (
 		{Name: "base_url", Type: field.TypeString, Unique: true, Size: 500},
 		{Name: "name", Type: field.TypeString, Size: 200, Default: ""},
 		{Name: "upstream_type", Type: field.TypeEnum, Enums: []string{"sub2api", "nexapi"}},
+		{Name: "access_token", Type: field.TypeString, Nullable: true},
 		{Name: "enabled", Type: field.TypeBool, Default: true},
 		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},

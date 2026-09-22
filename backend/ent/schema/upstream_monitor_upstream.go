@@ -25,6 +25,7 @@ func (UpstreamMonitorUpstream) Fields() []ent.Field {
 		field.String("base_url").MaxLen(500).NotEmpty().Unique(),
 		field.String("name").MaxLen(200).Default(""),
 		field.Enum("upstream_type").Values("sub2api", "nexapi"),
+		field.String("access_token").Optional().Nillable().Sensitive(),
 		field.Bool("enabled").Default(true),
 		field.Time("created_at").SchemaType(map[string]string{dialect.Postgres: "timestamptz"}).Default(time.Now).Immutable(),
 		field.Time("updated_at").SchemaType(map[string]string{dialect.Postgres: "timestamptz"}).Default(time.Now).UpdateDefault(time.Now),

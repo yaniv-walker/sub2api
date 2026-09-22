@@ -48,6 +48,20 @@ func (_c *UpstreamMonitorUpstreamCreate) SetUpstreamType(v upstreammonitorupstre
 	return _c
 }
 
+// SetAccessToken sets the "access_token" field.
+func (_c *UpstreamMonitorUpstreamCreate) SetAccessToken(v string) *UpstreamMonitorUpstreamCreate {
+	_c.mutation.SetAccessToken(v)
+	return _c
+}
+
+// SetNillableAccessToken sets the "access_token" field if the given value is not nil.
+func (_c *UpstreamMonitorUpstreamCreate) SetNillableAccessToken(v *string) *UpstreamMonitorUpstreamCreate {
+	if v != nil {
+		_c.SetAccessToken(*v)
+	}
+	return _c
+}
+
 // SetEnabled sets the "enabled" field.
 func (_c *UpstreamMonitorUpstreamCreate) SetEnabled(v bool) *UpstreamMonitorUpstreamCreate {
 	_c.mutation.SetEnabled(v)
@@ -217,6 +231,10 @@ func (_c *UpstreamMonitorUpstreamCreate) createSpec() (*UpstreamMonitorUpstream,
 		_spec.SetField(upstreammonitorupstream.FieldUpstreamType, field.TypeEnum, value)
 		_node.UpstreamType = value
 	}
+	if value, ok := _c.mutation.AccessToken(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldAccessToken, field.TypeString, value)
+		_node.AccessToken = &value
+	}
 	if value, ok := _c.mutation.Enabled(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldEnabled, field.TypeBool, value)
 		_node.Enabled = value
@@ -314,6 +332,24 @@ func (u *UpstreamMonitorUpstreamUpsert) SetUpstreamType(v upstreammonitorupstrea
 // UpdateUpstreamType sets the "upstream_type" field to the value that was provided on create.
 func (u *UpstreamMonitorUpstreamUpsert) UpdateUpstreamType() *UpstreamMonitorUpstreamUpsert {
 	u.SetExcluded(upstreammonitorupstream.FieldUpstreamType)
+	return u
+}
+
+// SetAccessToken sets the "access_token" field.
+func (u *UpstreamMonitorUpstreamUpsert) SetAccessToken(v string) *UpstreamMonitorUpstreamUpsert {
+	u.Set(upstreammonitorupstream.FieldAccessToken, v)
+	return u
+}
+
+// UpdateAccessToken sets the "access_token" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsert) UpdateAccessToken() *UpstreamMonitorUpstreamUpsert {
+	u.SetExcluded(upstreammonitorupstream.FieldAccessToken)
+	return u
+}
+
+// ClearAccessToken clears the value of the "access_token" field.
+func (u *UpstreamMonitorUpstreamUpsert) ClearAccessToken() *UpstreamMonitorUpstreamUpsert {
+	u.SetNull(upstreammonitorupstream.FieldAccessToken)
 	return u
 }
 
@@ -425,6 +461,27 @@ func (u *UpstreamMonitorUpstreamUpsertOne) SetUpstreamType(v upstreammonitorupst
 func (u *UpstreamMonitorUpstreamUpsertOne) UpdateUpstreamType() *UpstreamMonitorUpstreamUpsertOne {
 	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
 		s.UpdateUpstreamType()
+	})
+}
+
+// SetAccessToken sets the "access_token" field.
+func (u *UpstreamMonitorUpstreamUpsertOne) SetAccessToken(v string) *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.SetAccessToken(v)
+	})
+}
+
+// UpdateAccessToken sets the "access_token" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsertOne) UpdateAccessToken() *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.UpdateAccessToken()
+	})
+}
+
+// ClearAccessToken clears the value of the "access_token" field.
+func (u *UpstreamMonitorUpstreamUpsertOne) ClearAccessToken() *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.ClearAccessToken()
 	})
 }
 
@@ -706,6 +763,27 @@ func (u *UpstreamMonitorUpstreamUpsertBulk) SetUpstreamType(v upstreammonitorups
 func (u *UpstreamMonitorUpstreamUpsertBulk) UpdateUpstreamType() *UpstreamMonitorUpstreamUpsertBulk {
 	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
 		s.UpdateUpstreamType()
+	})
+}
+
+// SetAccessToken sets the "access_token" field.
+func (u *UpstreamMonitorUpstreamUpsertBulk) SetAccessToken(v string) *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.SetAccessToken(v)
+	})
+}
+
+// UpdateAccessToken sets the "access_token" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsertBulk) UpdateAccessToken() *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.UpdateAccessToken()
+	})
+}
+
+// ClearAccessToken clears the value of the "access_token" field.
+func (u *UpstreamMonitorUpstreamUpsertBulk) ClearAccessToken() *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.ClearAccessToken()
 	})
 }
 

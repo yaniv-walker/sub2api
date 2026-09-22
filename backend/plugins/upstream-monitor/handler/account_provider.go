@@ -21,7 +21,7 @@ type AccountProvider interface {
 // UpstreamProvider is the plugin-owned configuration boundary.
 type UpstreamProvider interface {
 	List(ctx context.Context) ([]*ent.UpstreamMonitorUpstream, error)
-	Upsert(ctx context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool) (*ent.UpstreamMonitorUpstream, error)
+	Upsert(ctx context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken *string) (*ent.UpstreamMonitorUpstream, error)
 }
 
 type monitorAccount struct {
@@ -30,13 +30,14 @@ type monitorAccount struct {
 }
 
 type monitorUpstream struct {
-	ID         int64
-	BaseURL    string
-	Name       string
-	Type       string
-	Configured bool
-	Enabled    bool
-	Accounts   []monitorAccount
+	ID          int64
+	BaseURL     string
+	Name        string
+	Type        string
+	Configured  bool
+	Enabled     bool
+	AccessToken *string
+	Accounts    []monitorAccount
 }
 
 func groupMonitorAccounts(accounts []monitorAccount, configs []*ent.UpstreamMonitorUpstream) []monitorUpstream {
@@ -61,6 +62,7 @@ func groupMonitorAccounts(accounts []monitorAccount, configs []*ent.UpstreamMoni
 				upstream.Type = string(config.UpstreamType)
 				upstream.Configured = true
 				upstream.Enabled = config.Enabled
+				upstream.AccessToken = config.AccessToken
 			}
 			byURL[rootURL] = upstream
 			order = append(order, rootURL)

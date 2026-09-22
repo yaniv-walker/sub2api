@@ -23,6 +23,8 @@ type UpstreamMonitorUpstream struct {
 	Name string `json:"name,omitempty"`
 	// UpstreamType holds the value of the "upstream_type" field.
 	UpstreamType upstreammonitorupstream.UpstreamType `json:"upstream_type,omitempty"`
+	// AccessToken holds the value of the "access_token" field.
+	AccessToken *string `json:"-"`
 	// Enabled holds the value of the "enabled" field.
 	Enabled bool `json:"enabled,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -41,7 +43,7 @@ func (*UpstreamMonitorUpstream) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case upstreammonitorupstream.FieldID:
 			values[i] = new(sql.NullInt64)
-		case upstreammonitorupstream.FieldBaseURL, upstreammonitorupstream.FieldName, upstreammonitorupstream.FieldUpstreamType:
+		case upstreammonitorupstream.FieldBaseURL, upstreammonitorupstream.FieldName, upstreammonitorupstream.FieldUpstreamType, upstreammonitorupstream.FieldAccessToken:
 			values[i] = new(sql.NullString)
 		case upstreammonitorupstream.FieldCreatedAt, upstreammonitorupstream.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -83,6 +85,13 @@ func (_m *UpstreamMonitorUpstream) assignValues(columns []string, values []any) 
 				return fmt.Errorf("unexpected type %T for field upstream_type", values[i])
 			} else if value.Valid {
 				_m.UpstreamType = upstreammonitorupstream.UpstreamType(value.String)
+			}
+		case upstreammonitorupstream.FieldAccessToken:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field access_token", values[i])
+			} else if value.Valid {
+				_m.AccessToken = new(string)
+				*_m.AccessToken = value.String
 			}
 		case upstreammonitorupstream.FieldEnabled:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -146,6 +155,8 @@ func (_m *UpstreamMonitorUpstream) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("upstream_type=")
 	builder.WriteString(fmt.Sprintf("%v", _m.UpstreamType))
+	builder.WriteString(", ")
+	builder.WriteString("access_token=<sensitive>")
 	builder.WriteString(", ")
 	builder.WriteString("enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Enabled))

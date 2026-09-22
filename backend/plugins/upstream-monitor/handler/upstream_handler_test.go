@@ -16,25 +16,31 @@ type fakeUpstreamProvider struct {
 	saved *ent.UpstreamMonitorUpstream
 }
 
+type fakeSecretEncryptor struct{}
+
+func (fakeSecretEncryptor) Encrypt(value string) (string, error) { return "encrypted:" + value, nil }
+func (fakeSecretEncryptor) Decrypt(value string) (string, error) { return value, nil }
+
 func (f *fakeUpstreamProvider) List(context.Context) ([]*ent.UpstreamMonitorUpstream, error) {
 	return nil, nil
 }
 
-func (f *fakeUpstreamProvider) Upsert(_ context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool) (*ent.UpstreamMonitorUpstream, error) {
-	f.saved = &ent.UpstreamMonitorUpstream{ID: 1, BaseURL: baseURL, Name: name, UpstreamType: upstreamType, Enabled: enabled}
+func (f *fakeUpstreamProvider) Upsert(_ context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken *string) (*ent.UpstreamMonitorUpstream, error) {
+	f.saved = &ent.UpstreamMonitorUpstream{ID: 1, BaseURL: baseURL, Name: name, UpstreamType: upstreamType, Enabled: enabled, AccessToken: accessToken}
 	return f.saved, nil
 }
 
 func TestConfigureUpstreamStoresOneTypeForNormalizedOrigin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	provider := &fakeUpstreamProvider{}
-	handler := &MonitorHandler{upstreams: provider}
+	handler := &MonitorHandler{upstreams: provider, encryptor: fakeSecretEncryptor{}}
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Request = httptest.NewRequest(http.MethodPut, "/upstreams", bytes.NewBufferString(`{
 		"base_url":"https://Gateway.Example.com/v1/chat/completions",
 		"name":"Primary relay",
 		"type":"nexapi",
+		"access_token":"secret-token",
 		"enabled":true
 	}`))
 	ctx.Request.Header.Set("Content-Type", "application/json")
@@ -46,5 +52,11 @@ func TestConfigureUpstreamStoresOneTypeForNormalizedOrigin(t *testing.T) {
 	}
 	if provider.saved.BaseURL != "https://gateway.example.com" || provider.saved.UpstreamType != upstreammonitorupstream.UpstreamTypeNexapi {
 		t.Fatalf("saved config = %+v", provider.saved)
+	}
+	if provider.saved.AccessToken == nil || *provider.saved.AccessToken != "encrypted:secret-token" {
+		t.Fatalf("encrypted access token = %v", provider.saved.AccessToken)
+	}
+	if bytes.Contains(recorder.Body.Bytes(), []byte("secret-token")) || bytes.Contains(recorder.Body.Bytes(), []byte("encrypted:")) {
+		t.Fatalf("response exposed access token: %s", recorder.Body.String())
 	}
 }

@@ -29,12 +29,16 @@ func (r *UpstreamRepository) GetByBaseURL(ctx context.Context, baseURL string) (
 		Only(ctx)
 }
 
-func (r *UpstreamRepository) Upsert(ctx context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool) (*ent.UpstreamMonitorUpstream, error) {
-	id, err := r.client.UpstreamMonitorUpstream.Create().
+func (r *UpstreamRepository) Upsert(ctx context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken *string) (*ent.UpstreamMonitorUpstream, error) {
+	create := r.client.UpstreamMonitorUpstream.Create().
 		SetBaseURL(baseURL).
 		SetName(name).
 		SetUpstreamType(upstreamType).
-		SetEnabled(enabled).
+		SetEnabled(enabled)
+	if accessToken != nil {
+		create.SetAccessToken(*accessToken)
+	}
+	id, err := create.
 		OnConflictColumns(upstreammonitorupstream.FieldBaseURL).
 		UpdateNewValues().
 		ID(ctx)
