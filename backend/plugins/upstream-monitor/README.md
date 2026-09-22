@@ -104,7 +104,7 @@ Content-Type: application/json
 GET /api/v1/plugins/upstream-monitor/overview
 ```
 
-返回所有上游账号的汇总统计信息。
+返回所有上游账号的汇总统计信息。`total_balance` 是所有上游合计；`by_upstream` 按规范化根地址分别返回每个上游的余额、类型和关联账号数，同一上游不会重复累计。
 
 ### 账号列表
 ```

@@ -93,6 +93,7 @@
 - 2026-09-22：实测自定义 Sub2API 上游的 `/api/user/self` 返回 404，确认当前宿主对 API Key 暴露的自省接口为 `/v1/usage`。Sub2API 抓取器改用该端点并兼容 `balance`、`remaining`、`quota.remaining`；NexAPI 保持 `/api/user/self`。真实 HTTP fixture 覆盖接口路径、认证头和解析结果。
 - 2026-09-22：确认 NexAPI `/api/user/self` 拒绝模型 API Key，需要上游用户访问令牌。插件上游配置新增只写 `access_token`：复用主程序 `SecretEncryptor` 进行 AES-GCM 加密，按上游共享并优先用于余额查询；列表与保存响应仅暴露 `has_access_token`。旧表由插件启动时幂等增加列，不修改主程序账号数据。
 - 2026-09-22：修正 NexAPI 余额口径：优先严格按设计公式 `(quota - used_quota) / 431778` 计算，不再优先使用可能为缓存或不同单位的 `remaining_quota`；仅在总配额字段缺失时回退。
+- 2026-09-22：新增 `by_upstream` 响应明细。`total_balance` 继续表示所有上游合计，`by_upstream` 按规范化根地址返回每个上游独立余额、类型、名称和关联账号数量，避免多个上游只能看到一个总数。
 
 ## 启动端口与插件日志核验
 

@@ -96,6 +96,7 @@ func (h *MonitorHandler) GetOverview(c *gin.Context) {
 			"total_accounts":    0,
 			"total_upstreams":   0,
 			"by_type":           gin.H{},
+			"by_upstream":       gin.H{},
 			"low_balance_count": 0,
 			"error_count_24h":   0,
 		})
@@ -137,12 +138,29 @@ func (h *MonitorHandler) GetOverview(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"total_balance":     result.TotalBalance,
 		"total_accounts":    totalAccounts,
-		"total_upstreams":   len(accounts),
+		"total_upstreams":   len(result.ByUpstream),
 		"by_type":           result.ByType,
+		"by_upstream":       h.upstreamBalanceDetails(upstreams, result),
 		"low_balance_count": lowBalanceCount,
 		"error_count_24h":   errorCount,
 		"errors":            result.Errors,
 	})
+}
+
+func (h *MonitorHandler) upstreamBalanceDetails(upstreams []monitorUpstream, result *service.AggregatedBalance) []gin.H {
+	details := make([]gin.H, 0, len(result.ByUpstream))
+	for _, upstream := range upstreams {
+		balance, ok := result.ByUpstream[upstream.BaseURL]
+		if !ok {
+			continue
+		}
+		details = append(details, gin.H{
+			"id": upstream.ID, "name": upstream.Name, "base_url": upstream.BaseURL,
+			"type": balance.UpstreamType, "balance": balance.Balance,
+			"account_count": len(upstream.Accounts), "account_id": balance.AccountID,
+		})
+	}
+	return details
 }
 
 // loadActiveAccounts reads administrator-managed accounts from the host repository.
@@ -521,9 +539,11 @@ func (h *MonitorHandler) RefreshAllBalances(c *gin.Context) {
 	result := h.aggregator.Aggregate(ctx, accounts)
 
 	c.JSON(http.StatusOK, gin.H{
-		"refreshed_count": len(result.ByAccount),
-		"failed_count":    len(result.Errors),
-		"total_balance":   result.TotalBalance,
-		"errors":          result.Errors,
+		"refreshed_count":     len(result.ByAccount),
+		"refreshed_upstreams": len(result.ByUpstream),
+		"failed_count":        len(result.Errors),
+		"total_balance":       result.TotalBalance,
+		"by_upstream":         h.upstreamBalanceDetails(upstreams, result),
+		"errors":              result.Errors,
 	})
 }

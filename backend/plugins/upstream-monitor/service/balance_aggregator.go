@@ -36,10 +36,18 @@ func NewBalanceAggregator(
 
 // AggregatedBalance contains aggregated balance information.
 type AggregatedBalance struct {
-	TotalBalance float64                 `json:"total_balance"`
-	ByType       map[string]float64      `json:"by_type"`
-	ByAccount    map[int64]*UpstreamInfo `json:"by_account"`
-	Errors       map[int64]string        `json:"errors,omitempty"`
+	TotalBalance float64                     `json:"total_balance"`
+	ByType       map[string]float64          `json:"by_type"`
+	ByAccount    map[int64]*UpstreamInfo     `json:"by_account"`
+	Errors       map[int64]string            `json:"errors,omitempty"`
+	ByUpstream   map[string]*UpstreamBalance `json:"by_upstream"`
+}
+
+type UpstreamBalance struct {
+	BaseURL      string  `json:"base_url"`
+	UpstreamType string  `json:"type"`
+	Balance      float64 `json:"balance"`
+	AccountID    int64   `json:"account_id"`
 }
 
 // AccountInfo represents basic account information for fetching.
@@ -59,6 +67,7 @@ func (a *BalanceAggregator) Aggregate(ctx context.Context, accounts []AccountInf
 		ByType:       make(map[string]float64),
 		ByAccount:    make(map[int64]*UpstreamInfo),
 		Errors:       make(map[int64]string),
+		ByUpstream:   make(map[string]*UpstreamBalance),
 	}
 
 	if len(accounts) == 0 {
@@ -92,6 +101,10 @@ func (a *BalanceAggregator) Aggregate(ctx context.Context, accounts []AccountInf
 			result.ByAccount[account.ID] = info
 			result.TotalBalance += info.Balance
 			result.ByType[info.Type] += info.Balance
+			result.ByUpstream[account.BaseURL] = &UpstreamBalance{
+				BaseURL: account.BaseURL, UpstreamType: info.Type,
+				Balance: info.Balance, AccountID: account.ID,
+			}
 
 			// Save balance snapshot if enabled
 			if a.saveSnapshots {
