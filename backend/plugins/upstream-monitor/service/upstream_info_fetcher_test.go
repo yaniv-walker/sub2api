@@ -69,6 +69,7 @@ func TestFetchNexAPIInfo_Success(t *testing.T) {
 		}
 		resp.Data.Quota = 48838015
 		resp.Data.UsedQuota = 6661985
+		resp.Data.RemainingQuota = 99999999 // must not override quota-used calculation
 		resp.Data.Name = "NexAPI Test"
 		resp.Data.Status = 1
 
@@ -81,6 +82,20 @@ func TestFetchNexAPIInfo_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.InDelta(t, 97.68, info.Balance, 0.01)
 	assert.Equal(t, "NexAPI Test", info.Name)
+}
+
+func TestNexAPIPrefersQuotaMinusUsedOverRemainingQuota(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"code": 0, "data": map[string]any{
+			"quota": 48838015, "used_quota": 6661985, "remaining_quota": 99999999,
+			"status": 1, "name": "NexAPI",
+		}})
+	}))
+	defer server.Close()
+
+	info, err := NewUpstreamInfoFetcher(nil).FetchInfo(3, "nexapi", server.URL, "token")
+	require.NoError(t, err)
+	assert.InDelta(t, float64(48838015-6661985)/431778.0, info.Balance, 0.000001)
 }
 
 func TestFetchInfo_UnsupportedType(t *testing.T) {

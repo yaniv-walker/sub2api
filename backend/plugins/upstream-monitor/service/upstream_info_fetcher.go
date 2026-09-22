@@ -219,9 +219,15 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 		return nil, fmt.Errorf("API error: %s", apiResp.Msg)
 	}
 
+	// The documented NexAPI balance is derived from total quota minus usage.
+	// Do not prefer remaining_quota: some deployments expose it as a cached or
+	// differently scaled value. Only use it when the source fields are absent.
 	remainingQuota := apiResp.Data.RemainingQuota
-	if remainingQuota == 0 && apiResp.Data.Quota > apiResp.Data.UsedQuota {
+	if apiResp.Data.Quota > 0 || apiResp.Data.UsedQuota > 0 {
 		remainingQuota = apiResp.Data.Quota - apiResp.Data.UsedQuota
+		if remainingQuota < 0 {
+			remainingQuota = 0
+		}
 	}
 	// NexAPI conversion: remaining quota / 431778 = balance_cny.
 	balanceCNY := float64(remainingQuota) / 431778.0
