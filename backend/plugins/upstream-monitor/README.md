@@ -179,6 +179,7 @@ GET /api/v1/plugins/upstream-monitor/accounts/:id/prediction
 - 接口：`/api/user/self`
 - 认证：优先使用上游配置的用户访问令牌；未配置时才回退到关联账号 API Key
 - 配额字段：`quota`（总配额）、`used_quota`（已用配额）
+- 若响应提供 `data.balance`，优先使用该上游直接返回的余额，避免重复换算
 - 换算公式：`balance = (quota - used_quota) / 431778`
 
 ## 开发指南

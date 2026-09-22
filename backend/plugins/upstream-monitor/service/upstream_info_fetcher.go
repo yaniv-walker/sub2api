@@ -171,6 +171,7 @@ type NexAPIResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 	Data struct {
+		Balance        *float64 `json:"balance"`        // Direct balance, when exposed by the deployment
 		Quota          int64  `json:"quota"`           // 总配额
 		UsedQuota      int64  `json:"used_quota"`      // 已用配额
 		RemainingQuota int64  `json:"remaining_quota"` // 剩余配额
@@ -222,6 +223,21 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 	// The documented NexAPI balance is derived from total quota minus usage.
 	// Do not prefer remaining_quota: some deployments expose it as a cached or
 	// differently scaled value. Only use it when the source fields are absent.
+	if apiResp.Data.Balance != nil {
+		balance := *apiResp.Data.Balance
+		info := &UpstreamInfo{
+			AccountID: accountID,
+			Name: apiResp.Data.Name,
+			Type: "nexapi",
+			Balance: balance,
+			Concurrency: 0,
+			Status: nexAPIStatus(apiResp.Data.Status),
+			ApiKey: apiKey,
+		}
+		f.logger.Info("NexAPI info fetched successfully", "account_id", accountID, "balance", balance, "balance_source", "direct", "status", info.Status)
+		return info, nil
+	}
+
 	remainingQuota := apiResp.Data.RemainingQuota
 	if apiResp.Data.Quota > 0 || apiResp.Data.UsedQuota > 0 {
 		remainingQuota = apiResp.Data.Quota - apiResp.Data.UsedQuota
@@ -232,10 +248,7 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 	// NexAPI conversion: remaining quota / 431778 = balance_cny.
 	balanceCNY := float64(remainingQuota) / 431778.0
 
-	status := "inactive"
-	if apiResp.Data.Status == 1 {
-		status = "active"
-	}
+	status := nexAPIStatus(apiResp.Data.Status)
 
 	info := &UpstreamInfo{
 		AccountID:   accountID,
@@ -255,4 +268,11 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 	)
 
 	return info, nil
+}
+
+func nexAPIStatus(status int) string {
+	if status == 1 {
+		return "active"
+	}
+	return "inactive"
 }

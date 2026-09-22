@@ -98,6 +98,21 @@ func TestNexAPIPrefersQuotaMinusUsedOverRemainingQuota(t *testing.T) {
 	assert.InDelta(t, float64(48838015-6661985)/431778.0, info.Balance, 0.000001)
 }
 
+func TestFetchNexAPIInfoUsesDirectBalanceWhenProvided(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"code": 0, "data": map[string]any{
+			"balance": 95.93,
+			"quota": 48838015, "used_quota": 6661985,
+			"status": 1, "name": "Xinyun",
+		}})
+	}))
+	defer server.Close()
+
+	info, err := NewUpstreamInfoFetcher(nil).FetchInfo(4, "nexapi", server.URL, "token")
+	require.NoError(t, err)
+	assert.InDelta(t, 95.93, info.Balance, 0.000001)
+}
+
 func TestFetchInfo_UnsupportedType(t *testing.T) {
 	fetcher := NewUpstreamInfoFetcher(nil)
 
