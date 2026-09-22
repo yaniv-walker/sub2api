@@ -25,6 +25,8 @@ type UpstreamMonitorUpstream struct {
 	UpstreamType upstreammonitorupstream.UpstreamType `json:"upstream_type,omitempty"`
 	// AccessToken holds the value of the "access_token" field.
 	AccessToken *string `json:"-"`
+	// QuotaDivider holds the value of the "quota_divider" field.
+	QuotaDivider float64 `json:"quota_divider,omitempty"`
 	// Enabled holds the value of the "enabled" field.
 	Enabled bool `json:"enabled,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -41,6 +43,8 @@ func (*UpstreamMonitorUpstream) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case upstreammonitorupstream.FieldEnabled:
 			values[i] = new(sql.NullBool)
+		case upstreammonitorupstream.FieldQuotaDivider:
+			values[i] = new(sql.NullFloat64)
 		case upstreammonitorupstream.FieldID:
 			values[i] = new(sql.NullInt64)
 		case upstreammonitorupstream.FieldBaseURL, upstreammonitorupstream.FieldName, upstreammonitorupstream.FieldUpstreamType, upstreammonitorupstream.FieldAccessToken:
@@ -92,6 +96,12 @@ func (_m *UpstreamMonitorUpstream) assignValues(columns []string, values []any) 
 			} else if value.Valid {
 				_m.AccessToken = new(string)
 				*_m.AccessToken = value.String
+			}
+		case upstreammonitorupstream.FieldQuotaDivider:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field quota_divider", values[i])
+			} else if value.Valid {
+				_m.QuotaDivider = value.Float64
 			}
 		case upstreammonitorupstream.FieldEnabled:
 			if value, ok := values[i].(*sql.NullBool); !ok {
@@ -157,6 +167,9 @@ func (_m *UpstreamMonitorUpstream) String() string {
 	builder.WriteString(fmt.Sprintf("%v", _m.UpstreamType))
 	builder.WriteString(", ")
 	builder.WriteString("access_token=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("quota_divider=")
+	builder.WriteString(fmt.Sprintf("%v", _m.QuotaDivider))
 	builder.WriteString(", ")
 	builder.WriteString("enabled=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Enabled))

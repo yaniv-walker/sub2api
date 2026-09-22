@@ -25,8 +25,8 @@ func (f *fakeUpstreamProvider) List(context.Context) ([]*ent.UpstreamMonitorUpst
 	return nil, nil
 }
 
-func (f *fakeUpstreamProvider) Upsert(_ context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken *string) (*ent.UpstreamMonitorUpstream, error) {
-	f.saved = &ent.UpstreamMonitorUpstream{ID: 1, BaseURL: baseURL, Name: name, UpstreamType: upstreamType, Enabled: enabled, AccessToken: accessToken}
+func (f *fakeUpstreamProvider) Upsert(_ context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken *string, quotaDivider float64) (*ent.UpstreamMonitorUpstream, error) {
+	f.saved = &ent.UpstreamMonitorUpstream{ID: 1, BaseURL: baseURL, Name: name, UpstreamType: upstreamType, Enabled: enabled, AccessToken: accessToken, QuotaDivider: quotaDivider}
 	return f.saved, nil
 }
 
@@ -40,6 +40,7 @@ func TestConfigureUpstreamStoresOneTypeForNormalizedOrigin(t *testing.T) {
 		"base_url":"https://Gateway.Example.com/v1/chat/completions",
 		"name":"Primary relay",
 		"type":"nexapi",
+		"quota_divider":100000,
 		"access_token":"secret-token",
 		"enabled":true
 	}`))
@@ -52,6 +53,9 @@ func TestConfigureUpstreamStoresOneTypeForNormalizedOrigin(t *testing.T) {
 	}
 	if provider.saved.BaseURL != "https://gateway.example.com" || provider.saved.UpstreamType != upstreammonitorupstream.UpstreamTypeNexapi {
 		t.Fatalf("saved config = %+v", provider.saved)
+	}
+	if provider.saved.QuotaDivider != 100000 {
+		t.Fatalf("quota divider = %v", provider.saved.QuotaDivider)
 	}
 	if provider.saved.AccessToken == nil || *provider.saved.AccessToken != "encrypted:secret-token" {
 		t.Fatalf("encrypted access token = %v", provider.saved.AccessToken)

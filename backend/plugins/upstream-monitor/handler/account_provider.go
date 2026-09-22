@@ -21,7 +21,7 @@ type AccountProvider interface {
 // UpstreamProvider is the plugin-owned configuration boundary.
 type UpstreamProvider interface {
 	List(ctx context.Context) ([]*ent.UpstreamMonitorUpstream, error)
-	Upsert(ctx context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken *string) (*ent.UpstreamMonitorUpstream, error)
+	Upsert(ctx context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken *string, quotaDivider float64) (*ent.UpstreamMonitorUpstream, error)
 }
 
 type monitorAccount struct {
@@ -30,14 +30,15 @@ type monitorAccount struct {
 }
 
 type monitorUpstream struct {
-	ID          int64
-	BaseURL     string
-	Name        string
-	Type        string
-	Configured  bool
-	Enabled     bool
-	AccessToken *string
-	Accounts    []monitorAccount
+	ID           int64
+	BaseURL      string
+	Name         string
+	Type         string
+	Configured   bool
+	Enabled      bool
+	AccessToken  *string
+	QuotaDivider float64
+	Accounts     []monitorAccount
 }
 
 func groupMonitorAccounts(accounts []monitorAccount, configs []*ent.UpstreamMonitorUpstream) []monitorUpstream {
@@ -55,7 +56,7 @@ func groupMonitorAccounts(accounts []monitorAccount, configs []*ent.UpstreamMoni
 		}
 		upstream := byURL[rootURL]
 		if upstream == nil {
-			upstream = &monitorUpstream{BaseURL: rootURL, Type: account.info.UpstreamType, Enabled: true}
+			upstream = &monitorUpstream{BaseURL: rootURL, Type: account.info.UpstreamType, Enabled: true, QuotaDivider: monitorservice.DefaultNexAPIBalanceDivider}
 			if config := configByURL[rootURL]; config != nil {
 				upstream.ID = config.ID
 				upstream.Name = config.Name
@@ -63,12 +64,14 @@ func groupMonitorAccounts(accounts []monitorAccount, configs []*ent.UpstreamMoni
 				upstream.Configured = true
 				upstream.Enabled = config.Enabled
 				upstream.AccessToken = config.AccessToken
+				upstream.QuotaDivider = config.QuotaDivider
 			}
 			byURL[rootURL] = upstream
 			order = append(order, rootURL)
 		}
 		account.info.BaseURL = rootURL
 		account.info.UpstreamType = upstream.Type
+		account.info.QuotaDivider = upstream.QuotaDivider
 		upstream.Accounts = append(upstream.Accounts, account)
 	}
 

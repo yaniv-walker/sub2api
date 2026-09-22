@@ -90,6 +90,27 @@ func (_u *UpstreamMonitorUpstreamUpdate) ClearAccessToken() *UpstreamMonitorUpst
 	return _u
 }
 
+// SetQuotaDivider sets the "quota_divider" field.
+func (_u *UpstreamMonitorUpstreamUpdate) SetQuotaDivider(v float64) *UpstreamMonitorUpstreamUpdate {
+	_u.mutation.ResetQuotaDivider()
+	_u.mutation.SetQuotaDivider(v)
+	return _u
+}
+
+// SetNillableQuotaDivider sets the "quota_divider" field if the given value is not nil.
+func (_u *UpstreamMonitorUpstreamUpdate) SetNillableQuotaDivider(v *float64) *UpstreamMonitorUpstreamUpdate {
+	if v != nil {
+		_u.SetQuotaDivider(*v)
+	}
+	return _u
+}
+
+// AddQuotaDivider adds value to the "quota_divider" field.
+func (_u *UpstreamMonitorUpstreamUpdate) AddQuotaDivider(v float64) *UpstreamMonitorUpstreamUpdate {
+	_u.mutation.AddQuotaDivider(v)
+	return _u
+}
+
 // SetEnabled sets the "enabled" field.
 func (_u *UpstreamMonitorUpstreamUpdate) SetEnabled(v bool) *UpstreamMonitorUpstreamUpdate {
 	_u.mutation.SetEnabled(v)
@@ -198,6 +219,12 @@ func (_u *UpstreamMonitorUpstreamUpdate) sqlSave(ctx context.Context) (_node int
 	if _u.mutation.AccessTokenCleared() {
 		_spec.ClearField(upstreammonitorupstream.FieldAccessToken, field.TypeString)
 	}
+	if value, ok := _u.mutation.QuotaDivider(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldQuotaDivider, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedQuotaDivider(); ok {
+		_spec.AddField(upstreammonitorupstream.FieldQuotaDivider, field.TypeFloat64, value)
+	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldEnabled, field.TypeBool, value)
 	}
@@ -283,6 +310,27 @@ func (_u *UpstreamMonitorUpstreamUpdateOne) SetNillableAccessToken(v *string) *U
 // ClearAccessToken clears the value of the "access_token" field.
 func (_u *UpstreamMonitorUpstreamUpdateOne) ClearAccessToken() *UpstreamMonitorUpstreamUpdateOne {
 	_u.mutation.ClearAccessToken()
+	return _u
+}
+
+// SetQuotaDivider sets the "quota_divider" field.
+func (_u *UpstreamMonitorUpstreamUpdateOne) SetQuotaDivider(v float64) *UpstreamMonitorUpstreamUpdateOne {
+	_u.mutation.ResetQuotaDivider()
+	_u.mutation.SetQuotaDivider(v)
+	return _u
+}
+
+// SetNillableQuotaDivider sets the "quota_divider" field if the given value is not nil.
+func (_u *UpstreamMonitorUpstreamUpdateOne) SetNillableQuotaDivider(v *float64) *UpstreamMonitorUpstreamUpdateOne {
+	if v != nil {
+		_u.SetQuotaDivider(*v)
+	}
+	return _u
+}
+
+// AddQuotaDivider adds value to the "quota_divider" field.
+func (_u *UpstreamMonitorUpstreamUpdateOne) AddQuotaDivider(v float64) *UpstreamMonitorUpstreamUpdateOne {
+	_u.mutation.AddQuotaDivider(v)
 	return _u
 }
 
@@ -423,6 +471,12 @@ func (_u *UpstreamMonitorUpstreamUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if _u.mutation.AccessTokenCleared() {
 		_spec.ClearField(upstreammonitorupstream.FieldAccessToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.QuotaDivider(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldQuotaDivider, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.AddedQuotaDivider(); ok {
+		_spec.AddField(upstreammonitorupstream.FieldQuotaDivider, field.TypeFloat64, value)
 	}
 	if value, ok := _u.mutation.Enabled(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldEnabled, field.TypeBool, value)

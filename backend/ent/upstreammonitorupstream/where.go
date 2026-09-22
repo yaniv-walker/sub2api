@@ -69,6 +69,11 @@ func AccessToken(v string) predicate.UpstreamMonitorUpstream {
 	return predicate.UpstreamMonitorUpstream(sql.FieldEQ(FieldAccessToken, v))
 }
 
+// QuotaDivider applies equality check predicate on the "quota_divider" field. It's identical to QuotaDividerEQ.
+func QuotaDivider(v float64) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldEQ(FieldQuotaDivider, v))
+}
+
 // Enabled applies equality check predicate on the "enabled" field. It's identical to EnabledEQ.
 func Enabled(v bool) predicate.UpstreamMonitorUpstream {
 	return predicate.UpstreamMonitorUpstream(sql.FieldEQ(FieldEnabled, v))
@@ -307,6 +312,46 @@ func AccessTokenEqualFold(v string) predicate.UpstreamMonitorUpstream {
 // AccessTokenContainsFold applies the ContainsFold predicate on the "access_token" field.
 func AccessTokenContainsFold(v string) predicate.UpstreamMonitorUpstream {
 	return predicate.UpstreamMonitorUpstream(sql.FieldContainsFold(FieldAccessToken, v))
+}
+
+// QuotaDividerEQ applies the EQ predicate on the "quota_divider" field.
+func QuotaDividerEQ(v float64) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldEQ(FieldQuotaDivider, v))
+}
+
+// QuotaDividerNEQ applies the NEQ predicate on the "quota_divider" field.
+func QuotaDividerNEQ(v float64) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldNEQ(FieldQuotaDivider, v))
+}
+
+// QuotaDividerIn applies the In predicate on the "quota_divider" field.
+func QuotaDividerIn(vs ...float64) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldIn(FieldQuotaDivider, vs...))
+}
+
+// QuotaDividerNotIn applies the NotIn predicate on the "quota_divider" field.
+func QuotaDividerNotIn(vs ...float64) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldNotIn(FieldQuotaDivider, vs...))
+}
+
+// QuotaDividerGT applies the GT predicate on the "quota_divider" field.
+func QuotaDividerGT(v float64) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldGT(FieldQuotaDivider, v))
+}
+
+// QuotaDividerGTE applies the GTE predicate on the "quota_divider" field.
+func QuotaDividerGTE(v float64) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldGTE(FieldQuotaDivider, v))
+}
+
+// QuotaDividerLT applies the LT predicate on the "quota_divider" field.
+func QuotaDividerLT(v float64) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldLT(FieldQuotaDivider, v))
+}
+
+// QuotaDividerLTE applies the LTE predicate on the "quota_divider" field.
+func QuotaDividerLTE(v float64) predicate.UpstreamMonitorUpstream {
+	return predicate.UpstreamMonitorUpstream(sql.FieldLTE(FieldQuotaDivider, v))
 }
 
 // EnabledEQ applies the EQ predicate on the "enabled" field.

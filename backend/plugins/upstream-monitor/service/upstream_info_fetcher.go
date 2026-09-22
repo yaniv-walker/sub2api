@@ -18,6 +18,8 @@ type UpstreamInfoFetcher struct {
 	logger     *slog.Logger
 }
 
+const DefaultNexAPIBalanceDivider = 431778.0
+
 // NewUpstreamInfoFetcher creates a new upstream info fetcher.
 func NewUpstreamInfoFetcher(logger *slog.Logger) *UpstreamInfoFetcher {
 	if logger == nil {
@@ -44,6 +46,10 @@ type UpstreamInfo struct {
 
 // FetchInfo fetches upstream information for a given account.
 func (f *UpstreamInfoFetcher) FetchInfo(accountID int64, upstreamType, baseURL, apiKey string) (*UpstreamInfo, error) {
+	return f.FetchInfoWithBalanceDivider(accountID, upstreamType, baseURL, apiKey, DefaultNexAPIBalanceDivider)
+}
+
+func (f *UpstreamInfoFetcher) FetchInfoWithBalanceDivider(accountID int64, upstreamType, baseURL, apiKey string, quotaDivider float64) (*UpstreamInfo, error) {
 	f.logger.Debug("Fetching upstream info",
 		"account_id", accountID,
 		"upstream_type", upstreamType,
@@ -55,12 +61,15 @@ func (f *UpstreamInfoFetcher) FetchInfo(accountID int64, upstreamType, baseURL, 
 	if err != nil {
 		return nil, err
 	}
+	if quotaDivider <= 0 {
+		quotaDivider = DefaultNexAPIBalanceDivider
+	}
 
 	switch upstreamType {
 	case "sub2api":
 		return f.fetchSub2APIInfo(ctx, accountID, rootURL, apiKey)
 	case "nexapi":
-		return f.fetchNexAPIInfo(ctx, accountID, rootURL, apiKey)
+		return f.fetchNexAPIInfo(ctx, accountID, rootURL, apiKey, quotaDivider)
 	default:
 		return nil, fmt.Errorf("unsupported upstream type: %s", upstreamType)
 	}
@@ -171,17 +180,17 @@ type NexAPIResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 	Data struct {
-		Balance        *float64 `json:"balance"`        // Direct balance, when exposed by the deployment
-		Quota          int64  `json:"quota"`           // 总配额
-		UsedQuota      int64  `json:"used_quota"`      // 已用配额
-		RemainingQuota int64  `json:"remaining_quota"` // 剩余配额
-		Name           string `json:"name"`            // 账号名称
-		Status         int    `json:"status"`          // 1=active, 0=inactive
+		Balance        *float64 `json:"balance"`         // Direct balance, when exposed by the deployment
+		Quota          int64    `json:"quota"`           // 总配额
+		UsedQuota      int64    `json:"used_quota"`      // 已用配额
+		RemainingQuota int64    `json:"remaining_quota"` // 剩余配额
+		Name           string   `json:"name"`            // 账号名称
+		Status         int      `json:"status"`          // 1=active, 0=inactive
 	} `json:"data"`
 }
 
 // fetchNexAPIInfo fetches information from NexAPI.
-func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int64, rootURL, apiKey string) (*UpstreamInfo, error) {
+func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int64, rootURL, apiKey string, quotaDivider float64) (*UpstreamInfo, error) {
 	f.logger.Debug("Fetching NexAPI info", "account_id", accountID)
 
 	// NexAPI API endpoint
@@ -226,13 +235,13 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 	if apiResp.Data.Balance != nil {
 		balance := *apiResp.Data.Balance
 		info := &UpstreamInfo{
-			AccountID: accountID,
-			Name: apiResp.Data.Name,
-			Type: "nexapi",
-			Balance: balance,
+			AccountID:   accountID,
+			Name:        apiResp.Data.Name,
+			Type:        "nexapi",
+			Balance:     balance,
 			Concurrency: 0,
-			Status: nexAPIStatus(apiResp.Data.Status),
-			ApiKey: apiKey,
+			Status:      nexAPIStatus(apiResp.Data.Status),
+			ApiKey:      apiKey,
 		}
 		f.logger.Info("NexAPI info fetched successfully", "account_id", accountID, "balance", balance, "balance_source", "direct", "status", info.Status)
 		return info, nil
@@ -246,7 +255,7 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 		}
 	}
 	// NexAPI conversion: remaining quota / 431778 = balance_cny.
-	balanceCNY := float64(remainingQuota) / 431778.0
+	balanceCNY := float64(remainingQuota) / quotaDivider
 
 	status := nexAPIStatus(apiResp.Data.Status)
 
@@ -264,6 +273,7 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 		"account_id", accountID,
 		"balance", info.Balance,
 		"quota", remainingQuota,
+		"quota_divider", quotaDivider,
 		"status", info.Status,
 	)
 

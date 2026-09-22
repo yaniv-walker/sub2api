@@ -56,6 +56,7 @@ type AccountInfo struct {
 	UpstreamType string
 	BaseURL      string
 	ApiKey       string
+	QuotaDivider float64
 }
 
 // Aggregate fetches and aggregates balance information from multiple accounts.
@@ -84,7 +85,7 @@ func (a *BalanceAggregator) Aggregate(ctx context.Context, accounts []AccountInf
 		go func(account AccountInfo) {
 			defer wg.Done()
 
-			info, err := a.fetcher.FetchInfo(account.ID, account.UpstreamType, account.BaseURL, account.ApiKey)
+			info, err := a.fetcher.FetchInfoWithBalanceDivider(account.ID, account.UpstreamType, account.BaseURL, account.ApiKey, account.QuotaDivider)
 
 			mu.Lock()
 			defer mu.Unlock()

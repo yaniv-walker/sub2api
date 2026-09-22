@@ -62,6 +62,20 @@ func (_c *UpstreamMonitorUpstreamCreate) SetNillableAccessToken(v *string) *Upst
 	return _c
 }
 
+// SetQuotaDivider sets the "quota_divider" field.
+func (_c *UpstreamMonitorUpstreamCreate) SetQuotaDivider(v float64) *UpstreamMonitorUpstreamCreate {
+	_c.mutation.SetQuotaDivider(v)
+	return _c
+}
+
+// SetNillableQuotaDivider sets the "quota_divider" field if the given value is not nil.
+func (_c *UpstreamMonitorUpstreamCreate) SetNillableQuotaDivider(v *float64) *UpstreamMonitorUpstreamCreate {
+	if v != nil {
+		_c.SetQuotaDivider(*v)
+	}
+	return _c
+}
+
 // SetEnabled sets the "enabled" field.
 func (_c *UpstreamMonitorUpstreamCreate) SetEnabled(v bool) *UpstreamMonitorUpstreamCreate {
 	_c.mutation.SetEnabled(v)
@@ -143,6 +157,10 @@ func (_c *UpstreamMonitorUpstreamCreate) defaults() {
 		v := upstreammonitorupstream.DefaultName
 		_c.mutation.SetName(v)
 	}
+	if _, ok := _c.mutation.QuotaDivider(); !ok {
+		v := upstreammonitorupstream.DefaultQuotaDivider
+		_c.mutation.SetQuotaDivider(v)
+	}
 	if _, ok := _c.mutation.Enabled(); !ok {
 		v := upstreammonitorupstream.DefaultEnabled
 		_c.mutation.SetEnabled(v)
@@ -182,6 +200,9 @@ func (_c *UpstreamMonitorUpstreamCreate) check() error {
 		if err := upstreammonitorupstream.UpstreamTypeValidator(v); err != nil {
 			return &ValidationError{Name: "upstream_type", err: fmt.Errorf(`ent: validator failed for field "UpstreamMonitorUpstream.upstream_type": %w`, err)}
 		}
+	}
+	if _, ok := _c.mutation.QuotaDivider(); !ok {
+		return &ValidationError{Name: "quota_divider", err: errors.New(`ent: missing required field "UpstreamMonitorUpstream.quota_divider"`)}
 	}
 	if _, ok := _c.mutation.Enabled(); !ok {
 		return &ValidationError{Name: "enabled", err: errors.New(`ent: missing required field "UpstreamMonitorUpstream.enabled"`)}
@@ -234,6 +255,10 @@ func (_c *UpstreamMonitorUpstreamCreate) createSpec() (*UpstreamMonitorUpstream,
 	if value, ok := _c.mutation.AccessToken(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldAccessToken, field.TypeString, value)
 		_node.AccessToken = &value
+	}
+	if value, ok := _c.mutation.QuotaDivider(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldQuotaDivider, field.TypeFloat64, value)
+		_node.QuotaDivider = value
 	}
 	if value, ok := _c.mutation.Enabled(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldEnabled, field.TypeBool, value)
@@ -350,6 +375,24 @@ func (u *UpstreamMonitorUpstreamUpsert) UpdateAccessToken() *UpstreamMonitorUpst
 // ClearAccessToken clears the value of the "access_token" field.
 func (u *UpstreamMonitorUpstreamUpsert) ClearAccessToken() *UpstreamMonitorUpstreamUpsert {
 	u.SetNull(upstreammonitorupstream.FieldAccessToken)
+	return u
+}
+
+// SetQuotaDivider sets the "quota_divider" field.
+func (u *UpstreamMonitorUpstreamUpsert) SetQuotaDivider(v float64) *UpstreamMonitorUpstreamUpsert {
+	u.Set(upstreammonitorupstream.FieldQuotaDivider, v)
+	return u
+}
+
+// UpdateQuotaDivider sets the "quota_divider" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsert) UpdateQuotaDivider() *UpstreamMonitorUpstreamUpsert {
+	u.SetExcluded(upstreammonitorupstream.FieldQuotaDivider)
+	return u
+}
+
+// AddQuotaDivider adds v to the "quota_divider" field.
+func (u *UpstreamMonitorUpstreamUpsert) AddQuotaDivider(v float64) *UpstreamMonitorUpstreamUpsert {
+	u.Add(upstreammonitorupstream.FieldQuotaDivider, v)
 	return u
 }
 
@@ -482,6 +525,27 @@ func (u *UpstreamMonitorUpstreamUpsertOne) UpdateAccessToken() *UpstreamMonitorU
 func (u *UpstreamMonitorUpstreamUpsertOne) ClearAccessToken() *UpstreamMonitorUpstreamUpsertOne {
 	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
 		s.ClearAccessToken()
+	})
+}
+
+// SetQuotaDivider sets the "quota_divider" field.
+func (u *UpstreamMonitorUpstreamUpsertOne) SetQuotaDivider(v float64) *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.SetQuotaDivider(v)
+	})
+}
+
+// AddQuotaDivider adds v to the "quota_divider" field.
+func (u *UpstreamMonitorUpstreamUpsertOne) AddQuotaDivider(v float64) *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.AddQuotaDivider(v)
+	})
+}
+
+// UpdateQuotaDivider sets the "quota_divider" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsertOne) UpdateQuotaDivider() *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.UpdateQuotaDivider()
 	})
 }
 
@@ -784,6 +848,27 @@ func (u *UpstreamMonitorUpstreamUpsertBulk) UpdateAccessToken() *UpstreamMonitor
 func (u *UpstreamMonitorUpstreamUpsertBulk) ClearAccessToken() *UpstreamMonitorUpstreamUpsertBulk {
 	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
 		s.ClearAccessToken()
+	})
+}
+
+// SetQuotaDivider sets the "quota_divider" field.
+func (u *UpstreamMonitorUpstreamUpsertBulk) SetQuotaDivider(v float64) *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.SetQuotaDivider(v)
+	})
+}
+
+// AddQuotaDivider adds v to the "quota_divider" field.
+func (u *UpstreamMonitorUpstreamUpsertBulk) AddQuotaDivider(v float64) *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.AddQuotaDivider(v)
+	})
+}
+
+// UpdateQuotaDivider sets the "quota_divider" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsertBulk) UpdateQuotaDivider() *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.UpdateQuotaDivider()
 	})
 }
 

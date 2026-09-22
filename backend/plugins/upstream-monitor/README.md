@@ -93,7 +93,8 @@ Content-Type: application/json
   "name": "主力中转站",
   "type": "sub2api",
   "enabled": true,
-  "access_token": "可选的上游用户访问令牌"
+  "access_token": "可选的上游用户访问令牌",
+  "quota_divider": 431778
 }
 ```
 
@@ -180,7 +181,7 @@ GET /api/v1/plugins/upstream-monitor/accounts/:id/prediction
 - 认证：优先使用上游配置的用户访问令牌；未配置时才回退到关联账号 API Key
 - 配额字段：`quota`（总配额）、`used_quota`（已用配额）
 - 若响应提供 `data.balance`，优先使用该上游直接返回的余额，避免重复换算
-- 换算公式：`balance = (quota - used_quota) / 431778`
+- 换算公式：`balance = (quota - used_quota) / quota_divider`；`quota_divider` 可由管理员按上游配置，默认 `431778`
 
 ## 开发指南
 

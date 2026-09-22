@@ -181,6 +181,7 @@ CREATE TABLE IF NOT EXISTS upstream_monitor_upstreams (
     name VARCHAR(200) NOT NULL DEFAULT '',
     upstream_type VARCHAR(20) NOT NULL CHECK (upstream_type IN ('sub2api', 'nexapi')),
     access_token TEXT NULL,
+    quota_divider DOUBLE PRECISION NOT NULL DEFAULT 431778,
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -190,6 +191,9 @@ CREATE TABLE IF NOT EXISTS upstream_monitor_upstreams (
 	}
 	if _, err := p.entClient.ExecContext(ctx, `ALTER TABLE upstream_monitor_upstreams ADD COLUMN IF NOT EXISTS access_token TEXT NULL`); err != nil {
 		return fmt.Errorf("add upstream monitor access token column: %w", err)
+	}
+	if _, err := p.entClient.ExecContext(ctx, `ALTER TABLE upstream_monitor_upstreams ADD COLUMN IF NOT EXISTS quota_divider DOUBLE PRECISION NOT NULL DEFAULT 431778`); err != nil {
+		return fmt.Errorf("add upstream monitor quota divider column: %w", err)
 	}
 	return nil
 }

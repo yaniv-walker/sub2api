@@ -44768,20 +44768,22 @@ func (m *UpstreamErrorRecordMutation) ResetEdge(name string) error {
 // UpstreamMonitorUpstreamMutation represents an operation that mutates the UpstreamMonitorUpstream nodes in the graph.
 type UpstreamMonitorUpstreamMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int64
-	base_url      *string
-	name          *string
-	upstream_type *upstreammonitorupstream.UpstreamType
-	access_token  *string
-	enabled       *bool
-	created_at    *time.Time
-	updated_at    *time.Time
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*UpstreamMonitorUpstream, error)
-	predicates    []predicate.UpstreamMonitorUpstream
+	op               Op
+	typ              string
+	id               *int64
+	base_url         *string
+	name             *string
+	upstream_type    *upstreammonitorupstream.UpstreamType
+	access_token     *string
+	quota_divider    *float64
+	addquota_divider *float64
+	enabled          *bool
+	created_at       *time.Time
+	updated_at       *time.Time
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*UpstreamMonitorUpstream, error)
+	predicates       []predicate.UpstreamMonitorUpstream
 }
 
 var _ ent.Mutation = (*UpstreamMonitorUpstreamMutation)(nil)
@@ -45039,6 +45041,62 @@ func (m *UpstreamMonitorUpstreamMutation) ResetAccessToken() {
 	delete(m.clearedFields, upstreammonitorupstream.FieldAccessToken)
 }
 
+// SetQuotaDivider sets the "quota_divider" field.
+func (m *UpstreamMonitorUpstreamMutation) SetQuotaDivider(f float64) {
+	m.quota_divider = &f
+	m.addquota_divider = nil
+}
+
+// QuotaDivider returns the value of the "quota_divider" field in the mutation.
+func (m *UpstreamMonitorUpstreamMutation) QuotaDivider() (r float64, exists bool) {
+	v := m.quota_divider
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuotaDivider returns the old "quota_divider" field's value of the UpstreamMonitorUpstream entity.
+// If the UpstreamMonitorUpstream object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UpstreamMonitorUpstreamMutation) OldQuotaDivider(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuotaDivider is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuotaDivider requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuotaDivider: %w", err)
+	}
+	return oldValue.QuotaDivider, nil
+}
+
+// AddQuotaDivider adds f to the "quota_divider" field.
+func (m *UpstreamMonitorUpstreamMutation) AddQuotaDivider(f float64) {
+	if m.addquota_divider != nil {
+		*m.addquota_divider += f
+	} else {
+		m.addquota_divider = &f
+	}
+}
+
+// AddedQuotaDivider returns the value that was added to the "quota_divider" field in this mutation.
+func (m *UpstreamMonitorUpstreamMutation) AddedQuotaDivider() (r float64, exists bool) {
+	v := m.addquota_divider
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetQuotaDivider resets all changes to the "quota_divider" field.
+func (m *UpstreamMonitorUpstreamMutation) ResetQuotaDivider() {
+	m.quota_divider = nil
+	m.addquota_divider = nil
+}
+
 // SetEnabled sets the "enabled" field.
 func (m *UpstreamMonitorUpstreamMutation) SetEnabled(b bool) {
 	m.enabled = &b
@@ -45181,7 +45239,7 @@ func (m *UpstreamMonitorUpstreamMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UpstreamMonitorUpstreamMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.base_url != nil {
 		fields = append(fields, upstreammonitorupstream.FieldBaseURL)
 	}
@@ -45193,6 +45251,9 @@ func (m *UpstreamMonitorUpstreamMutation) Fields() []string {
 	}
 	if m.access_token != nil {
 		fields = append(fields, upstreammonitorupstream.FieldAccessToken)
+	}
+	if m.quota_divider != nil {
+		fields = append(fields, upstreammonitorupstream.FieldQuotaDivider)
 	}
 	if m.enabled != nil {
 		fields = append(fields, upstreammonitorupstream.FieldEnabled)
@@ -45219,6 +45280,8 @@ func (m *UpstreamMonitorUpstreamMutation) Field(name string) (ent.Value, bool) {
 		return m.UpstreamType()
 	case upstreammonitorupstream.FieldAccessToken:
 		return m.AccessToken()
+	case upstreammonitorupstream.FieldQuotaDivider:
+		return m.QuotaDivider()
 	case upstreammonitorupstream.FieldEnabled:
 		return m.Enabled()
 	case upstreammonitorupstream.FieldCreatedAt:
@@ -45242,6 +45305,8 @@ func (m *UpstreamMonitorUpstreamMutation) OldField(ctx context.Context, name str
 		return m.OldUpstreamType(ctx)
 	case upstreammonitorupstream.FieldAccessToken:
 		return m.OldAccessToken(ctx)
+	case upstreammonitorupstream.FieldQuotaDivider:
+		return m.OldQuotaDivider(ctx)
 	case upstreammonitorupstream.FieldEnabled:
 		return m.OldEnabled(ctx)
 	case upstreammonitorupstream.FieldCreatedAt:
@@ -45285,6 +45350,13 @@ func (m *UpstreamMonitorUpstreamMutation) SetField(name string, value ent.Value)
 		}
 		m.SetAccessToken(v)
 		return nil
+	case upstreammonitorupstream.FieldQuotaDivider:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuotaDivider(v)
+		return nil
 	case upstreammonitorupstream.FieldEnabled:
 		v, ok := value.(bool)
 		if !ok {
@@ -45313,13 +45385,21 @@ func (m *UpstreamMonitorUpstreamMutation) SetField(name string, value ent.Value)
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *UpstreamMonitorUpstreamMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addquota_divider != nil {
+		fields = append(fields, upstreammonitorupstream.FieldQuotaDivider)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *UpstreamMonitorUpstreamMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case upstreammonitorupstream.FieldQuotaDivider:
+		return m.AddedQuotaDivider()
+	}
 	return nil, false
 }
 
@@ -45328,6 +45408,13 @@ func (m *UpstreamMonitorUpstreamMutation) AddedField(name string) (ent.Value, bo
 // type.
 func (m *UpstreamMonitorUpstreamMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case upstreammonitorupstream.FieldQuotaDivider:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddQuotaDivider(v)
+		return nil
 	}
 	return fmt.Errorf("unknown UpstreamMonitorUpstream numeric field %s", name)
 }
@@ -45375,6 +45462,9 @@ func (m *UpstreamMonitorUpstreamMutation) ResetField(name string) error {
 		return nil
 	case upstreammonitorupstream.FieldAccessToken:
 		m.ResetAccessToken()
+		return nil
+	case upstreammonitorupstream.FieldQuotaDivider:
+		m.ResetQuotaDivider()
 		return nil
 	case upstreammonitorupstream.FieldEnabled:
 		m.ResetEnabled()

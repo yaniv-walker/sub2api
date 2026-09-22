@@ -22,6 +22,8 @@ const (
 	FieldUpstreamType = "upstream_type"
 	// FieldAccessToken holds the string denoting the access_token field in the database.
 	FieldAccessToken = "access_token"
+	// FieldQuotaDivider holds the string denoting the quota_divider field in the database.
+	FieldQuotaDivider = "quota_divider"
 	// FieldEnabled holds the string denoting the enabled field in the database.
 	FieldEnabled = "enabled"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -39,6 +41,7 @@ var Columns = []string{
 	FieldName,
 	FieldUpstreamType,
 	FieldAccessToken,
+	FieldQuotaDivider,
 	FieldEnabled,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -61,6 +64,8 @@ var (
 	DefaultName string
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
 	NameValidator func(string) error
+	// DefaultQuotaDivider holds the default value on creation for the "quota_divider" field.
+	DefaultQuotaDivider float64
 	// DefaultEnabled holds the default value on creation for the "enabled" field.
 	DefaultEnabled bool
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -120,6 +125,11 @@ func ByUpstreamType(opts ...sql.OrderTermOption) OrderOption {
 // ByAccessToken orders the results by the access_token field.
 func ByAccessToken(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAccessToken, opts...).ToFunc()
+}
+
+// ByQuotaDivider orders the results by the quota_divider field.
+func ByQuotaDivider(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldQuotaDivider, opts...).ToFunc()
 }
 
 // ByEnabled orders the results by the enabled field.

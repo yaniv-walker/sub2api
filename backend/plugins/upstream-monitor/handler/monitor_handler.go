@@ -255,17 +255,19 @@ func (h *MonitorHandler) ListUpstreams(c *gin.Context) {
 			"type": upstream.Type, "configured": upstream.Configured, "enabled": upstream.Enabled,
 			"account_count": len(accountIDs), "account_ids": accountIDs,
 			"has_access_token": upstream.AccessToken != nil,
+			"quota_divider":    upstream.QuotaDivider,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"upstreams": result, "total": len(result)})
 }
 
 type configureUpstreamRequest struct {
-	BaseURL     string  `json:"base_url" binding:"required"`
-	Name        string  `json:"name"`
-	Type        string  `json:"type" binding:"required"`
-	Enabled     *bool   `json:"enabled"`
-	AccessToken *string `json:"access_token"`
+	BaseURL      string   `json:"base_url" binding:"required"`
+	Name         string   `json:"name"`
+	Type         string   `json:"type" binding:"required"`
+	Enabled      *bool    `json:"enabled"`
+	AccessToken  *string  `json:"access_token"`
+	QuotaDivider *float64 `json:"quota_divider"`
 }
 
 // ConfigureUpstream stores type and enablement in the plugin's own table.
@@ -289,6 +291,14 @@ func (h *MonitorHandler) ConfigureUpstream(c *gin.Context) {
 	if request.Enabled != nil {
 		enabled = *request.Enabled
 	}
+	quotaDivider := service.DefaultNexAPIBalanceDivider
+	if request.QuotaDivider != nil {
+		if *request.QuotaDivider <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "quota_divider must be greater than zero"})
+			return
+		}
+		quotaDivider = *request.QuotaDivider
+	}
 	var encryptedToken *string
 	if request.AccessToken != nil && strings.TrimSpace(*request.AccessToken) != "" {
 		encrypted, err := h.encryptor.Encrypt(strings.TrimSpace(*request.AccessToken))
@@ -298,7 +308,7 @@ func (h *MonitorHandler) ConfigureUpstream(c *gin.Context) {
 		}
 		encryptedToken = &encrypted
 	}
-	configured, err := h.upstreams.Upsert(c.Request.Context(), rootURL, strings.TrimSpace(request.Name), upstreammonitorupstream.UpstreamType(typeName), enabled, encryptedToken)
+	configured, err := h.upstreams.Upsert(c.Request.Context(), rootURL, strings.TrimSpace(request.Name), upstreammonitorupstream.UpstreamType(typeName), enabled, encryptedToken, quotaDivider)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -307,6 +317,7 @@ func (h *MonitorHandler) ConfigureUpstream(c *gin.Context) {
 		"id": configured.ID, "base_url": configured.BaseURL, "name": configured.Name,
 		"upstream_type": configured.UpstreamType, "enabled": configured.Enabled,
 		"has_access_token": configured.AccessToken != nil,
+		"quota_divider":    configured.QuotaDivider,
 		"created_at":       configured.CreatedAt, "updated_at": configured.UpdatedAt,
 	})
 }
