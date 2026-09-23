@@ -116,3 +116,4 @@ go run .\cmd\server
 
 - 2026-09-23：NexAPI 长期认证配置扩展。插件上游配置新增加密保存的 `personal_access_token` 与 `passkey` 两个只写字段，响应仅返回 `has_personal_access_token`/`has_passkey`；兼容旧 `access_token`，认证优先级为个人访问令牌 > Passkey > 旧访问令牌 > 账号 API Key。未发现 NexAPI 对 Passkey 统一专用 HTTP 头协议，因此当前均以 Bearer 令牌访问 `/api/user/self`，避免猜测性协议。
 - 2026-09-23：继续任务 8 发布前回归。`go test ./plugins/upstream-monitor/...`、`go build -mod=mod ./cmd/server`、前端 `pnpm run typecheck` 与 `pnpm run build` 通过；Windows 下执行 `go test -mod=mod ./...` 未通过：输出包含多个与插件无关的本地 HTTP 测试监听/拨号 `connectex: Only one usage of each socket address`，以及 handler/service/repository 等包的其他用例失败；因此任务 8 保持开放，不将全量回归标记为通过。插件定向测试再次通过。用户本地配置/锁文件/启动脚本改动保持未提交且未触碰。
+- 2026-09-23：为前端联调新增 `docs/UPSTREAM_MONITOR_API.md` 接口契约、`docs/UPSTREAM_MONITOR_FRONTEND_PLAN.md` 开发计划和 `docs/upstream-monitor-prototype.html` 可点击 HTML 原型。原型是独立评审稿，未接入生产路由；接口文档已按当前 handler 实现说明认证、上游维度余额、只写凭据和错误处理。
