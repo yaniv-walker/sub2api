@@ -52,3 +52,9 @@
 - `total_balance` 与 `by_upstream` 的语义在 UI 中明确区分。
 - 401、404、部分失败、空数据和无历史快照均有可理解的界面反馈。
 
+
+## 上游维度分析联调前置条件
+
+- [ ] 后端实现并测试 `/upstreams/:id/errors`、`/usage`、`/prediction` 三个上游维度接口。
+- [ ] 前端按 `UPSTREAM_MONITOR_FRONTEND_ANALYTICS_HANDOFF.md` 接入类型和 loading/empty/partial/error 状态。
+- [ ] 在上游维度接口可用前，原型中的静态错误统计和用量趋势不得接入真实页面。

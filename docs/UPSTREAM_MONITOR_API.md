@@ -128,3 +128,13 @@
 - `500`：展示“刷新失败”，保留上一次成功数据，并允许重试。
 - `refresh-all` 部分失败时仍展示成功上游数据，同时在页面显示 `errors`。
 
+
+## 7. 上游维度分析（设计中，尚未实现）
+
+由于一个上游可关联多个账号且共享统一余额，前端正式联调应使用上游维度接口，而不是把单一账号分析当作上游分析：
+
+- `GET /upstreams/:id/errors?days=30`
+- `GET /upstreams/:id/usage?days=30`
+- `GET /upstreams/:id/prediction`
+
+完整请求/响应契约、聚合口径、空数据和错误语义见 [UPSTREAM_MONITOR_UPSTREAM_ANALYTICS_DESIGN.md](./UPSTREAM_MONITOR_UPSTREAM_ANALYTICS_DESIGN.md)；前端类型、状态和验收步骤见 [UPSTREAM_MONITOR_FRONTEND_ANALYTICS_HANDOFF.md](./UPSTREAM_MONITOR_FRONTEND_ANALYTICS_HANDOFF.md)。以上三个路由当前尚未接入后端，不能直接调用。
