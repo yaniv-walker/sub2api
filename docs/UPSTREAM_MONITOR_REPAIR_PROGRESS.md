@@ -50,7 +50,7 @@
   - 验收：已有前端真实接入插件 API，或明确修正文档为未实现；不保留虚假完成声明。
   - 验证：前端类型检查/构建及必要的浏览器冒烟。
   - 依赖：任务 4、6。
-- [ ] **任务 8：全量回归与发布前审查**
+- [ ] **任务 8：全量回归与发布前审查**（审查完成；全量回归未通过，暂不关闭）
   - 验收：插件、后端、前端构建和相关测试通过；工作区无误纳入的临时文件；文档状态与代码一致。
   - 验证：`go test ./...`、前端检查、差异审查。
   - 依赖：任务 1-7。
@@ -115,3 +115,4 @@ go run .\cmd\server
 正常正式启动应出现 `Server started on 0.0.0.0:8080`，随后应出现插件初始化相关日志。若出现 `First run detected, starting setup wizard...`，说明 `NeedsSetup()` 判定的配置目录不是当前目录；若没有该日志但地址仍是 3000，则应检查实际生效配置文件中 `server.port` 或 `SERVER_PORT` 环境变量。前端端口 3000 不会自动改变后端端口。
 
 - 2026-09-23：NexAPI 长期认证配置扩展。插件上游配置新增加密保存的 `personal_access_token` 与 `passkey` 两个只写字段，响应仅返回 `has_personal_access_token`/`has_passkey`；兼容旧 `access_token`，认证优先级为个人访问令牌 > Passkey > 旧访问令牌 > 账号 API Key。未发现 NexAPI 对 Passkey 统一专用 HTTP 头协议，因此当前均以 Bearer 令牌访问 `/api/user/self`，避免猜测性协议。
+- 2026-09-23：继续任务 8 发布前回归。`go test ./plugins/upstream-monitor/...`、`go build -mod=mod ./cmd/server`、前端 `pnpm run typecheck` 与 `pnpm run build` 通过；Windows 下执行 `go test -mod=mod ./...` 未通过：输出包含多个与插件无关的本地 HTTP 测试监听/拨号 `connectex: Only one usage of each socket address`，以及 handler/service/repository 等包的其他用例失败；因此任务 8 保持开放，不将全量回归标记为通过。插件定向测试再次通过。用户本地配置/锁文件/启动脚本改动保持未提交且未触碰。
