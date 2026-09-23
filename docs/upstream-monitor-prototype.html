@@ -83,6 +83,24 @@
     .field label { display: block; margin-bottom: 6px; color: #374151; font-size: 12px; font-weight: 600; }
     .field input, .field select { width: 100%; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .analytics-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .analytics-toolbar h3 { margin: 0; color: #111827; font-size: 14px; font-weight: 600; }
+    .analytics-toolbar .btn { min-height: 30px; padding: 5px 9px; font-size: 12px; }
+    .analytics-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .analytics-kpi { padding: 12px; background: #f9fafb; border: 1px solid var(--line-soft); border-radius: 7px; }
+    .analytics-kpi span { display: block; color: var(--muted); font-size: 11px; }
+    .analytics-kpi strong { display: block; margin-top: 4px; color: #111827; font-size: 17px; }
+    .chart { padding: 14px 12px 10px; background: #fff; border: 1px solid var(--line); border-radius: 7px; }
+    .bars { display: flex; align-items: flex-end; gap: 8px; height: 118px; padding: 8px 2px 0; border-bottom: 1px solid var(--line); }
+    .bar-group { display: flex; flex: 1; height: 100%; align-items: flex-end; gap: 3px; }
+    .bar { flex: 1; min-height: 4px; border-radius: 3px 3px 0 0; background: #93c5fd; }
+    .bar.error { background: #fca5a5; }
+    .chart-labels { display: flex; justify-content: space-between; padding-top: 7px; color: var(--muted); font-size: 10px; }
+    .legend { display: flex; gap: 14px; margin-top: 10px; color: var(--muted); font-size: 11px; }
+    .legend span::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 2px; background: #93c5fd; }
+    .legend span:last-child::before { background: #fca5a5; }
+    .analytics-table { margin-top: 14px; }
+    .analytics-table th, .analytics-table td { padding: 8px 7px; font-size: 12px; }
 
     @media (max-width: 900px) {
       aside { width: 70px; flex-basis: 70px; padding: 18px 8px; }
@@ -121,8 +139,21 @@
   <div class="drawer" id="drawer"><div class="drawer-card"><div class="drawer-head"><h2 id="drawerTitle">上游配置</h2><button class="close" onclick="closeDrawer()">×</button></div><div id="drawerBody"></div></div></div>
   <script>
     const drawer=document.getElementById('drawer'), title=document.getElementById('drawerTitle'), body=document.getElementById('drawerBody');
-    function openDrawer(type){drawer.classList.add('open'); if(type==='detail'){title.textContent='xinyun上游 · 详情'; body.innerHTML='<div class="grid2"><div class="metric"><div class="label">统一余额</div><strong>¥93.63</strong></div><div class="metric"><div class="label">关联账号</div><strong>2</strong></div></div><div class="panel"><h2>分析</h2><p class="muted">最近 30 天消耗稳定，预计可用 18 天。</p><button class="btn">错误统计</button> <button class="btn">用量趋势</button></div>';} else if(type==='account'){title.textContent='账号 #1 · 详情'; body.innerHTML='<p class="muted">该账号是上游的一个分组，不单独拥有统一余额。</p><div class="field"><label>账号名称</label><input value="钱包余额" readonly></div><div class="field"><label>上游根地址</label><input value="https://liuhe.cloud" readonly></div><button class="btn primary">刷新账号</button>';} else {title.textContent='配置上游'; body.innerHTML='<div class="field"><label>上游名称</label><input value="xinyun上游"></div><div class="field"><label>上游根地址</label><input value="https://api.xinyunai.cloud"></div><div class="field"><label>类型</label><select><option>NexAPI</option><option>Sub2API</option></select></div><div class="field"><label>个人访问令牌（只写）</label><input type="password" placeholder="已配置时留空表示保留"></div><div class="field"><label>余额换算系数</label><input value="431778"></div><button class="btn primary" onclick="closeDrawer()">保存配置</button>';} }
+    function openDrawer(type){
+      drawer.classList.add('open');
+      if(type==='detail') showDetail();
+      else if(type==='account'){title.textContent='账号 #1 · 详情'; body.innerHTML='<p class="muted">该账号是上游的一个分组，不单独拥有统一余额。</p><div class="field"><label>账号名称</label><input value="钱包余额" readonly></div><div class="field"><label>上游根地址</label><input value="https://liuhe.cloud" readonly></div><button class="btn primary">刷新账号</button>';
+      } else {title.textContent='配置上游'; body.innerHTML='<div class="field"><label>上游名称</label><input value="xinyun上游"></div><div class="field"><label>上游根地址</label><input value="https://api.xinyunai.cloud"></div><div class="field"><label>类型</label><select><option>NexAPI</option><option>Sub2API</option></select></div><div class="field"><label>个人访问令牌（只写）</label><input type="password" placeholder="已配置时留空表示保留"></div><div class="field"><label>余额换算系数</label><input value="431778"></div><button class="btn primary" onclick="closeDrawer()">保存配置</button>';
+      }
+    }
+    function showDetail(){title.textContent='xinyun上游 · 详情'; body.innerHTML='<div class="grid2"><div class="metric"><div class="label">统一余额</div><strong>¥93.63</strong></div><div class="metric"><div class="label">关联账号</div><strong>2</strong></div></div><div class="panel"><div class="analytics-toolbar"><h3>分析</h3><span class="muted">最近 30 天</span></div><p class="muted">最近 30 天消耗稳定，预计可用 18 天。</p><div class="actions"><button class="btn" onclick="showAnalytics(&quot;errors&quot;)">错误统计</button><button class="btn" onclick="showAnalytics(&quot;usage&quot;)">用量趋势</button></div></div>';}
+    function showAnalytics(kind){
+      const errors=kind==='errors'; title.textContent=errors?'xinyun上游 · 错误统计':'xinyun上游 · 用量趋势';
+      const bars=errors?'<div class="bar-group"><i class="bar error" style="height:28%"></i><i class="bar error" style="height:12%"></i></div><div class="bar-group"><i class="bar error" style="height:44%"></i><i class="bar error" style="height:20%"></i></div><div class="bar-group"><i class="bar error" style="height:18%"></i><i class="bar error" style="height:8%"></i></div><div class="bar-group"><i class="bar error" style="height:62%"></i><i class="bar error" style="height:26%"></i></div><div class="bar-group"><i class="bar error" style="height:34%"></i><i class="bar error" style="height:14%"></i></div><div class="bar-group"><i class="bar error" style="height:22%"></i><i class="bar error" style="height:10%"></i></div><div class="bar-group"><i class="bar error" style="height:12%"></i><i class="bar error" style="height:5%"></i></div>':'<div class="bar-group"><i class="bar" style="height:38%"></i></div><div class="bar-group"><i class="bar" style="height:52%"></i></div><div class="bar-group"><i class="bar" style="height:44%"></i></div><div class="bar-group"><i class="bar" style="height:66%"></i></div><div class="bar-group"><i class="bar" style="height:58%"></i></div><div class="bar-group"><i class="bar" style="height:74%"></i></div><div class="bar-group"><i class="bar" style="height:61%"></i></div><div class="bar-group"><i class="bar" style="height:82%"></i></div><div class="bar-group"><i class="bar" style="height:68%"></i></div><div class="bar-group"><i class="bar" style="height:76%"></i></div>';
+      const kpis=errors?'<div class="analytics-kpi"><span>24 小时错误</span><strong>3</strong></div><div class="analytics-kpi"><span>错误率</span><strong>0.08%</strong></div><div class="analytics-kpi"><span>最近错误</span><strong>12 分钟前</strong></div>':'<div class="analytics-kpi"><span>近 30 天消耗</span><strong>¥12.31</strong></div><div class="analytics-kpi"><span>日均消耗</span><strong>¥0.41</strong></div><div class="analytics-kpi"><span>预计可用</span><strong>18 天</strong></div>';
+      const rows=errors?'<tr><td>12 分钟前</td><td>上游响应超时</td><td>2</td></tr><tr><td>昨天 18:24</td><td>认证失败</td><td>1</td></tr>':'<tr><td>今天</td><td>1,284</td><td>¥0.41</td></tr><tr><td>昨天</td><td>1,146</td><td>¥0.38</td></tr>';
+      body.innerHTML='<div class="analytics-toolbar"><h3>'+ (errors?'错误统计':'用量趋势') +'</h3><button class="btn" onclick="showDetail()">返回详情</button></div><div class="analytics-kpis">'+kpis+'</div><div class="chart"><div class="bars">'+bars+'</div><div class="chart-labels"><span>'+ (errors?'09-17':'09-01') +'</span><span>'+ (errors?'09-19':'09-10') +'</span><span>'+ (errors?'09-21':'09-20') +'</span><span>今天</span></div><div class="legend"><span>'+ (errors?'请求错误':'余额消耗') +'</span>'+(errors?'<span>认证/余额错误</span>':'')+'</div></div><table class="analytics-table"><thead><tr><th>'+ (errors?'时间':'日期') +'</th><th>'+ (errors?'错误类型':'请求数') +'</th><th>'+ (errors?'次数':'消耗') +'</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    }
     function closeDrawer(){drawer.classList.remove('open')} document.getElementById('config').onclick=()=>openDrawer('config'); document.getElementById('refresh').onclick=e=>{e.target.textContent='刷新中…';setTimeout(()=>e.target.textContent='↻ 刷新全部',900)}; drawer.onclick=e=>{if(e.target===drawer)closeDrawer()};
-  </script>
-</body>
+  </script></body>
 </html>
