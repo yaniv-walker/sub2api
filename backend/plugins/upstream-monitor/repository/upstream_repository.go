@@ -29,12 +29,18 @@ func (r *UpstreamRepository) GetByBaseURL(ctx context.Context, baseURL string) (
 		Only(ctx)
 }
 
-func (r *UpstreamRepository) Upsert(ctx context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken *string, quotaDivider float64) (*ent.UpstreamMonitorUpstream, error) {
+func (r *UpstreamRepository) Upsert(ctx context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken, personalAccessToken, passkey *string, quotaDivider float64) (*ent.UpstreamMonitorUpstream, error) {
 	create := r.client.UpstreamMonitorUpstream.Create().
 		SetBaseURL(baseURL).
 		SetName(name).
 		SetUpstreamType(upstreamType).
 		SetEnabled(enabled)
+	if personalAccessToken != nil {
+		create.SetPersonalAccessToken(*personalAccessToken)
+	}
+	if passkey != nil {
+		create.SetPasskey(*passkey)
+	}
 	if quotaDivider > 0 {
 		create.SetQuotaDivider(quotaDivider)
 	}

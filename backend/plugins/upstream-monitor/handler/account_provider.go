@@ -21,7 +21,7 @@ type AccountProvider interface {
 // UpstreamProvider is the plugin-owned configuration boundary.
 type UpstreamProvider interface {
 	List(ctx context.Context) ([]*ent.UpstreamMonitorUpstream, error)
-	Upsert(ctx context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken *string, quotaDivider float64) (*ent.UpstreamMonitorUpstream, error)
+	Upsert(ctx context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken, personalAccessToken, passkey *string, quotaDivider float64) (*ent.UpstreamMonitorUpstream, error)
 }
 
 type monitorAccount struct {
@@ -30,15 +30,17 @@ type monitorAccount struct {
 }
 
 type monitorUpstream struct {
-	ID           int64
-	BaseURL      string
-	Name         string
-	Type         string
-	Configured   bool
-	Enabled      bool
-	AccessToken  *string
-	QuotaDivider float64
-	Accounts     []monitorAccount
+	ID                  int64
+	BaseURL             string
+	Name                string
+	Type                string
+	Configured          bool
+	Enabled             bool
+	AccessToken         *string
+	PersonalAccessToken *string
+	Passkey             *string
+	QuotaDivider        float64
+	Accounts            []monitorAccount
 }
 
 func groupMonitorAccounts(accounts []monitorAccount, configs []*ent.UpstreamMonitorUpstream) []monitorUpstream {
@@ -64,6 +66,8 @@ func groupMonitorAccounts(accounts []monitorAccount, configs []*ent.UpstreamMoni
 				upstream.Configured = true
 				upstream.Enabled = config.Enabled
 				upstream.AccessToken = config.AccessToken
+				upstream.PersonalAccessToken = config.PersonalAccessToken
+				upstream.Passkey = config.Passkey
 				upstream.QuotaDivider = config.QuotaDivider
 			}
 			byURL[rootURL] = upstream

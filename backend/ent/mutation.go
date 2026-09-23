@@ -44768,22 +44768,24 @@ func (m *UpstreamErrorRecordMutation) ResetEdge(name string) error {
 // UpstreamMonitorUpstreamMutation represents an operation that mutates the UpstreamMonitorUpstream nodes in the graph.
 type UpstreamMonitorUpstreamMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *int64
-	base_url         *string
-	name             *string
-	upstream_type    *upstreammonitorupstream.UpstreamType
-	access_token     *string
-	quota_divider    *float64
-	addquota_divider *float64
-	enabled          *bool
-	created_at       *time.Time
-	updated_at       *time.Time
-	clearedFields    map[string]struct{}
-	done             bool
-	oldValue         func(context.Context) (*UpstreamMonitorUpstream, error)
-	predicates       []predicate.UpstreamMonitorUpstream
+	op                    Op
+	typ                   string
+	id                    *int64
+	base_url              *string
+	name                  *string
+	upstream_type         *upstreammonitorupstream.UpstreamType
+	access_token          *string
+	personal_access_token *string
+	passkey               *string
+	quota_divider         *float64
+	addquota_divider      *float64
+	enabled               *bool
+	created_at            *time.Time
+	updated_at            *time.Time
+	clearedFields         map[string]struct{}
+	done                  bool
+	oldValue              func(context.Context) (*UpstreamMonitorUpstream, error)
+	predicates            []predicate.UpstreamMonitorUpstream
 }
 
 var _ ent.Mutation = (*UpstreamMonitorUpstreamMutation)(nil)
@@ -45041,6 +45043,104 @@ func (m *UpstreamMonitorUpstreamMutation) ResetAccessToken() {
 	delete(m.clearedFields, upstreammonitorupstream.FieldAccessToken)
 }
 
+// SetPersonalAccessToken sets the "personal_access_token" field.
+func (m *UpstreamMonitorUpstreamMutation) SetPersonalAccessToken(s string) {
+	m.personal_access_token = &s
+}
+
+// PersonalAccessToken returns the value of the "personal_access_token" field in the mutation.
+func (m *UpstreamMonitorUpstreamMutation) PersonalAccessToken() (r string, exists bool) {
+	v := m.personal_access_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPersonalAccessToken returns the old "personal_access_token" field's value of the UpstreamMonitorUpstream entity.
+// If the UpstreamMonitorUpstream object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UpstreamMonitorUpstreamMutation) OldPersonalAccessToken(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPersonalAccessToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPersonalAccessToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPersonalAccessToken: %w", err)
+	}
+	return oldValue.PersonalAccessToken, nil
+}
+
+// ClearPersonalAccessToken clears the value of the "personal_access_token" field.
+func (m *UpstreamMonitorUpstreamMutation) ClearPersonalAccessToken() {
+	m.personal_access_token = nil
+	m.clearedFields[upstreammonitorupstream.FieldPersonalAccessToken] = struct{}{}
+}
+
+// PersonalAccessTokenCleared returns if the "personal_access_token" field was cleared in this mutation.
+func (m *UpstreamMonitorUpstreamMutation) PersonalAccessTokenCleared() bool {
+	_, ok := m.clearedFields[upstreammonitorupstream.FieldPersonalAccessToken]
+	return ok
+}
+
+// ResetPersonalAccessToken resets all changes to the "personal_access_token" field.
+func (m *UpstreamMonitorUpstreamMutation) ResetPersonalAccessToken() {
+	m.personal_access_token = nil
+	delete(m.clearedFields, upstreammonitorupstream.FieldPersonalAccessToken)
+}
+
+// SetPasskey sets the "passkey" field.
+func (m *UpstreamMonitorUpstreamMutation) SetPasskey(s string) {
+	m.passkey = &s
+}
+
+// Passkey returns the value of the "passkey" field in the mutation.
+func (m *UpstreamMonitorUpstreamMutation) Passkey() (r string, exists bool) {
+	v := m.passkey
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPasskey returns the old "passkey" field's value of the UpstreamMonitorUpstream entity.
+// If the UpstreamMonitorUpstream object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UpstreamMonitorUpstreamMutation) OldPasskey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPasskey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPasskey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPasskey: %w", err)
+	}
+	return oldValue.Passkey, nil
+}
+
+// ClearPasskey clears the value of the "passkey" field.
+func (m *UpstreamMonitorUpstreamMutation) ClearPasskey() {
+	m.passkey = nil
+	m.clearedFields[upstreammonitorupstream.FieldPasskey] = struct{}{}
+}
+
+// PasskeyCleared returns if the "passkey" field was cleared in this mutation.
+func (m *UpstreamMonitorUpstreamMutation) PasskeyCleared() bool {
+	_, ok := m.clearedFields[upstreammonitorupstream.FieldPasskey]
+	return ok
+}
+
+// ResetPasskey resets all changes to the "passkey" field.
+func (m *UpstreamMonitorUpstreamMutation) ResetPasskey() {
+	m.passkey = nil
+	delete(m.clearedFields, upstreammonitorupstream.FieldPasskey)
+}
+
 // SetQuotaDivider sets the "quota_divider" field.
 func (m *UpstreamMonitorUpstreamMutation) SetQuotaDivider(f float64) {
 	m.quota_divider = &f
@@ -45239,7 +45339,7 @@ func (m *UpstreamMonitorUpstreamMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UpstreamMonitorUpstreamMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 10)
 	if m.base_url != nil {
 		fields = append(fields, upstreammonitorupstream.FieldBaseURL)
 	}
@@ -45251,6 +45351,12 @@ func (m *UpstreamMonitorUpstreamMutation) Fields() []string {
 	}
 	if m.access_token != nil {
 		fields = append(fields, upstreammonitorupstream.FieldAccessToken)
+	}
+	if m.personal_access_token != nil {
+		fields = append(fields, upstreammonitorupstream.FieldPersonalAccessToken)
+	}
+	if m.passkey != nil {
+		fields = append(fields, upstreammonitorupstream.FieldPasskey)
 	}
 	if m.quota_divider != nil {
 		fields = append(fields, upstreammonitorupstream.FieldQuotaDivider)
@@ -45280,6 +45386,10 @@ func (m *UpstreamMonitorUpstreamMutation) Field(name string) (ent.Value, bool) {
 		return m.UpstreamType()
 	case upstreammonitorupstream.FieldAccessToken:
 		return m.AccessToken()
+	case upstreammonitorupstream.FieldPersonalAccessToken:
+		return m.PersonalAccessToken()
+	case upstreammonitorupstream.FieldPasskey:
+		return m.Passkey()
 	case upstreammonitorupstream.FieldQuotaDivider:
 		return m.QuotaDivider()
 	case upstreammonitorupstream.FieldEnabled:
@@ -45305,6 +45415,10 @@ func (m *UpstreamMonitorUpstreamMutation) OldField(ctx context.Context, name str
 		return m.OldUpstreamType(ctx)
 	case upstreammonitorupstream.FieldAccessToken:
 		return m.OldAccessToken(ctx)
+	case upstreammonitorupstream.FieldPersonalAccessToken:
+		return m.OldPersonalAccessToken(ctx)
+	case upstreammonitorupstream.FieldPasskey:
+		return m.OldPasskey(ctx)
 	case upstreammonitorupstream.FieldQuotaDivider:
 		return m.OldQuotaDivider(ctx)
 	case upstreammonitorupstream.FieldEnabled:
@@ -45349,6 +45463,20 @@ func (m *UpstreamMonitorUpstreamMutation) SetField(name string, value ent.Value)
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAccessToken(v)
+		return nil
+	case upstreammonitorupstream.FieldPersonalAccessToken:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPersonalAccessToken(v)
+		return nil
+	case upstreammonitorupstream.FieldPasskey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPasskey(v)
 		return nil
 	case upstreammonitorupstream.FieldQuotaDivider:
 		v, ok := value.(float64)
@@ -45426,6 +45554,12 @@ func (m *UpstreamMonitorUpstreamMutation) ClearedFields() []string {
 	if m.FieldCleared(upstreammonitorupstream.FieldAccessToken) {
 		fields = append(fields, upstreammonitorupstream.FieldAccessToken)
 	}
+	if m.FieldCleared(upstreammonitorupstream.FieldPersonalAccessToken) {
+		fields = append(fields, upstreammonitorupstream.FieldPersonalAccessToken)
+	}
+	if m.FieldCleared(upstreammonitorupstream.FieldPasskey) {
+		fields = append(fields, upstreammonitorupstream.FieldPasskey)
+	}
 	return fields
 }
 
@@ -45442,6 +45576,12 @@ func (m *UpstreamMonitorUpstreamMutation) ClearField(name string) error {
 	switch name {
 	case upstreammonitorupstream.FieldAccessToken:
 		m.ClearAccessToken()
+		return nil
+	case upstreammonitorupstream.FieldPersonalAccessToken:
+		m.ClearPersonalAccessToken()
+		return nil
+	case upstreammonitorupstream.FieldPasskey:
+		m.ClearPasskey()
 		return nil
 	}
 	return fmt.Errorf("unknown UpstreamMonitorUpstream nullable field %s", name)
@@ -45462,6 +45602,12 @@ func (m *UpstreamMonitorUpstreamMutation) ResetField(name string) error {
 		return nil
 	case upstreammonitorupstream.FieldAccessToken:
 		m.ResetAccessToken()
+		return nil
+	case upstreammonitorupstream.FieldPersonalAccessToken:
+		m.ResetPersonalAccessToken()
+		return nil
+	case upstreammonitorupstream.FieldPasskey:
+		m.ResetPasskey()
 		return nil
 	case upstreammonitorupstream.FieldQuotaDivider:
 		m.ResetQuotaDivider()

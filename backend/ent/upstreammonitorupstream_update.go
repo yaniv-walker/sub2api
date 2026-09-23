@@ -90,6 +90,46 @@ func (_u *UpstreamMonitorUpstreamUpdate) ClearAccessToken() *UpstreamMonitorUpst
 	return _u
 }
 
+// SetPersonalAccessToken sets the "personal_access_token" field.
+func (_u *UpstreamMonitorUpstreamUpdate) SetPersonalAccessToken(v string) *UpstreamMonitorUpstreamUpdate {
+	_u.mutation.SetPersonalAccessToken(v)
+	return _u
+}
+
+// SetNillablePersonalAccessToken sets the "personal_access_token" field if the given value is not nil.
+func (_u *UpstreamMonitorUpstreamUpdate) SetNillablePersonalAccessToken(v *string) *UpstreamMonitorUpstreamUpdate {
+	if v != nil {
+		_u.SetPersonalAccessToken(*v)
+	}
+	return _u
+}
+
+// ClearPersonalAccessToken clears the value of the "personal_access_token" field.
+func (_u *UpstreamMonitorUpstreamUpdate) ClearPersonalAccessToken() *UpstreamMonitorUpstreamUpdate {
+	_u.mutation.ClearPersonalAccessToken()
+	return _u
+}
+
+// SetPasskey sets the "passkey" field.
+func (_u *UpstreamMonitorUpstreamUpdate) SetPasskey(v string) *UpstreamMonitorUpstreamUpdate {
+	_u.mutation.SetPasskey(v)
+	return _u
+}
+
+// SetNillablePasskey sets the "passkey" field if the given value is not nil.
+func (_u *UpstreamMonitorUpstreamUpdate) SetNillablePasskey(v *string) *UpstreamMonitorUpstreamUpdate {
+	if v != nil {
+		_u.SetPasskey(*v)
+	}
+	return _u
+}
+
+// ClearPasskey clears the value of the "passkey" field.
+func (_u *UpstreamMonitorUpstreamUpdate) ClearPasskey() *UpstreamMonitorUpstreamUpdate {
+	_u.mutation.ClearPasskey()
+	return _u
+}
+
 // SetQuotaDivider sets the "quota_divider" field.
 func (_u *UpstreamMonitorUpstreamUpdate) SetQuotaDivider(v float64) *UpstreamMonitorUpstreamUpdate {
 	_u.mutation.ResetQuotaDivider()
@@ -219,6 +259,18 @@ func (_u *UpstreamMonitorUpstreamUpdate) sqlSave(ctx context.Context) (_node int
 	if _u.mutation.AccessTokenCleared() {
 		_spec.ClearField(upstreammonitorupstream.FieldAccessToken, field.TypeString)
 	}
+	if value, ok := _u.mutation.PersonalAccessToken(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldPersonalAccessToken, field.TypeString, value)
+	}
+	if _u.mutation.PersonalAccessTokenCleared() {
+		_spec.ClearField(upstreammonitorupstream.FieldPersonalAccessToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.Passkey(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldPasskey, field.TypeString, value)
+	}
+	if _u.mutation.PasskeyCleared() {
+		_spec.ClearField(upstreammonitorupstream.FieldPasskey, field.TypeString)
+	}
 	if value, ok := _u.mutation.QuotaDivider(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldQuotaDivider, field.TypeFloat64, value)
 	}
@@ -310,6 +362,46 @@ func (_u *UpstreamMonitorUpstreamUpdateOne) SetNillableAccessToken(v *string) *U
 // ClearAccessToken clears the value of the "access_token" field.
 func (_u *UpstreamMonitorUpstreamUpdateOne) ClearAccessToken() *UpstreamMonitorUpstreamUpdateOne {
 	_u.mutation.ClearAccessToken()
+	return _u
+}
+
+// SetPersonalAccessToken sets the "personal_access_token" field.
+func (_u *UpstreamMonitorUpstreamUpdateOne) SetPersonalAccessToken(v string) *UpstreamMonitorUpstreamUpdateOne {
+	_u.mutation.SetPersonalAccessToken(v)
+	return _u
+}
+
+// SetNillablePersonalAccessToken sets the "personal_access_token" field if the given value is not nil.
+func (_u *UpstreamMonitorUpstreamUpdateOne) SetNillablePersonalAccessToken(v *string) *UpstreamMonitorUpstreamUpdateOne {
+	if v != nil {
+		_u.SetPersonalAccessToken(*v)
+	}
+	return _u
+}
+
+// ClearPersonalAccessToken clears the value of the "personal_access_token" field.
+func (_u *UpstreamMonitorUpstreamUpdateOne) ClearPersonalAccessToken() *UpstreamMonitorUpstreamUpdateOne {
+	_u.mutation.ClearPersonalAccessToken()
+	return _u
+}
+
+// SetPasskey sets the "passkey" field.
+func (_u *UpstreamMonitorUpstreamUpdateOne) SetPasskey(v string) *UpstreamMonitorUpstreamUpdateOne {
+	_u.mutation.SetPasskey(v)
+	return _u
+}
+
+// SetNillablePasskey sets the "passkey" field if the given value is not nil.
+func (_u *UpstreamMonitorUpstreamUpdateOne) SetNillablePasskey(v *string) *UpstreamMonitorUpstreamUpdateOne {
+	if v != nil {
+		_u.SetPasskey(*v)
+	}
+	return _u
+}
+
+// ClearPasskey clears the value of the "passkey" field.
+func (_u *UpstreamMonitorUpstreamUpdateOne) ClearPasskey() *UpstreamMonitorUpstreamUpdateOne {
+	_u.mutation.ClearPasskey()
 	return _u
 }
 
@@ -471,6 +563,18 @@ func (_u *UpstreamMonitorUpstreamUpdateOne) sqlSave(ctx context.Context) (_node 
 	}
 	if _u.mutation.AccessTokenCleared() {
 		_spec.ClearField(upstreammonitorupstream.FieldAccessToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.PersonalAccessToken(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldPersonalAccessToken, field.TypeString, value)
+	}
+	if _u.mutation.PersonalAccessTokenCleared() {
+		_spec.ClearField(upstreammonitorupstream.FieldPersonalAccessToken, field.TypeString)
+	}
+	if value, ok := _u.mutation.Passkey(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldPasskey, field.TypeString, value)
+	}
+	if _u.mutation.PasskeyCleared() {
+		_spec.ClearField(upstreammonitorupstream.FieldPasskey, field.TypeString)
 	}
 	if value, ok := _u.mutation.QuotaDivider(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldQuotaDivider, field.TypeFloat64, value)

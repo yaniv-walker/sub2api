@@ -196,10 +196,20 @@ func (h *MonitorHandler) loadMonitorUpstreams(ctx context.Context) ([]monitorUps
 
 func (h *MonitorHandler) applyMonitoringTokens(grouped []monitorUpstream) error {
 	for i := range grouped {
-		if grouped[i].AccessToken == nil || len(grouped[i].Accounts) == 0 {
+		if len(grouped[i].Accounts) == 0 {
 			continue
 		}
-		token, err := h.encryptor.Decrypt(*grouped[i].AccessToken)
+		configuredToken := grouped[i].PersonalAccessToken
+		if configuredToken == nil {
+			configuredToken = grouped[i].Passkey
+		}
+		if configuredToken == nil {
+			configuredToken = grouped[i].AccessToken
+		}
+		if configuredToken == nil {
+			continue
+		}
+		token, err := h.encryptor.Decrypt(*configuredToken)
 		if err != nil {
 			return fmt.Errorf("decrypt monitoring token for %s: %w", grouped[i].BaseURL, err)
 		}
@@ -254,20 +264,24 @@ func (h *MonitorHandler) ListUpstreams(c *gin.Context) {
 			"id": upstream.ID, "name": upstream.Name, "base_url": upstream.BaseURL,
 			"type": upstream.Type, "configured": upstream.Configured, "enabled": upstream.Enabled,
 			"account_count": len(accountIDs), "account_ids": accountIDs,
-			"has_access_token": upstream.AccessToken != nil,
-			"quota_divider":    upstream.QuotaDivider,
+			"has_access_token":          upstream.AccessToken != nil,
+			"has_personal_access_token": upstream.PersonalAccessToken != nil,
+			"has_passkey":               upstream.Passkey != nil,
+			"quota_divider":             upstream.QuotaDivider,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"upstreams": result, "total": len(result)})
 }
 
 type configureUpstreamRequest struct {
-	BaseURL      string   `json:"base_url" binding:"required"`
-	Name         string   `json:"name"`
-	Type         string   `json:"type" binding:"required"`
-	Enabled      *bool    `json:"enabled"`
-	AccessToken  *string  `json:"access_token"`
-	QuotaDivider *float64 `json:"quota_divider"`
+	BaseURL             string   `json:"base_url" binding:"required"`
+	Name                string   `json:"name"`
+	Type                string   `json:"type" binding:"required"`
+	Enabled             *bool    `json:"enabled"`
+	AccessToken         *string  `json:"access_token"`
+	PersonalAccessToken *string  `json:"personal_access_token"`
+	Passkey             *string  `json:"passkey"`
+	QuotaDivider        *float64 `json:"quota_divider"`
 }
 
 // ConfigureUpstream stores type and enablement in the plugin's own table.
@@ -299,16 +313,27 @@ func (h *MonitorHandler) ConfigureUpstream(c *gin.Context) {
 		}
 		quotaDivider = *request.QuotaDivider
 	}
-	var encryptedToken *string
-	if request.AccessToken != nil && strings.TrimSpace(*request.AccessToken) != "" {
-		encrypted, err := h.encryptor.Encrypt(strings.TrimSpace(*request.AccessToken))
+	var encryptedToken, encryptedPersonalAccessToken, encryptedPasskey *string
+	for _, item := range []struct {
+		value  *string
+		target **string
+		label  string
+	}{
+		{request.AccessToken, &encryptedToken, "access token"},
+		{request.PersonalAccessToken, &encryptedPersonalAccessToken, "personal access token"},
+		{request.Passkey, &encryptedPasskey, "passkey"},
+	} {
+		if item.value == nil || strings.TrimSpace(*item.value) == "" {
+			continue
+		}
+		encrypted, err := h.encryptor.Encrypt(strings.TrimSpace(*item.value))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encrypt access token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encrypt " + item.label})
 			return
 		}
-		encryptedToken = &encrypted
+		*item.target = &encrypted
 	}
-	configured, err := h.upstreams.Upsert(c.Request.Context(), rootURL, strings.TrimSpace(request.Name), upstreammonitorupstream.UpstreamType(typeName), enabled, encryptedToken, quotaDivider)
+	configured, err := h.upstreams.Upsert(c.Request.Context(), rootURL, strings.TrimSpace(request.Name), upstreammonitorupstream.UpstreamType(typeName), enabled, encryptedToken, encryptedPersonalAccessToken, encryptedPasskey, quotaDivider)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -316,9 +341,11 @@ func (h *MonitorHandler) ConfigureUpstream(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"id": configured.ID, "base_url": configured.BaseURL, "name": configured.Name,
 		"upstream_type": configured.UpstreamType, "enabled": configured.Enabled,
-		"has_access_token": configured.AccessToken != nil,
-		"quota_divider":    configured.QuotaDivider,
-		"created_at":       configured.CreatedAt, "updated_at": configured.UpdatedAt,
+		"has_access_token":          configured.AccessToken != nil,
+		"has_personal_access_token": configured.PersonalAccessToken != nil,
+		"has_passkey":               configured.Passkey != nil,
+		"quota_divider":             configured.QuotaDivider,
+		"created_at":                configured.CreatedAt, "updated_at": configured.UpdatedAt,
 	})
 }
 

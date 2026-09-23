@@ -22,6 +22,10 @@ const (
 	FieldUpstreamType = "upstream_type"
 	// FieldAccessToken holds the string denoting the access_token field in the database.
 	FieldAccessToken = "access_token"
+	// FieldPersonalAccessToken holds the string denoting the personal_access_token field in the database.
+	FieldPersonalAccessToken = "personal_access_token"
+	// FieldPasskey holds the string denoting the passkey field in the database.
+	FieldPasskey = "passkey"
 	// FieldQuotaDivider holds the string denoting the quota_divider field in the database.
 	FieldQuotaDivider = "quota_divider"
 	// FieldEnabled holds the string denoting the enabled field in the database.
@@ -41,6 +45,8 @@ var Columns = []string{
 	FieldName,
 	FieldUpstreamType,
 	FieldAccessToken,
+	FieldPersonalAccessToken,
+	FieldPasskey,
 	FieldQuotaDivider,
 	FieldEnabled,
 	FieldCreatedAt,
@@ -125,6 +131,16 @@ func ByUpstreamType(opts ...sql.OrderTermOption) OrderOption {
 // ByAccessToken orders the results by the access_token field.
 func ByAccessToken(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAccessToken, opts...).ToFunc()
+}
+
+// ByPersonalAccessToken orders the results by the personal_access_token field.
+func ByPersonalAccessToken(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPersonalAccessToken, opts...).ToFunc()
+}
+
+// ByPasskey orders the results by the passkey field.
+func ByPasskey(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPasskey, opts...).ToFunc()
 }
 
 // ByQuotaDivider orders the results by the quota_divider field.

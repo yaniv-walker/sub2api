@@ -25,8 +25,8 @@ func (f *fakeUpstreamProvider) List(context.Context) ([]*ent.UpstreamMonitorUpst
 	return nil, nil
 }
 
-func (f *fakeUpstreamProvider) Upsert(_ context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken *string, quotaDivider float64) (*ent.UpstreamMonitorUpstream, error) {
-	f.saved = &ent.UpstreamMonitorUpstream{ID: 1, BaseURL: baseURL, Name: name, UpstreamType: upstreamType, Enabled: enabled, AccessToken: accessToken, QuotaDivider: quotaDivider}
+func (f *fakeUpstreamProvider) Upsert(_ context.Context, baseURL, name string, upstreamType upstreammonitorupstream.UpstreamType, enabled bool, accessToken, personalAccessToken, passkey *string, quotaDivider float64) (*ent.UpstreamMonitorUpstream, error) {
+	f.saved = &ent.UpstreamMonitorUpstream{ID: 1, BaseURL: baseURL, Name: name, UpstreamType: upstreamType, Enabled: enabled, AccessToken: accessToken, PersonalAccessToken: personalAccessToken, Passkey: passkey, QuotaDivider: quotaDivider}
 	return f.saved, nil
 }
 
@@ -42,6 +42,8 @@ func TestConfigureUpstreamStoresOneTypeForNormalizedOrigin(t *testing.T) {
 		"type":"nexapi",
 		"quota_divider":100000,
 		"access_token":"secret-token",
+        "personal_access_token":"personal-token",
+        "passkey":"passkey-token",
 		"enabled":true
 	}`))
 	ctx.Request.Header.Set("Content-Type", "application/json")
@@ -60,7 +62,10 @@ func TestConfigureUpstreamStoresOneTypeForNormalizedOrigin(t *testing.T) {
 	if provider.saved.AccessToken == nil || *provider.saved.AccessToken != "encrypted:secret-token" {
 		t.Fatalf("encrypted access token = %v", provider.saved.AccessToken)
 	}
-	if bytes.Contains(recorder.Body.Bytes(), []byte("secret-token")) || bytes.Contains(recorder.Body.Bytes(), []byte("encrypted:")) {
+	if provider.saved.PersonalAccessToken == nil || *provider.saved.PersonalAccessToken != "encrypted:personal-token" || provider.saved.Passkey == nil || *provider.saved.Passkey != "encrypted:passkey-token" {
+		t.Fatalf("encrypted long-lived credentials = %+v", provider.saved)
+	}
+	if bytes.Contains(recorder.Body.Bytes(), []byte("secret-token")) || bytes.Contains(recorder.Body.Bytes(), []byte("personal-token")) || bytes.Contains(recorder.Body.Bytes(), []byte("passkey-token")) || bytes.Contains(recorder.Body.Bytes(), []byte("encrypted:")) {
 		t.Fatalf("response exposed access token: %s", recorder.Body.String())
 	}
 }

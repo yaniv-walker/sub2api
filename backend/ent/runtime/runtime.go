@@ -1985,19 +1985,19 @@ func init() {
 	// upstreammonitorupstream.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	upstreammonitorupstream.NameValidator = upstreammonitorupstreamDescName.Validators[0].(func(string) error)
 	// upstreammonitorupstreamDescQuotaDivider is the schema descriptor for quota_divider field.
-	upstreammonitorupstreamDescQuotaDivider := upstreammonitorupstreamFields[4].Descriptor()
+	upstreammonitorupstreamDescQuotaDivider := upstreammonitorupstreamFields[6].Descriptor()
 	// upstreammonitorupstream.DefaultQuotaDivider holds the default value on creation for the quota_divider field.
 	upstreammonitorupstream.DefaultQuotaDivider = upstreammonitorupstreamDescQuotaDivider.Default.(float64)
 	// upstreammonitorupstreamDescEnabled is the schema descriptor for enabled field.
-	upstreammonitorupstreamDescEnabled := upstreammonitorupstreamFields[5].Descriptor()
+	upstreammonitorupstreamDescEnabled := upstreammonitorupstreamFields[7].Descriptor()
 	// upstreammonitorupstream.DefaultEnabled holds the default value on creation for the enabled field.
 	upstreammonitorupstream.DefaultEnabled = upstreammonitorupstreamDescEnabled.Default.(bool)
 	// upstreammonitorupstreamDescCreatedAt is the schema descriptor for created_at field.
-	upstreammonitorupstreamDescCreatedAt := upstreammonitorupstreamFields[6].Descriptor()
+	upstreammonitorupstreamDescCreatedAt := upstreammonitorupstreamFields[8].Descriptor()
 	// upstreammonitorupstream.DefaultCreatedAt holds the default value on creation for the created_at field.
 	upstreammonitorupstream.DefaultCreatedAt = upstreammonitorupstreamDescCreatedAt.Default.(func() time.Time)
 	// upstreammonitorupstreamDescUpdatedAt is the schema descriptor for updated_at field.
-	upstreammonitorupstreamDescUpdatedAt := upstreammonitorupstreamFields[7].Descriptor()
+	upstreammonitorupstreamDescUpdatedAt := upstreammonitorupstreamFields[9].Descriptor()
 	// upstreammonitorupstream.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	upstreammonitorupstream.DefaultUpdatedAt = upstreammonitorupstreamDescUpdatedAt.Default.(func() time.Time)
 	// upstreammonitorupstream.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

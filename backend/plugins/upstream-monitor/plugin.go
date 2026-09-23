@@ -192,6 +192,12 @@ CREATE TABLE IF NOT EXISTS upstream_monitor_upstreams (
 	if _, err := p.entClient.ExecContext(ctx, `ALTER TABLE upstream_monitor_upstreams ADD COLUMN IF NOT EXISTS access_token TEXT NULL`); err != nil {
 		return fmt.Errorf("add upstream monitor access token column: %w", err)
 	}
+	if _, err := p.entClient.ExecContext(ctx, `ALTER TABLE upstream_monitor_upstreams ADD COLUMN IF NOT EXISTS personal_access_token TEXT NULL`); err != nil {
+		return fmt.Errorf("add upstream monitor personal access token column: %w", err)
+	}
+	if _, err := p.entClient.ExecContext(ctx, `ALTER TABLE upstream_monitor_upstreams ADD COLUMN IF NOT EXISTS passkey TEXT NULL`); err != nil {
+		return fmt.Errorf("add upstream monitor passkey column: %w", err)
+	}
 	if _, err := p.entClient.ExecContext(ctx, `ALTER TABLE upstream_monitor_upstreams ADD COLUMN IF NOT EXISTS quota_divider DOUBLE PRECISION NOT NULL DEFAULT 431778`); err != nil {
 		return fmt.Errorf("add upstream monitor quota divider column: %w", err)
 	}

@@ -62,6 +62,34 @@ func (_c *UpstreamMonitorUpstreamCreate) SetNillableAccessToken(v *string) *Upst
 	return _c
 }
 
+// SetPersonalAccessToken sets the "personal_access_token" field.
+func (_c *UpstreamMonitorUpstreamCreate) SetPersonalAccessToken(v string) *UpstreamMonitorUpstreamCreate {
+	_c.mutation.SetPersonalAccessToken(v)
+	return _c
+}
+
+// SetNillablePersonalAccessToken sets the "personal_access_token" field if the given value is not nil.
+func (_c *UpstreamMonitorUpstreamCreate) SetNillablePersonalAccessToken(v *string) *UpstreamMonitorUpstreamCreate {
+	if v != nil {
+		_c.SetPersonalAccessToken(*v)
+	}
+	return _c
+}
+
+// SetPasskey sets the "passkey" field.
+func (_c *UpstreamMonitorUpstreamCreate) SetPasskey(v string) *UpstreamMonitorUpstreamCreate {
+	_c.mutation.SetPasskey(v)
+	return _c
+}
+
+// SetNillablePasskey sets the "passkey" field if the given value is not nil.
+func (_c *UpstreamMonitorUpstreamCreate) SetNillablePasskey(v *string) *UpstreamMonitorUpstreamCreate {
+	if v != nil {
+		_c.SetPasskey(*v)
+	}
+	return _c
+}
+
 // SetQuotaDivider sets the "quota_divider" field.
 func (_c *UpstreamMonitorUpstreamCreate) SetQuotaDivider(v float64) *UpstreamMonitorUpstreamCreate {
 	_c.mutation.SetQuotaDivider(v)
@@ -256,6 +284,14 @@ func (_c *UpstreamMonitorUpstreamCreate) createSpec() (*UpstreamMonitorUpstream,
 		_spec.SetField(upstreammonitorupstream.FieldAccessToken, field.TypeString, value)
 		_node.AccessToken = &value
 	}
+	if value, ok := _c.mutation.PersonalAccessToken(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldPersonalAccessToken, field.TypeString, value)
+		_node.PersonalAccessToken = &value
+	}
+	if value, ok := _c.mutation.Passkey(); ok {
+		_spec.SetField(upstreammonitorupstream.FieldPasskey, field.TypeString, value)
+		_node.Passkey = &value
+	}
 	if value, ok := _c.mutation.QuotaDivider(); ok {
 		_spec.SetField(upstreammonitorupstream.FieldQuotaDivider, field.TypeFloat64, value)
 		_node.QuotaDivider = value
@@ -375,6 +411,42 @@ func (u *UpstreamMonitorUpstreamUpsert) UpdateAccessToken() *UpstreamMonitorUpst
 // ClearAccessToken clears the value of the "access_token" field.
 func (u *UpstreamMonitorUpstreamUpsert) ClearAccessToken() *UpstreamMonitorUpstreamUpsert {
 	u.SetNull(upstreammonitorupstream.FieldAccessToken)
+	return u
+}
+
+// SetPersonalAccessToken sets the "personal_access_token" field.
+func (u *UpstreamMonitorUpstreamUpsert) SetPersonalAccessToken(v string) *UpstreamMonitorUpstreamUpsert {
+	u.Set(upstreammonitorupstream.FieldPersonalAccessToken, v)
+	return u
+}
+
+// UpdatePersonalAccessToken sets the "personal_access_token" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsert) UpdatePersonalAccessToken() *UpstreamMonitorUpstreamUpsert {
+	u.SetExcluded(upstreammonitorupstream.FieldPersonalAccessToken)
+	return u
+}
+
+// ClearPersonalAccessToken clears the value of the "personal_access_token" field.
+func (u *UpstreamMonitorUpstreamUpsert) ClearPersonalAccessToken() *UpstreamMonitorUpstreamUpsert {
+	u.SetNull(upstreammonitorupstream.FieldPersonalAccessToken)
+	return u
+}
+
+// SetPasskey sets the "passkey" field.
+func (u *UpstreamMonitorUpstreamUpsert) SetPasskey(v string) *UpstreamMonitorUpstreamUpsert {
+	u.Set(upstreammonitorupstream.FieldPasskey, v)
+	return u
+}
+
+// UpdatePasskey sets the "passkey" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsert) UpdatePasskey() *UpstreamMonitorUpstreamUpsert {
+	u.SetExcluded(upstreammonitorupstream.FieldPasskey)
+	return u
+}
+
+// ClearPasskey clears the value of the "passkey" field.
+func (u *UpstreamMonitorUpstreamUpsert) ClearPasskey() *UpstreamMonitorUpstreamUpsert {
+	u.SetNull(upstreammonitorupstream.FieldPasskey)
 	return u
 }
 
@@ -525,6 +597,48 @@ func (u *UpstreamMonitorUpstreamUpsertOne) UpdateAccessToken() *UpstreamMonitorU
 func (u *UpstreamMonitorUpstreamUpsertOne) ClearAccessToken() *UpstreamMonitorUpstreamUpsertOne {
 	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
 		s.ClearAccessToken()
+	})
+}
+
+// SetPersonalAccessToken sets the "personal_access_token" field.
+func (u *UpstreamMonitorUpstreamUpsertOne) SetPersonalAccessToken(v string) *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.SetPersonalAccessToken(v)
+	})
+}
+
+// UpdatePersonalAccessToken sets the "personal_access_token" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsertOne) UpdatePersonalAccessToken() *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.UpdatePersonalAccessToken()
+	})
+}
+
+// ClearPersonalAccessToken clears the value of the "personal_access_token" field.
+func (u *UpstreamMonitorUpstreamUpsertOne) ClearPersonalAccessToken() *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.ClearPersonalAccessToken()
+	})
+}
+
+// SetPasskey sets the "passkey" field.
+func (u *UpstreamMonitorUpstreamUpsertOne) SetPasskey(v string) *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.SetPasskey(v)
+	})
+}
+
+// UpdatePasskey sets the "passkey" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsertOne) UpdatePasskey() *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.UpdatePasskey()
+	})
+}
+
+// ClearPasskey clears the value of the "passkey" field.
+func (u *UpstreamMonitorUpstreamUpsertOne) ClearPasskey() *UpstreamMonitorUpstreamUpsertOne {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.ClearPasskey()
 	})
 }
 
@@ -848,6 +962,48 @@ func (u *UpstreamMonitorUpstreamUpsertBulk) UpdateAccessToken() *UpstreamMonitor
 func (u *UpstreamMonitorUpstreamUpsertBulk) ClearAccessToken() *UpstreamMonitorUpstreamUpsertBulk {
 	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
 		s.ClearAccessToken()
+	})
+}
+
+// SetPersonalAccessToken sets the "personal_access_token" field.
+func (u *UpstreamMonitorUpstreamUpsertBulk) SetPersonalAccessToken(v string) *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.SetPersonalAccessToken(v)
+	})
+}
+
+// UpdatePersonalAccessToken sets the "personal_access_token" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsertBulk) UpdatePersonalAccessToken() *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.UpdatePersonalAccessToken()
+	})
+}
+
+// ClearPersonalAccessToken clears the value of the "personal_access_token" field.
+func (u *UpstreamMonitorUpstreamUpsertBulk) ClearPersonalAccessToken() *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.ClearPersonalAccessToken()
+	})
+}
+
+// SetPasskey sets the "passkey" field.
+func (u *UpstreamMonitorUpstreamUpsertBulk) SetPasskey(v string) *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.SetPasskey(v)
+	})
+}
+
+// UpdatePasskey sets the "passkey" field to the value that was provided on create.
+func (u *UpstreamMonitorUpstreamUpsertBulk) UpdatePasskey() *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.UpdatePasskey()
+	})
+}
+
+// ClearPasskey clears the value of the "passkey" field.
+func (u *UpstreamMonitorUpstreamUpsertBulk) ClearPasskey() *UpstreamMonitorUpstreamUpsertBulk {
+	return u.Update(func(s *UpstreamMonitorUpstreamUpsert) {
+		s.ClearPasskey()
 	})
 }
 

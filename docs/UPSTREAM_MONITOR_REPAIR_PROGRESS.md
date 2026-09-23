@@ -113,3 +113,5 @@ go run .\cmd\server
 ```
 
 正常正式启动应出现 `Server started on 0.0.0.0:8080`，随后应出现插件初始化相关日志。若出现 `First run detected, starting setup wizard...`，说明 `NeedsSetup()` 判定的配置目录不是当前目录；若没有该日志但地址仍是 3000，则应检查实际生效配置文件中 `server.port` 或 `SERVER_PORT` 环境变量。前端端口 3000 不会自动改变后端端口。
+
+- 2026-09-23：NexAPI 长期认证配置扩展。插件上游配置新增加密保存的 `personal_access_token` 与 `passkey` 两个只写字段，响应仅返回 `has_personal_access_token`/`has_passkey`；兼容旧 `access_token`，认证优先级为个人访问令牌 > Passkey > 旧访问令牌 > 账号 API Key。未发现 NexAPI 对 Passkey 统一专用 HTTP 头协议，因此当前均以 Bearer 令牌访问 `/api/user/self`，避免猜测性协议。

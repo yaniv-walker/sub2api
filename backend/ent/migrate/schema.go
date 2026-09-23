@@ -1657,6 +1657,8 @@ var (
 		{Name: "name", Type: field.TypeString, Size: 200, Default: ""},
 		{Name: "upstream_type", Type: field.TypeEnum, Enums: []string{"sub2api", "nexapi"}},
 		{Name: "access_token", Type: field.TypeString, Nullable: true},
+		{Name: "personal_access_token", Type: field.TypeString, Nullable: true},
+		{Name: "passkey", Type: field.TypeString, Nullable: true},
 		{Name: "quota_divider", Type: field.TypeFloat64, Default: 431778},
 		{Name: "enabled", Type: field.TypeBool, Default: true},
 		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},

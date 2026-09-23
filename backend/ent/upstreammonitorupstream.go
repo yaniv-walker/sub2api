@@ -25,6 +25,10 @@ type UpstreamMonitorUpstream struct {
 	UpstreamType upstreammonitorupstream.UpstreamType `json:"upstream_type,omitempty"`
 	// AccessToken holds the value of the "access_token" field.
 	AccessToken *string `json:"-"`
+	// PersonalAccessToken holds the value of the "personal_access_token" field.
+	PersonalAccessToken *string `json:"-"`
+	// Passkey holds the value of the "passkey" field.
+	Passkey *string `json:"-"`
 	// QuotaDivider holds the value of the "quota_divider" field.
 	QuotaDivider float64 `json:"quota_divider,omitempty"`
 	// Enabled holds the value of the "enabled" field.
@@ -47,7 +51,7 @@ func (*UpstreamMonitorUpstream) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case upstreammonitorupstream.FieldID:
 			values[i] = new(sql.NullInt64)
-		case upstreammonitorupstream.FieldBaseURL, upstreammonitorupstream.FieldName, upstreammonitorupstream.FieldUpstreamType, upstreammonitorupstream.FieldAccessToken:
+		case upstreammonitorupstream.FieldBaseURL, upstreammonitorupstream.FieldName, upstreammonitorupstream.FieldUpstreamType, upstreammonitorupstream.FieldAccessToken, upstreammonitorupstream.FieldPersonalAccessToken, upstreammonitorupstream.FieldPasskey:
 			values[i] = new(sql.NullString)
 		case upstreammonitorupstream.FieldCreatedAt, upstreammonitorupstream.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -96,6 +100,20 @@ func (_m *UpstreamMonitorUpstream) assignValues(columns []string, values []any) 
 			} else if value.Valid {
 				_m.AccessToken = new(string)
 				*_m.AccessToken = value.String
+			}
+		case upstreammonitorupstream.FieldPersonalAccessToken:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field personal_access_token", values[i])
+			} else if value.Valid {
+				_m.PersonalAccessToken = new(string)
+				*_m.PersonalAccessToken = value.String
+			}
+		case upstreammonitorupstream.FieldPasskey:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field passkey", values[i])
+			} else if value.Valid {
+				_m.Passkey = new(string)
+				*_m.Passkey = value.String
 			}
 		case upstreammonitorupstream.FieldQuotaDivider:
 			if value, ok := values[i].(*sql.NullFloat64); !ok {
@@ -167,6 +185,10 @@ func (_m *UpstreamMonitorUpstream) String() string {
 	builder.WriteString(fmt.Sprintf("%v", _m.UpstreamType))
 	builder.WriteString(", ")
 	builder.WriteString("access_token=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("personal_access_token=<sensitive>")
+	builder.WriteString(", ")
+	builder.WriteString("passkey=<sensitive>")
 	builder.WriteString(", ")
 	builder.WriteString("quota_divider=")
 	builder.WriteString(fmt.Sprintf("%v", _m.QuotaDivider))

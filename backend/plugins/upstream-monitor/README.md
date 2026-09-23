@@ -93,12 +93,14 @@ Content-Type: application/json
   "name": "主力中转站",
   "type": "sub2api",
   "enabled": true,
-  "access_token": "可选的上游用户访问令牌",
+  "access_token": "兼容旧版的上游用户访问令牌",
+  "personal_access_token": "可选的长期个人访问令牌",
+  "passkey": "可选的长期 Passkey/访问密钥",
   "quota_divider": 431778
 }
 ```
 
-`access_token` 是只写字段，适用于 NexAPI 等不能使用模型 API Key 查询统一余额的上游。令牌使用主程序现有 AES-GCM 加密能力保存在插件表中，后续响应只返回 `has_access_token`，不会回显明文或密文。省略该字段会保留已保存的令牌。
+`access_token`、`personal_access_token`、`passkey` 均为只写字段，适用于 NexAPI 等不能使用模型 API Key 查询统一余额的上游。认证优先级为个人访问令牌、Passkey、旧 access_token，最后才回退到关联账号 API Key；当前三者均按 Bearer 令牌调用 `/api/user/self`，因为不同 NexAPI 部署对 Passkey 的专用请求头未有统一公开协议。令牌使用主程序现有 AES-GCM 加密能力保存在插件表中，后续响应只返回 `has_access_token`、`has_personal_access_token`、`has_passkey`，不会回显明文或密文。省略某个字段会保留该字段已保存的令牌。
 
 ### 概览统计
 ```
@@ -234,3 +236,4 @@ plugins/upstream-monitor/
 ## 许可证
 
 本插件遵循 sub2api 主项目的许可证。
+
