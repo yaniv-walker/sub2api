@@ -15,7 +15,10 @@ var ProviderSet = wire.NewSet(
 	repository.NewBalanceSnapshotRepository,
 	repository.NewErrorRecordRepository,
 	repository.NewUpstreamRepository,
+	repository.NewCredentialCipher,
 	repository.NewRepositories,
+	wire.Bind(new(handler.UpstreamProvider), new(*repository.UpstreamRepository)),
+	wire.Bind(new(handler.CredentialCipher), new(*repository.CredentialCipher)),
 
 	// Service layer
 	service.NewUpstreamInfoFetcher,

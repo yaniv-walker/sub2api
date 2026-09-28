@@ -1,5 +1,18 @@
 # 上游管理插件整改进度
 
+## 上游维度分析增量计划（2026-09-24）
+
+以现有分析设计文档为契约，聚合单位为规范化主域名对应的上游；账号余额不叠加。只修改插件、前端扩展及文档。
+
+- [x] A1 错误统计：合并关联账号错误，支持 1–90 天及 RFC3339 范围；验证 200、400、404、409、空数据和未知错误率。
+- [x] A2 用量趋势：合并余额快照，下降为消耗、回升为异常；请求次数未知返回 null；验证共享余额不重复计数。
+- [x] A3 余额预测：用历史快照估算；数据不足返回 200 和空预测字段；验证回升、无消耗、耗尽场景。
+- [x] A4 前端联调：详情展示每日错误、类型、最近错误、每日余额与消耗、异常和预测，包含加载、空数据、失败状态；前端类型检查及构建。
+- [x] A5 同步 API/联调文档，运行插件测试、后端构建、前端构建、git diff --check；全量回归问题单列。
+
+进度记录：2026-09-24 核对现有实现，三个上游分析接口尚未注册；开始 A1。
+进度记录：2026-09-24 完成 A1-A5；插件定向测试、后端构建、前端类型检查和生产构建通过。
+
 ## 目标
 
 让 `upstream-monitor` 作为首方插件在主应用中可编译、可启动、可受管理员认证保护，并具备可验证的持久化、事件处理和用量分析能力。整改范围限定在插件及其必要的宿主接入，不改变无关业务行为。
@@ -123,3 +136,23 @@ go run .\cmd\server
 - 2026-09-23：补充上游详情中的错误统计与用量趋势 HTML 原型视图。详情抽屉可切换分析页面，包含指标卡、趋势柱状图、时间范围、图例和明细表，并支持返回详情。
 
 - 2026-09-23：完成上游维度分析接口设计和前端联调契约。新增错误、用量、预测三个 /upstreams/:id/* 路由的聚合口径、响应模型、空数据/错误语义和联调验收；明确当前为设计中，账号维度接口不能替代共享额度的上游分析。
+- 2026-09-23: Started runtime per-upstream credential configuration work. The plugin currently stores credentials per upstream but delegates encryption to the host TOTP key; this change will give the plugin a persistent key and a separate runtime editor for every upstream. Legacy ciphertext that cannot be decrypted will be reported as reconfiguration-required instead of blocking the overview.
+
+## 2026-09-24 运行时凭据与余额默认值修复
+- Sub2API 刷新直接使用任意关联账号的 API Key，不依赖上游配置令牌。
+- Sub2API 余额换算系数固定为 1；NexAPI 默认仍为 431778，管理员可覆盖。
+- 旧密钥生成的密文无法由新插件密钥验证时，接口保留上游并返回 credential_error，重新保存该上游凭据即可恢复。
+- 已通过插件 Go 测试与前端 typecheck。
+
+## 2026-09-24 上游详情余额展示
+- 将 overview/refresh-all 返回的 by_upstream 余额按标准化域名合并到前端上游列表。
+- 刷新或重新加载后，已打开的上游详情同步显示最新余额。
+- 已通过前端 typecheck 与插件 Go 测试。
+
+## 2026-09-28 分析接口 500 修复
+- 初步定位：错误统计、用量趋势和余额预测依赖 `upstream_error_records`、`upstream_balance_snapshots` 两张历史表；若运行库尚未执行插件启动迁移，查询会报 PostgreSQL `relation does not exist`，handler 统一返回 `ANALYTICS_UNAVAILABLE`/HTTP 500。当前用户现场的具体数据库错误仍需以后端重启日志或只读查表结果确认。
+- 已在插件 `runMigrations` 中补充两张历史表及四个查询索引的幂等迁移（全部使用 `IF NOT EXISTS`），并为迁移步骤补充上下文错误信息；插件不会调用全库 Ent schema migration。
+- 已新增迁移回归测试，覆盖历史表/索引创建顺序、NexAPI 默认 `quota_divider=500000` 以及数据库错误上下文。
+- 已将 NexAPI 默认余额换算系数统一为 `500000`，保留管理员显式配置，不覆盖已有值。
+- 本轮验证结果：设置项目内临时 Go 构建缓存后，`go test -mod=mod ./plugins/upstream-monitor/...` 通过；`go build -mod=mod ./cmd/server` 通过；`git diff --check` 通过（仅有 Windows 行尾提示，无差异格式错误）。默认 Go 缓存目录在当前环境不可创建，因此测试使用了已有的项目内 `.codex-go-cache`，未修改业务代码。
+- 运行时需重启后端，使插件 `Init()` 执行补表迁移。当前运行中的服务进程早于本补丁启动，尚未加载补表代码。重启后应先在后端日志看到 `Plugin-owned database tables ready`；无历史数据时，三个分析接口应返回 HTTP 200 的空结果/空预测，而不再因缺表返回 500；刷新余额或产生请求后，趋势、错误和预测数据会逐步出现。若重启后仍为 500，需要保留对应后端原始错误日志，再区分缺表、权限或字段结构不匹配。

@@ -40,6 +40,7 @@ type monitorUpstream struct {
 	PersonalAccessToken *string
 	Passkey             *string
 	QuotaDivider        float64
+	CredentialError     string
 	Accounts            []monitorAccount
 }
 
@@ -58,7 +59,7 @@ func groupMonitorAccounts(accounts []monitorAccount, configs []*ent.UpstreamMoni
 		}
 		upstream := byURL[rootURL]
 		if upstream == nil {
-			upstream = &monitorUpstream{BaseURL: rootURL, Type: account.info.UpstreamType, Enabled: true, QuotaDivider: monitorservice.DefaultNexAPIBalanceDivider}
+			upstream = &monitorUpstream{BaseURL: rootURL, Type: account.info.UpstreamType, Enabled: true, QuotaDivider: monitorservice.DefaultBalanceDivider(account.info.UpstreamType)}
 			if config := configByURL[rootURL]; config != nil {
 				upstream.ID = config.ID
 				upstream.Name = config.Name
@@ -69,6 +70,9 @@ func groupMonitorAccounts(accounts []monitorAccount, configs []*ent.UpstreamMoni
 				upstream.PersonalAccessToken = config.PersonalAccessToken
 				upstream.Passkey = config.Passkey
 				upstream.QuotaDivider = config.QuotaDivider
+				if upstream.Type == "sub2api" {
+					upstream.QuotaDivider = 1
+				}
 			}
 			byURL[rootURL] = upstream
 			order = append(order, rootURL)

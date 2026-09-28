@@ -56,6 +56,19 @@ func (r *BalanceSnapshotRepository) GetByAccountTimeRange(ctx context.Context, u
 		All(ctx)
 }
 
+// GetByAccountsTimeRange reads historical representatives of one shared balance.
+func (r *BalanceSnapshotRepository) GetByAccountsTimeRange(ctx context.Context, upstreamType string, accountIDs []int64, startTime, endTime time.Time) ([]*ent.UpstreamBalanceSnapshot, error) {
+	if len(accountIDs) == 0 {
+		return []*ent.UpstreamBalanceSnapshot{}, nil
+	}
+	return r.client.UpstreamBalanceSnapshot.Query().Where(
+		upstreambalancesnapshot.UpstreamType(upstreamType),
+		upstreambalancesnapshot.AccountIDIn(accountIDs...),
+		upstreambalancesnapshot.SnapshotAtGTE(startTime),
+		upstreambalancesnapshot.SnapshotAtLTE(endTime),
+	).Order(ent.Asc(upstreambalancesnapshot.FieldSnapshotAt)).All(ctx)
+}
+
 // GetAllByType 获取指定上游类型的所有最新余额快照
 func (r *BalanceSnapshotRepository) GetAllByType(ctx context.Context, upstreamType string) ([]*ent.UpstreamBalanceSnapshot, error) {
 	// 使用子查询获取每个账号的最新快照

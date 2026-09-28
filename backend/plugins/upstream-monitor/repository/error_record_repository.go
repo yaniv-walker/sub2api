@@ -52,6 +52,19 @@ func (r *ErrorRecordRepository) GetByAccountTimeRange(ctx context.Context, upstr
 		All(ctx)
 }
 
+// GetByAccountsTimeRange returns all error events for accounts sharing an upstream.
+func (r *ErrorRecordRepository) GetByAccountsTimeRange(ctx context.Context, upstreamType string, accountIDs []int64, startTime, endTime time.Time) ([]*ent.UpstreamErrorRecord, error) {
+	if len(accountIDs) == 0 {
+		return []*ent.UpstreamErrorRecord{}, nil
+	}
+	return r.client.UpstreamErrorRecord.Query().Where(
+		upstreamerrorrecord.UpstreamType(upstreamType),
+		upstreamerrorrecord.AccountIDIn(accountIDs...),
+		upstreamerrorrecord.OccurredAtGTE(startTime),
+		upstreamerrorrecord.OccurredAtLTE(endTime),
+	).Order(ent.Desc(upstreamerrorrecord.FieldOccurredAt)).All(ctx)
+}
+
 // CountByAccountTimeRange 统计指定账号在时间范围内的错误数量
 func (r *ErrorRecordRepository) CountByAccountTimeRange(ctx context.Context, upstreamType string, accountID int64, startTime, endTime time.Time) (int, error) {
 	return r.client.UpstreamErrorRecord.

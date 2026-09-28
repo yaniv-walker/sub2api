@@ -31,7 +31,7 @@
     "has_access_token": false,
     "has_personal_access_token": true,
     "has_passkey": false,
-    "quota_divider": 431778
+    "quota_divider": 500000
   }],
   "total": 1
 }
@@ -52,7 +52,7 @@
   "personal_access_token": "可选，长期个人访问令牌",
   "passkey": "可选，长期 Passkey",
   "access_token": "兼容旧版访问令牌",
-  "quota_divider": 431778
+  "quota_divider": 500000
 }
 ```
 
@@ -129,7 +129,7 @@
 - `refresh-all` 部分失败时仍展示成功上游数据，同时在页面显示 `errors`。
 
 
-## 7. 上游维度分析（设计中，尚未实现）
+## 7. 上游维度分析
 
 由于一个上游可关联多个账号且共享统一余额，前端正式联调应使用上游维度接口，而不是把单一账号分析当作上游分析：
 
@@ -137,4 +137,10 @@
 - `GET /upstreams/:id/usage?days=30`
 - `GET /upstreams/:id/prediction`
 
-完整请求/响应契约、聚合口径、空数据和错误语义见 [UPSTREAM_MONITOR_UPSTREAM_ANALYTICS_DESIGN.md](./UPSTREAM_MONITOR_UPSTREAM_ANALYTICS_DESIGN.md)；前端类型、状态和验收步骤见 [UPSTREAM_MONITOR_FRONTEND_ANALYTICS_HANDOFF.md](./UPSTREAM_MONITOR_FRONTEND_ANALYTICS_HANDOFF.md)。以上三个路由当前尚未接入后端，不能直接调用。
+三个路由已接入后端：错误按上游全部关联账号聚合；余额快照按时间去重后计算共享额度消耗，不叠加账号余额；无请求事件时请求数和错误率返回 `null`。完整请求/响应契约、聚合口径、空数据和错误语义见 [UPSTREAM_MONITOR_UPSTREAM_ANALYTICS_DESIGN.md](./UPSTREAM_MONITOR_UPSTREAM_ANALYTICS_DESIGN.md)；前端类型、状态和验收步骤见 [UPSTREAM_MONITOR_FRONTEND_ANALYTICS_HANDOFF.md](./UPSTREAM_MONITOR_FRONTEND_ANALYTICS_HANDOFF.md)。
+
+## Runtime per-upstream credentials
+
+The administrator configures each upstream independently with `PUT /api/v1/plugins/upstream-monitor/upstreams`. The request uses `base_url` to select the normalized upstream origin and may include `type`, `name`, `enabled`, `quota_divider`, and one of `access_token`, `personal_access_token`, or `passkey`. Credential fields are write-only; responses expose only `has_*` flags. Leave a credential field empty to keep the existing value.
+
+Credentials are encrypted with a plugin-owned key persisted in the plugin table. `TOTP_ENCRYPTION_KEY` is not required for upstream-monitor credentials. If data was encrypted by an older build and cannot be decrypted, `GET /upstreams` returns `credential_error`; re-save the credential for that upstream from the runtime configuration dialog.

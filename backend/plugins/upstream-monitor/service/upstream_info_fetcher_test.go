@@ -69,7 +69,9 @@ func TestFetchNexAPIInfo_Success(t *testing.T) {
 		}
 		resp.Data.Quota = 48838015
 		resp.Data.UsedQuota = 6661985
-		resp.Data.RemainingQuota = 99999999 // must not override quota-used calculation
+		balance := 95.93
+		resp.Data.Balance = &balance        // must not override quota/divider calculation
+		resp.Data.RemainingQuota = 99999999 // must not override quota/divider calculation
 		resp.Data.Name = "NexAPI Test"
 		resp.Data.Status = 1
 
@@ -80,11 +82,11 @@ func TestFetchNexAPIInfo_Success(t *testing.T) {
 
 	info, err := NewUpstreamInfoFetcher(nil).FetchInfo(2, "nexapi", server.URL+"/v1/chat/completions", "test-key")
 	require.NoError(t, err)
-	assert.InDelta(t, 97.68, info.Balance, 0.01)
+	assert.InDelta(t, 48838015.0/500000.0, info.Balance, 0.000001)
 	assert.Equal(t, "NexAPI Test", info.Name)
 }
 
-func TestNexAPIPrefersQuotaMinusUsedOverRemainingQuota(t *testing.T) {
+func TestNexAPIUsesQuotaOverOtherBalanceFields(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"code": 0, "data": map[string]any{
 			"quota": 48838015, "used_quota": 6661985, "remaining_quota": 99999999,
@@ -95,10 +97,10 @@ func TestNexAPIPrefersQuotaMinusUsedOverRemainingQuota(t *testing.T) {
 
 	info, err := NewUpstreamInfoFetcher(nil).FetchInfo(3, "nexapi", server.URL, "token")
 	require.NoError(t, err)
-	assert.InDelta(t, float64(48838015-6661985)/431778.0, info.Balance, 0.000001)
+	assert.InDelta(t, 48838015.0/500000.0, info.Balance, 0.000001)
 }
 
-func TestFetchNexAPIInfoUsesDirectBalanceWhenProvided(t *testing.T) {
+func TestFetchNexAPIInfoIgnoresDirectBalanceWhenProvided(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"code": 0, "data": map[string]any{
 			"balance": 95.93,
@@ -110,7 +112,7 @@ func TestFetchNexAPIInfoUsesDirectBalanceWhenProvided(t *testing.T) {
 
 	info, err := NewUpstreamInfoFetcher(nil).FetchInfo(4, "nexapi", server.URL, "token")
 	require.NoError(t, err)
-	assert.InDelta(t, 95.93, info.Balance, 0.000001)
+	assert.InDelta(t, 48838015.0/500000.0, info.Balance, 0.000001)
 }
 
 func TestFetchNexAPIInfoUsesConfiguredQuotaDivider(t *testing.T) {
@@ -135,32 +137,32 @@ func TestFetchInfo_UnsupportedType(t *testing.T) {
 }
 
 func TestNexAPIConversion(t *testing.T) {
-	// Test the conversion formula: remaining_quota / 431778 = balance_cny
+	// Test the default conversion formula: quota / 500000 = balance_cny
 	testCases := []struct {
 		name            string
-		remainingQuota  int64
+		quota           int64
 		expectedBalance float64
 	}{
 		{
 			name:            "Example from documentation",
-			remainingQuota:  42176030,
-			expectedBalance: 97.68,
+			quota:           50000000,
+			expectedBalance: 100.0,
 		},
 		{
 			name:            "Zero quota",
-			remainingQuota:  0,
+			quota:           0,
 			expectedBalance: 0.0,
 		},
 		{
 			name:            "Small quota",
-			remainingQuota:  431778,
+			quota:           500000,
 			expectedBalance: 1.0,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			balance := float64(tc.remainingQuota) / 431778.0
+			balance := float64(tc.quota) / DefaultNexAPIBalanceDivider
 			assert.InDelta(t, tc.expectedBalance, balance, 0.01)
 		})
 	}

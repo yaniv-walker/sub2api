@@ -18,8 +18,12 @@ type fakeUpstreamProvider struct {
 
 type fakeSecretEncryptor struct{}
 
-func (fakeSecretEncryptor) Encrypt(value string) (string, error) { return "encrypted:" + value, nil }
-func (fakeSecretEncryptor) Decrypt(value string) (string, error) { return value, nil }
+func (fakeSecretEncryptor) Encrypt(_ context.Context, value string) (string, error) {
+	return "encrypted:" + value, nil
+}
+func (fakeSecretEncryptor) Decrypt(_ context.Context, value string) (string, error) {
+	return value, nil
+}
 
 func (f *fakeUpstreamProvider) List(context.Context) ([]*ent.UpstreamMonitorUpstream, error) {
 	return nil, nil
@@ -33,7 +37,7 @@ func (f *fakeUpstreamProvider) Upsert(_ context.Context, baseURL, name string, u
 func TestConfigureUpstreamStoresOneTypeForNormalizedOrigin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	provider := &fakeUpstreamProvider{}
-	handler := &MonitorHandler{upstreams: provider, encryptor: fakeSecretEncryptor{}}
+	handler := &MonitorHandler{upstreams: provider, credentials: fakeSecretEncryptor{}}
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Request = httptest.NewRequest(http.MethodPut, "/upstreams", bytes.NewBufferString(`{

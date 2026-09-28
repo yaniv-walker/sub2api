@@ -18,7 +18,14 @@ type UpstreamInfoFetcher struct {
 	logger     *slog.Logger
 }
 
-const DefaultNexAPIBalanceDivider = 431778.0
+const DefaultNexAPIBalanceDivider = 500000.0
+
+func DefaultBalanceDivider(upstreamType string) float64 {
+	if strings.EqualFold(strings.TrimSpace(upstreamType), "sub2api") {
+		return 1
+	}
+	return DefaultNexAPIBalanceDivider
+}
 
 // NewUpstreamInfoFetcher creates a new upstream info fetcher.
 func NewUpstreamInfoFetcher(logger *slog.Logger) *UpstreamInfoFetcher {
@@ -46,7 +53,7 @@ type UpstreamInfo struct {
 
 // FetchInfo fetches upstream information for a given account.
 func (f *UpstreamInfoFetcher) FetchInfo(accountID int64, upstreamType, baseURL, apiKey string) (*UpstreamInfo, error) {
-	return f.FetchInfoWithBalanceDivider(accountID, upstreamType, baseURL, apiKey, DefaultNexAPIBalanceDivider)
+	return f.FetchInfoWithBalanceDivider(accountID, upstreamType, baseURL, apiKey, DefaultBalanceDivider(upstreamType))
 }
 
 func (f *UpstreamInfoFetcher) FetchInfoWithBalanceDivider(accountID int64, upstreamType, baseURL, apiKey string, quotaDivider float64) (*UpstreamInfo, error) {
@@ -62,7 +69,7 @@ func (f *UpstreamInfoFetcher) FetchInfoWithBalanceDivider(accountID int64, upstr
 		return nil, err
 	}
 	if quotaDivider <= 0 {
-		quotaDivider = DefaultNexAPIBalanceDivider
+		quotaDivider = DefaultBalanceDivider(upstreamType)
 	}
 
 	switch upstreamType {
@@ -229,33 +236,11 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 		return nil, fmt.Errorf("API error: %s", apiResp.Msg)
 	}
 
-	// The documented NexAPI balance is derived from total quota minus usage.
-	// Do not prefer remaining_quota: some deployments expose it as a cached or
-	// differently scaled value. Only use it when the source fields are absent.
-	if apiResp.Data.Balance != nil {
-		balance := *apiResp.Data.Balance
-		info := &UpstreamInfo{
-			AccountID:   accountID,
-			Name:        apiResp.Data.Name,
-			Type:        "nexapi",
-			Balance:     balance,
-			Concurrency: 0,
-			Status:      nexAPIStatus(apiResp.Data.Status),
-			ApiKey:      apiKey,
-		}
-		f.logger.Info("NexAPI info fetched successfully", "account_id", accountID, "balance", balance, "balance_source", "direct", "status", info.Status)
-		return info, nil
-	}
-
-	remainingQuota := apiResp.Data.RemainingQuota
-	if apiResp.Data.Quota > 0 || apiResp.Data.UsedQuota > 0 {
-		remainingQuota = apiResp.Data.Quota - apiResp.Data.UsedQuota
-		if remainingQuota < 0 {
-			remainingQuota = 0
-		}
-	}
-	// NexAPI conversion: remaining quota / 431778 = balance_cny.
-	balanceCNY := float64(remainingQuota) / quotaDivider
+	// NexAPI's self endpoint exposes quota in its internal unit. The plugin's
+	// configured divider converts that total quota to the displayed balance.
+	// Do not use balance, used_quota, or remaining_quota: deployments may expose
+	// those fields with different semantics or units.
+	balanceCNY := float64(apiResp.Data.Quota) / quotaDivider
 
 	status := nexAPIStatus(apiResp.Data.Status)
 
@@ -272,7 +257,7 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 	f.logger.Info("NexAPI info fetched successfully",
 		"account_id", accountID,
 		"balance", info.Balance,
-		"quota", remainingQuota,
+		"quota", apiResp.Data.Quota,
 		"quota_divider", quotaDivider,
 		"status", info.Status,
 	)

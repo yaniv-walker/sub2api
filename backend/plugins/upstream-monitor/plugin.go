@@ -2,6 +2,8 @@ package upstreammonitor
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"time"
@@ -175,13 +177,50 @@ func (p *Plugin) runMigrations(ctx context.Context) error {
 	// Create only the plugin-owned configuration table. Calling the global Ent
 	// schema migration here would also mutate unrelated host tables.
 	_, err := p.entClient.ExecContext(ctx, `
+CREATE TABLE IF NOT EXISTS upstream_monitor_secrets (
+    id SMALLINT PRIMARY KEY,
+    encryption_key TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+`)
+	if err != nil {
+		return fmt.Errorf("create upstream monitor secret table: %w", err)
+	}
+	rows, err := p.entClient.QueryContext(ctx, `SELECT COUNT(*) FROM upstream_monitor_secrets WHERE id = 1`)
+	if err != nil {
+		return fmt.Errorf("check upstream monitor credential key: %w", err)
+	}
+	if !rows.Next() {
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return fmt.Errorf("check upstream monitor credential key: %w", err)
+		}
+		return fmt.Errorf("check upstream monitor credential key: no row returned")
+	}
+	var secretCount int
+	if err := rows.Scan(&secretCount); err != nil {
+		rows.Close()
+		return fmt.Errorf("check upstream monitor credential key: %w", err)
+	}
+	rows.Close()
+	if secretCount == 0 {
+		key := make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			return fmt.Errorf("generate upstream monitor credential key: %w", err)
+		}
+		encoded := base64.RawStdEncoding.EncodeToString(key)
+		if _, err := p.entClient.ExecContext(ctx, `INSERT INTO upstream_monitor_secrets (id, encryption_key) VALUES (1, $1) ON CONFLICT (id) DO NOTHING`, encoded); err != nil {
+			return fmt.Errorf("persist upstream monitor credential key: %w", err)
+		}
+	}
+	_, err = p.entClient.ExecContext(ctx, `
 CREATE TABLE IF NOT EXISTS upstream_monitor_upstreams (
     id BIGSERIAL PRIMARY KEY,
     base_url VARCHAR(500) NOT NULL UNIQUE,
     name VARCHAR(200) NOT NULL DEFAULT '',
     upstream_type VARCHAR(20) NOT NULL CHECK (upstream_type IN ('sub2api', 'nexapi')),
     access_token TEXT NULL,
-    quota_divider DOUBLE PRECISION NOT NULL DEFAULT 431778,
+    quota_divider DOUBLE PRECISION NOT NULL DEFAULT 500000,
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -198,8 +237,54 @@ CREATE TABLE IF NOT EXISTS upstream_monitor_upstreams (
 	if _, err := p.entClient.ExecContext(ctx, `ALTER TABLE upstream_monitor_upstreams ADD COLUMN IF NOT EXISTS passkey TEXT NULL`); err != nil {
 		return fmt.Errorf("add upstream monitor passkey column: %w", err)
 	}
-	if _, err := p.entClient.ExecContext(ctx, `ALTER TABLE upstream_monitor_upstreams ADD COLUMN IF NOT EXISTS quota_divider DOUBLE PRECISION NOT NULL DEFAULT 431778`); err != nil {
+	if _, err := p.entClient.ExecContext(ctx, `ALTER TABLE upstream_monitor_upstreams ADD COLUMN IF NOT EXISTS quota_divider DOUBLE PRECISION NOT NULL DEFAULT 500000`); err != nil {
 		return fmt.Errorf("add upstream monitor quota divider column: %w", err)
+	}
+	if _, err := p.entClient.ExecContext(ctx, `ALTER TABLE upstream_monitor_upstreams ALTER COLUMN quota_divider SET DEFAULT 500000`); err != nil {
+		return fmt.Errorf("set upstream monitor quota divider default: %w", err)
+	}
+	if _, err := p.entClient.ExecContext(ctx, `
+CREATE TABLE IF NOT EXISTS upstream_balance_snapshots (
+    id BIGSERIAL PRIMARY KEY,
+    upstream_type VARCHAR(50) NOT NULL,
+    account_id BIGINT NOT NULL,
+    balance NUMERIC(20,6) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT 'CNY',
+    snapshot_at TIMESTAMPTZ NOT NULL
+)`); err != nil {
+		return fmt.Errorf("create upstream balance snapshots table: %w", err)
+	}
+	if _, err := p.entClient.ExecContext(ctx, `
+CREATE INDEX IF NOT EXISTS upstreambalancesnapshot_upstream_type_account_id_snapshot_at
+ON upstream_balance_snapshots (upstream_type, account_id, snapshot_at)`); err != nil {
+		return fmt.Errorf("create upstream balance snapshots account index: %w", err)
+	}
+	if _, err := p.entClient.ExecContext(ctx, `
+CREATE INDEX IF NOT EXISTS upstreambalancesnapshot_upstream_type_snapshot_at
+ON upstream_balance_snapshots (upstream_type, snapshot_at)`); err != nil {
+		return fmt.Errorf("create upstream balance snapshots time index: %w", err)
+	}
+	if _, err := p.entClient.ExecContext(ctx, `
+CREATE TABLE IF NOT EXISTS upstream_error_records (
+    id BIGSERIAL PRIMARY KEY,
+    upstream_type VARCHAR(50) NOT NULL,
+    account_id BIGINT NOT NULL,
+    error_type VARCHAR(100) NOT NULL,
+    error_message TEXT NULL,
+    http_status INTEGER NULL,
+    occurred_at TIMESTAMPTZ NOT NULL
+)`); err != nil {
+		return fmt.Errorf("create upstream error records table: %w", err)
+	}
+	if _, err := p.entClient.ExecContext(ctx, `
+CREATE INDEX IF NOT EXISTS upstreamerrorrecord_upstream_type_account_id_occurred_at
+ON upstream_error_records (upstream_type, account_id, occurred_at)`); err != nil {
+		return fmt.Errorf("create upstream error records account index: %w", err)
+	}
+	if _, err := p.entClient.ExecContext(ctx, `
+CREATE INDEX IF NOT EXISTS upstreamerrorrecord_upstream_type_error_type_occurred_at
+ON upstream_error_records (upstream_type, error_type, occurred_at)`); err != nil {
+		return fmt.Errorf("create upstream error records type index: %w", err)
 	}
 	return nil
 }

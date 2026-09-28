@@ -96,11 +96,11 @@ Content-Type: application/json
   "access_token": "兼容旧版的上游用户访问令牌",
   "personal_access_token": "可选的长期个人访问令牌",
   "passkey": "可选的长期 Passkey/访问密钥",
-  "quota_divider": 431778
+  "quota_divider": 500000
 }
 ```
 
-`access_token`、`personal_access_token`、`passkey` 均为只写字段，适用于 NexAPI 等不能使用模型 API Key 查询统一余额的上游。认证优先级为个人访问令牌、Passkey、旧 access_token，最后才回退到关联账号 API Key；当前三者均按 Bearer 令牌调用 `/api/user/self`，因为不同 NexAPI 部署对 Passkey 的专用请求头未有统一公开协议。令牌使用主程序现有 AES-GCM 加密能力保存在插件表中，后续响应只返回 `has_access_token`、`has_personal_access_token`、`has_passkey`，不会回显明文或密文。省略某个字段会保留该字段已保存的令牌。
+`access_token`、`personal_access_token`、`passkey` 均为只写字段，适用于 NexAPI 等不能使用模型 API Key 查询统一余额的上游。认证优先级为个人访问令牌、Passkey、旧 access_token，最后才回退到关联账号 API Key；当前三者均按 Bearer 令牌调用 `/api/user/self`，因为不同 NexAPI 部署对 Passkey 的专用请求头未有统一公开协议。令牌使用插件自己的持久化 AES-GCM 密钥保存在插件表中，后续响应只返回 `has_access_token`、`has_personal_access_token`、`has_passkey`，不会回显明文或密文。省略某个字段会保留该字段已保存的令牌。
 
 ### 概览统计
 ```
@@ -182,8 +182,7 @@ GET /api/v1/plugins/upstream-monitor/accounts/:id/prediction
 - 接口：`/api/user/self`
 - 认证：优先使用上游配置的用户访问令牌；未配置时才回退到关联账号 API Key
 - 配额字段：`quota`（总配额）、`used_quota`（已用配额）
-- 若响应提供 `data.balance`，优先使用该上游直接返回的余额，避免重复换算
-- 换算公式：`balance = (quota - used_quota) / quota_divider`；`quota_divider` 可由管理员按上游配置，默认 `431778`
+- 换算公式：`balance = quota / quota_divider`；`quota_divider` 可由管理员按上游配置，Sub2API 固定为 `1`，NexAPI 默认 `500000`
 
 ## 开发指南
 

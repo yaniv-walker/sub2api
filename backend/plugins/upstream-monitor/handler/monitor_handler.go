@@ -16,14 +16,20 @@ import (
 
 // MonitorHandler handles HTTP requests for the upstream monitor plugin.
 type MonitorHandler struct {
-	fetcher    *service.UpstreamInfoFetcher
-	aggregator *service.BalanceAggregator
-	analyzer   *service.ErrorAnalyzer
-	predictor  *service.UsagePredictor
-	accounts   AccountProvider
-	upstreams  UpstreamProvider
-	encryptor  hostservice.SecretEncryptor
-	config     *config.UpstreamMonitorPluginConfig
+	fetcher     *service.UpstreamInfoFetcher
+	aggregator  *service.BalanceAggregator
+	analyzer    *service.ErrorAnalyzer
+	predictor   *service.UsagePredictor
+	accounts    AccountProvider
+	upstreams   UpstreamProvider
+	credentials CredentialCipher
+	config      *config.UpstreamMonitorPluginConfig
+}
+
+// CredentialCipher is plugin-owned encryption for runtime upstream secrets.
+type CredentialCipher interface {
+	Encrypt(context.Context, string) (string, error)
+	Decrypt(context.Context, string) (string, error)
 }
 
 // NewMonitorHandler creates a new monitor handler.
@@ -34,18 +40,18 @@ func NewMonitorHandler(
 	predictor *service.UsagePredictor,
 	accounts AccountProvider,
 	upstreams UpstreamProvider,
-	encryptor hostservice.SecretEncryptor,
+	credentials CredentialCipher,
 	config *config.UpstreamMonitorPluginConfig,
 ) *MonitorHandler {
 	return &MonitorHandler{
-		fetcher:    fetcher,
-		aggregator: aggregator,
-		analyzer:   analyzer,
-		predictor:  predictor,
-		accounts:   accounts,
-		upstreams:  upstreams,
-		encryptor:  encryptor,
-		config:     config,
+		fetcher:     fetcher,
+		aggregator:  aggregator,
+		analyzer:    analyzer,
+		predictor:   predictor,
+		accounts:    accounts,
+		upstreams:   upstreams,
+		credentials: credentials,
+		config:      config,
 	}
 }
 
@@ -55,6 +61,9 @@ func (h *MonitorHandler) RegisterRoutes(router *gin.RouterGroup) {
 	router.GET("/overview", h.GetOverview)
 	router.GET("/upstreams", h.ListUpstreams)
 	router.PUT("/upstreams", h.ConfigureUpstream)
+	router.GET("/upstreams/:id/errors", h.GetUpstreamErrors)
+	router.GET("/upstreams/:id/usage", h.GetUpstreamUsage)
+	router.GET("/upstreams/:id/prediction", h.GetUpstreamPrediction)
 
 	// Account management
 	router.GET("/accounts", h.ListAccounts)
@@ -188,15 +197,19 @@ func (h *MonitorHandler) loadMonitorUpstreams(ctx context.Context) ([]monitorUps
 		return nil, err
 	}
 	grouped := groupMonitorAccounts(monitorAccounts(accounts), configs)
-	if err := h.applyMonitoringTokens(grouped); err != nil {
-		return nil, err
-	}
+	h.applyMonitoringTokens(ctx, grouped)
 	return grouped, nil
 }
 
-func (h *MonitorHandler) applyMonitoringTokens(grouped []monitorUpstream) error {
+func (h *MonitorHandler) applyMonitoringTokens(ctx context.Context, grouped []monitorUpstream) {
 	for i := range grouped {
 		if len(grouped[i].Accounts) == 0 {
+			continue
+		}
+		if grouped[i].Type == "sub2api" {
+			grouped[i].Accounts[0].info.ApiKey = grouped[i].Accounts[0].account.GetCredential("api_key")
+			grouped[i].QuotaDivider = 1
+			grouped[i].Accounts[0].info.QuotaDivider = 1
 			continue
 		}
 		configuredToken := grouped[i].PersonalAccessToken
@@ -209,13 +222,13 @@ func (h *MonitorHandler) applyMonitoringTokens(grouped []monitorUpstream) error 
 		if configuredToken == nil {
 			continue
 		}
-		token, err := h.encryptor.Decrypt(*configuredToken)
+		token, err := h.credentials.Decrypt(ctx, *configuredToken)
 		if err != nil {
-			return fmt.Errorf("decrypt monitoring token for %s: %w", grouped[i].BaseURL, err)
+			grouped[i].CredentialError = fmt.Sprintf("凭据无法解密，请重新保存该上游凭据：%v", err)
+			continue
 		}
 		grouped[i].Accounts[0].info.ApiKey = token
 	}
-	return nil
 }
 func monitorInfos(accounts []monitorAccount) []service.AccountInfo {
 	result := make([]service.AccountInfo, 0, len(accounts))
@@ -238,9 +251,7 @@ func (h *MonitorHandler) loadAccount(ctx context.Context, id int64) (*monitorAcc
 		return nil, err
 	}
 	grouped := groupMonitorAccounts([]monitorAccount{{account: account, info: info}}, configs)
-	if err := h.applyMonitoringTokens(grouped); err != nil {
-		return nil, err
-	}
+	h.applyMonitoringTokens(ctx, grouped)
 	if len(grouped) != 1 || !grouped[0].Enabled {
 		return nil, hostservice.ErrAccountNotFound
 	}
@@ -268,6 +279,7 @@ func (h *MonitorHandler) ListUpstreams(c *gin.Context) {
 			"has_personal_access_token": upstream.PersonalAccessToken != nil,
 			"has_passkey":               upstream.Passkey != nil,
 			"quota_divider":             upstream.QuotaDivider,
+			"credential_error":          upstream.CredentialError,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"upstreams": result, "total": len(result)})
@@ -305,7 +317,7 @@ func (h *MonitorHandler) ConfigureUpstream(c *gin.Context) {
 	if request.Enabled != nil {
 		enabled = *request.Enabled
 	}
-	quotaDivider := service.DefaultNexAPIBalanceDivider
+	quotaDivider := service.DefaultBalanceDivider(typeName)
 	if request.QuotaDivider != nil {
 		if *request.QuotaDivider <= 0 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "quota_divider must be greater than zero"})
@@ -326,7 +338,7 @@ func (h *MonitorHandler) ConfigureUpstream(c *gin.Context) {
 		if item.value == nil || strings.TrimSpace(*item.value) == "" {
 			continue
 		}
-		encrypted, err := h.encryptor.Encrypt(strings.TrimSpace(*item.value))
+		encrypted, err := h.credentials.Encrypt(c.Request.Context(), strings.TrimSpace(*item.value))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to encrypt " + item.label})
 			return

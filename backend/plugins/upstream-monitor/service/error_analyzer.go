@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/Wei-Shaw/sub2api/ent"
 	"log/slog"
 	"time"
 
@@ -12,6 +13,11 @@ import (
 type ErrorAnalyzer struct {
 	repo   *repository.ErrorRecordRepository
 	logger *slog.Logger
+}
+
+// RecordsForUpstream includes every associated account, without summing balances.
+func (e *ErrorAnalyzer) RecordsForUpstream(ctx context.Context, upstreamType string, accountIDs []int64, start, end time.Time) ([]*ent.UpstreamErrorRecord, error) {
+	return e.repo.GetByAccountsTimeRange(ctx, upstreamType, accountIDs, start, end)
 }
 
 // NewErrorAnalyzer creates a new error analyzer.
@@ -27,11 +33,11 @@ func NewErrorAnalyzer(repo *repository.ErrorRecordRepository, logger *slog.Logge
 
 // ErrorStats contains error statistics for an account.
 type ErrorStats struct {
-	AccountID       int64              `json:"account_id"`
-	AccountName     string             `json:"account_name"`
-	TotalErrors     int                `json:"total_errors"`
-	ErrorRate       float64            `json:"error_rate"`
-	CommonErrors    []CommonError      `json:"common_errors"`
+	AccountID    int64         `json:"account_id"`
+	AccountName  string        `json:"account_name"`
+	TotalErrors  int           `json:"total_errors"`
+	ErrorRate    float64       `json:"error_rate"`
+	CommonErrors []CommonError `json:"common_errors"`
 }
 
 // CommonError represents a common error pattern

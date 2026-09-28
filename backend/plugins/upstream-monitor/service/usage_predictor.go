@@ -15,6 +15,11 @@ type UsagePredictor struct {
 	snapshotRepo *repository.BalanceSnapshotRepository
 }
 
+// UpstreamSnapshots reads all representatives of the same shared balance.
+func (p *UsagePredictor) UpstreamSnapshots(ctx context.Context, upstreamType string, accountIDs []int64, start, end time.Time) ([]*ent.UpstreamBalanceSnapshot, error) {
+	return p.snapshotRepo.GetByAccountsTimeRange(ctx, upstreamType, accountIDs, start, end)
+}
+
 // Snapshots 查询指定账号时间范围内按时间排序的余额快照，供用量聚合使用。
 func (p *UsagePredictor) Snapshots(ctx context.Context, upstreamType string, accountID int64, days int) ([]*ent.UpstreamBalanceSnapshot, error) {
 	if days <= 0 {
