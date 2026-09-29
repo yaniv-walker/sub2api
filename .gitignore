@@ -102,6 +102,8 @@ backend/internal/web/dist/
 !backend/internal/web/dist/
 backend/internal/web/dist/*
 !backend/internal/web/dist/.keep
+.tmp-go-build-cache
+.codex-go-cache
 
 # 后端运行时缓存数据
 backend/data/
@@ -133,7 +135,6 @@ deploy/docker-compose.override.yml
 .gocache/
 vite.config.js
 docs/*
-!docs/ANTIGRAVITY_ATTRIBUTION_429.md
 !docs/PAYMENT.md
 !docs/PAYMENT_CN.md
 !docs/ADMIN_PAYMENT_INTEGRATION_API.md
