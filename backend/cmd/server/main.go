@@ -158,6 +158,11 @@ func runMainServer() {
 			log.Printf("Plugin manager started in degraded state: %v", err)
 		}
 	}
+	if app.InternalPluginManager != nil {
+		if err := app.InternalPluginManager.InitAll(context.Background()); err != nil {
+			log.Fatalf("Failed to initialize internal plugins: %v", err)
+		}
+	}
 	if app.PromptAudit != nil {
 		if err := app.PromptAudit.Start(context.Background()); err != nil {
 			// Startup continues so unrelated APIs stay up. Fail-closed (unavailable)
