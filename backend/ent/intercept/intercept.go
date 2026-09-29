@@ -40,6 +40,9 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/setting"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
 	"github.com/Wei-Shaw/sub2api/ent/tlsfingerprintprofile"
+	"github.com/Wei-Shaw/sub2api/ent/upstreambalancesnapshot"
+	"github.com/Wei-Shaw/sub2api/ent/upstreamerrorrecord"
+	"github.com/Wei-Shaw/sub2api/ent/upstreammonitorupstream"
 	"github.com/Wei-Shaw/sub2api/ent/usagecleanuptask"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
 	"github.com/Wei-Shaw/sub2api/ent/user"
@@ -943,6 +946,87 @@ func (f TraverseTLSFingerprintProfile) Traverse(ctx context.Context, q ent.Query
 	return fmt.Errorf("unexpected query type %T. expect *ent.TLSFingerprintProfileQuery", q)
 }
 
+// The UpstreamBalanceSnapshotFunc type is an adapter to allow the use of ordinary function as a Querier.
+type UpstreamBalanceSnapshotFunc func(context.Context, *ent.UpstreamBalanceSnapshotQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f UpstreamBalanceSnapshotFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.UpstreamBalanceSnapshotQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.UpstreamBalanceSnapshotQuery", q)
+}
+
+// The TraverseUpstreamBalanceSnapshot type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseUpstreamBalanceSnapshot func(context.Context, *ent.UpstreamBalanceSnapshotQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseUpstreamBalanceSnapshot) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseUpstreamBalanceSnapshot) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.UpstreamBalanceSnapshotQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.UpstreamBalanceSnapshotQuery", q)
+}
+
+// The UpstreamErrorRecordFunc type is an adapter to allow the use of ordinary function as a Querier.
+type UpstreamErrorRecordFunc func(context.Context, *ent.UpstreamErrorRecordQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f UpstreamErrorRecordFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.UpstreamErrorRecordQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.UpstreamErrorRecordQuery", q)
+}
+
+// The TraverseUpstreamErrorRecord type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseUpstreamErrorRecord func(context.Context, *ent.UpstreamErrorRecordQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseUpstreamErrorRecord) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseUpstreamErrorRecord) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.UpstreamErrorRecordQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.UpstreamErrorRecordQuery", q)
+}
+
+// The UpstreamMonitorUpstreamFunc type is an adapter to allow the use of ordinary function as a Querier.
+type UpstreamMonitorUpstreamFunc func(context.Context, *ent.UpstreamMonitorUpstreamQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f UpstreamMonitorUpstreamFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.UpstreamMonitorUpstreamQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.UpstreamMonitorUpstreamQuery", q)
+}
+
+// The TraverseUpstreamMonitorUpstream type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseUpstreamMonitorUpstream func(context.Context, *ent.UpstreamMonitorUpstreamQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseUpstreamMonitorUpstream) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseUpstreamMonitorUpstream) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.UpstreamMonitorUpstreamQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.UpstreamMonitorUpstreamQuery", q)
+}
+
 // The UsageCleanupTaskFunc type is an adapter to allow the use of ordinary function as a Querier.
 type UsageCleanupTaskFunc func(context.Context, *ent.UsageCleanupTaskQuery) (ent.Value, error)
 
@@ -1224,6 +1308,12 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.SubscriptionPlanQuery, predicate.SubscriptionPlan, subscriptionplan.OrderOption]{typ: ent.TypeSubscriptionPlan, tq: q}, nil
 	case *ent.TLSFingerprintProfileQuery:
 		return &query[*ent.TLSFingerprintProfileQuery, predicate.TLSFingerprintProfile, tlsfingerprintprofile.OrderOption]{typ: ent.TypeTLSFingerprintProfile, tq: q}, nil
+	case *ent.UpstreamBalanceSnapshotQuery:
+		return &query[*ent.UpstreamBalanceSnapshotQuery, predicate.UpstreamBalanceSnapshot, upstreambalancesnapshot.OrderOption]{typ: ent.TypeUpstreamBalanceSnapshot, tq: q}, nil
+	case *ent.UpstreamErrorRecordQuery:
+		return &query[*ent.UpstreamErrorRecordQuery, predicate.UpstreamErrorRecord, upstreamerrorrecord.OrderOption]{typ: ent.TypeUpstreamErrorRecord, tq: q}, nil
+	case *ent.UpstreamMonitorUpstreamQuery:
+		return &query[*ent.UpstreamMonitorUpstreamQuery, predicate.UpstreamMonitorUpstream, upstreammonitorupstream.OrderOption]{typ: ent.TypeUpstreamMonitorUpstream, tq: q}, nil
 	case *ent.UsageCleanupTaskQuery:
 		return &query[*ent.UsageCleanupTaskQuery, predicate.UsageCleanupTask, usagecleanuptask.OrderOption]{typ: ent.TypeUsageCleanupTask, tq: q}, nil
 	case *ent.UsageLogQuery:

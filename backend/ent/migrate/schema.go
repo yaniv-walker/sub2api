@@ -1595,6 +1595,81 @@ var (
 		Columns:    TLSFingerprintProfilesColumns,
 		PrimaryKey: []*schema.Column{TLSFingerprintProfilesColumns[0]},
 	}
+	// UpstreamBalanceSnapshotsColumns holds the columns for the "upstream_balance_snapshots" table.
+	UpstreamBalanceSnapshotsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "upstream_type", Type: field.TypeString, Size: 50},
+		{Name: "account_id", Type: field.TypeInt64},
+		{Name: "balance", Type: field.TypeFloat64, SchemaType: map[string]string{"postgres": "numeric(20,6)"}},
+		{Name: "currency", Type: field.TypeString, Size: 10, Default: "CNY"},
+		{Name: "snapshot_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// UpstreamBalanceSnapshotsTable holds the schema information for the "upstream_balance_snapshots" table.
+	UpstreamBalanceSnapshotsTable = &schema.Table{
+		Name:       "upstream_balance_snapshots",
+		Columns:    UpstreamBalanceSnapshotsColumns,
+		PrimaryKey: []*schema.Column{UpstreamBalanceSnapshotsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "upstreambalancesnapshot_upstream_type_account_id_snapshot_at",
+				Unique:  false,
+				Columns: []*schema.Column{UpstreamBalanceSnapshotsColumns[1], UpstreamBalanceSnapshotsColumns[2], UpstreamBalanceSnapshotsColumns[5]},
+			},
+			{
+				Name:    "upstreambalancesnapshot_upstream_type_snapshot_at",
+				Unique:  false,
+				Columns: []*schema.Column{UpstreamBalanceSnapshotsColumns[1], UpstreamBalanceSnapshotsColumns[5]},
+			},
+		},
+	}
+	// UpstreamErrorRecordsColumns holds the columns for the "upstream_error_records" table.
+	UpstreamErrorRecordsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "upstream_type", Type: field.TypeString, Size: 50},
+		{Name: "account_id", Type: field.TypeInt64},
+		{Name: "error_type", Type: field.TypeString, Size: 100},
+		{Name: "error_message", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "http_status", Type: field.TypeInt, Nullable: true},
+		{Name: "occurred_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// UpstreamErrorRecordsTable holds the schema information for the "upstream_error_records" table.
+	UpstreamErrorRecordsTable = &schema.Table{
+		Name:       "upstream_error_records",
+		Columns:    UpstreamErrorRecordsColumns,
+		PrimaryKey: []*schema.Column{UpstreamErrorRecordsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "upstreamerrorrecord_upstream_type_account_id_occurred_at",
+				Unique:  false,
+				Columns: []*schema.Column{UpstreamErrorRecordsColumns[1], UpstreamErrorRecordsColumns[2], UpstreamErrorRecordsColumns[6]},
+			},
+			{
+				Name:    "upstreamerrorrecord_upstream_type_error_type_occurred_at",
+				Unique:  false,
+				Columns: []*schema.Column{UpstreamErrorRecordsColumns[1], UpstreamErrorRecordsColumns[3], UpstreamErrorRecordsColumns[6]},
+			},
+		},
+	}
+	// UpstreamMonitorUpstreamsColumns holds the columns for the "upstream_monitor_upstreams" table.
+	UpstreamMonitorUpstreamsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "base_url", Type: field.TypeString, Unique: true, Size: 500},
+		{Name: "name", Type: field.TypeString, Size: 200, Default: ""},
+		{Name: "upstream_type", Type: field.TypeEnum, Enums: []string{"sub2api", "nexapi"}},
+		{Name: "access_token", Type: field.TypeString, Nullable: true},
+		{Name: "personal_access_token", Type: field.TypeString, Nullable: true},
+		{Name: "passkey", Type: field.TypeString, Nullable: true},
+		{Name: "quota_divider", Type: field.TypeFloat64, Default: 431778},
+		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+	}
+	// UpstreamMonitorUpstreamsTable holds the schema information for the "upstream_monitor_upstreams" table.
+	UpstreamMonitorUpstreamsTable = &schema.Table{
+		Name:       "upstream_monitor_upstreams",
+		Columns:    UpstreamMonitorUpstreamsColumns,
+		PrimaryKey: []*schema.Column{UpstreamMonitorUpstreamsColumns[0]},
+	}
 	// UsageCleanupTasksColumns holds the columns for the "usage_cleanup_tasks" table.
 	UsageCleanupTasksColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -2119,6 +2194,9 @@ var (
 		SettingsTable,
 		SubscriptionPlansTable,
 		TLSFingerprintProfilesTable,
+		UpstreamBalanceSnapshotsTable,
+		UpstreamErrorRecordsTable,
+		UpstreamMonitorUpstreamsTable,
 		UsageCleanupTasksTable,
 		UsageLogsTable,
 		UsersTable,
@@ -2246,6 +2324,15 @@ func init() {
 	}
 	TLSFingerprintProfilesTable.Annotation = &entsql.Annotation{
 		Table: "tls_fingerprint_profiles",
+	}
+	UpstreamBalanceSnapshotsTable.Annotation = &entsql.Annotation{
+		Table: "upstream_balance_snapshots",
+	}
+	UpstreamErrorRecordsTable.Annotation = &entsql.Annotation{
+		Table: "upstream_error_records",
+	}
+	UpstreamMonitorUpstreamsTable.Annotation = &entsql.Annotation{
+		Table: "upstream_monitor_upstreams",
 	}
 	UsageCleanupTasksTable.Annotation = &entsql.Annotation{
 		Table: "usage_cleanup_tasks",

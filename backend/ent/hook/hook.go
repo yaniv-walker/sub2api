@@ -381,6 +381,42 @@ func (f TLSFingerprintProfileFunc) Mutate(ctx context.Context, m ent.Mutation) (
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TLSFingerprintProfileMutation", m)
 }
 
+// The UpstreamBalanceSnapshotFunc type is an adapter to allow the use of ordinary
+// function as UpstreamBalanceSnapshot mutator.
+type UpstreamBalanceSnapshotFunc func(context.Context, *ent.UpstreamBalanceSnapshotMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f UpstreamBalanceSnapshotFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.UpstreamBalanceSnapshotMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UpstreamBalanceSnapshotMutation", m)
+}
+
+// The UpstreamErrorRecordFunc type is an adapter to allow the use of ordinary
+// function as UpstreamErrorRecord mutator.
+type UpstreamErrorRecordFunc func(context.Context, *ent.UpstreamErrorRecordMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f UpstreamErrorRecordFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.UpstreamErrorRecordMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UpstreamErrorRecordMutation", m)
+}
+
+// The UpstreamMonitorUpstreamFunc type is an adapter to allow the use of ordinary
+// function as UpstreamMonitorUpstream mutator.
+type UpstreamMonitorUpstreamFunc func(context.Context, *ent.UpstreamMonitorUpstreamMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f UpstreamMonitorUpstreamFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.UpstreamMonitorUpstreamMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UpstreamMonitorUpstreamMutation", m)
+}
+
 // The UsageCleanupTaskFunc type is an adapter to allow the use of ordinary
 // function as UsageCleanupTask mutator.
 type UsageCleanupTaskFunc func(context.Context, *ent.UsageCleanupTaskMutation) (ent.Value, error)
