@@ -37,6 +37,9 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/setting"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
 	"github.com/Wei-Shaw/sub2api/ent/tlsfingerprintprofile"
+	"github.com/Wei-Shaw/sub2api/ent/upstreambalancesnapshot"
+	"github.com/Wei-Shaw/sub2api/ent/upstreamerrorrecord"
+	"github.com/Wei-Shaw/sub2api/ent/upstreammonitorupstream"
 	"github.com/Wei-Shaw/sub2api/ent/usagecleanuptask"
 	"github.com/Wei-Shaw/sub2api/ent/usagelog"
 	"github.com/Wei-Shaw/sub2api/ent/user"
@@ -1929,6 +1932,76 @@ func init() {
 	tlsfingerprintprofileDescEnableGrease := tlsfingerprintprofileFields[2].Descriptor()
 	// tlsfingerprintprofile.DefaultEnableGrease holds the default value on creation for the enable_grease field.
 	tlsfingerprintprofile.DefaultEnableGrease = tlsfingerprintprofileDescEnableGrease.Default.(bool)
+	upstreambalancesnapshotFields := schema.UpstreamBalanceSnapshot{}.Fields()
+	_ = upstreambalancesnapshotFields
+	// upstreambalancesnapshotDescUpstreamType is the schema descriptor for upstream_type field.
+	upstreambalancesnapshotDescUpstreamType := upstreambalancesnapshotFields[0].Descriptor()
+	// upstreambalancesnapshot.UpstreamTypeValidator is a validator for the "upstream_type" field. It is called by the builders before save.
+	upstreambalancesnapshot.UpstreamTypeValidator = upstreambalancesnapshotDescUpstreamType.Validators[0].(func(string) error)
+	// upstreambalancesnapshotDescCurrency is the schema descriptor for currency field.
+	upstreambalancesnapshotDescCurrency := upstreambalancesnapshotFields[3].Descriptor()
+	// upstreambalancesnapshot.DefaultCurrency holds the default value on creation for the currency field.
+	upstreambalancesnapshot.DefaultCurrency = upstreambalancesnapshotDescCurrency.Default.(string)
+	// upstreambalancesnapshot.CurrencyValidator is a validator for the "currency" field. It is called by the builders before save.
+	upstreambalancesnapshot.CurrencyValidator = upstreambalancesnapshotDescCurrency.Validators[0].(func(string) error)
+	// upstreambalancesnapshotDescSnapshotAt is the schema descriptor for snapshot_at field.
+	upstreambalancesnapshotDescSnapshotAt := upstreambalancesnapshotFields[4].Descriptor()
+	// upstreambalancesnapshot.DefaultSnapshotAt holds the default value on creation for the snapshot_at field.
+	upstreambalancesnapshot.DefaultSnapshotAt = upstreambalancesnapshotDescSnapshotAt.Default.(func() time.Time)
+	upstreamerrorrecordFields := schema.UpstreamErrorRecord{}.Fields()
+	_ = upstreamerrorrecordFields
+	// upstreamerrorrecordDescUpstreamType is the schema descriptor for upstream_type field.
+	upstreamerrorrecordDescUpstreamType := upstreamerrorrecordFields[0].Descriptor()
+	// upstreamerrorrecord.UpstreamTypeValidator is a validator for the "upstream_type" field. It is called by the builders before save.
+	upstreamerrorrecord.UpstreamTypeValidator = upstreamerrorrecordDescUpstreamType.Validators[0].(func(string) error)
+	// upstreamerrorrecordDescErrorType is the schema descriptor for error_type field.
+	upstreamerrorrecordDescErrorType := upstreamerrorrecordFields[2].Descriptor()
+	// upstreamerrorrecord.ErrorTypeValidator is a validator for the "error_type" field. It is called by the builders before save.
+	upstreamerrorrecord.ErrorTypeValidator = upstreamerrorrecordDescErrorType.Validators[0].(func(string) error)
+	upstreammonitorupstreamFields := schema.UpstreamMonitorUpstream{}.Fields()
+	_ = upstreammonitorupstreamFields
+	// upstreammonitorupstreamDescBaseURL is the schema descriptor for base_url field.
+	upstreammonitorupstreamDescBaseURL := upstreammonitorupstreamFields[0].Descriptor()
+	// upstreammonitorupstream.BaseURLValidator is a validator for the "base_url" field. It is called by the builders before save.
+	upstreammonitorupstream.BaseURLValidator = func() func(string) error {
+		validators := upstreammonitorupstreamDescBaseURL.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(base_url string) error {
+			for _, fn := range fns {
+				if err := fn(base_url); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// upstreammonitorupstreamDescName is the schema descriptor for name field.
+	upstreammonitorupstreamDescName := upstreammonitorupstreamFields[1].Descriptor()
+	// upstreammonitorupstream.DefaultName holds the default value on creation for the name field.
+	upstreammonitorupstream.DefaultName = upstreammonitorupstreamDescName.Default.(string)
+	// upstreammonitorupstream.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	upstreammonitorupstream.NameValidator = upstreammonitorupstreamDescName.Validators[0].(func(string) error)
+	// upstreammonitorupstreamDescQuotaDivider is the schema descriptor for quota_divider field.
+	upstreammonitorupstreamDescQuotaDivider := upstreammonitorupstreamFields[6].Descriptor()
+	// upstreammonitorupstream.DefaultQuotaDivider holds the default value on creation for the quota_divider field.
+	upstreammonitorupstream.DefaultQuotaDivider = upstreammonitorupstreamDescQuotaDivider.Default.(float64)
+	// upstreammonitorupstreamDescEnabled is the schema descriptor for enabled field.
+	upstreammonitorupstreamDescEnabled := upstreammonitorupstreamFields[7].Descriptor()
+	// upstreammonitorupstream.DefaultEnabled holds the default value on creation for the enabled field.
+	upstreammonitorupstream.DefaultEnabled = upstreammonitorupstreamDescEnabled.Default.(bool)
+	// upstreammonitorupstreamDescCreatedAt is the schema descriptor for created_at field.
+	upstreammonitorupstreamDescCreatedAt := upstreammonitorupstreamFields[8].Descriptor()
+	// upstreammonitorupstream.DefaultCreatedAt holds the default value on creation for the created_at field.
+	upstreammonitorupstream.DefaultCreatedAt = upstreammonitorupstreamDescCreatedAt.Default.(func() time.Time)
+	// upstreammonitorupstreamDescUpdatedAt is the schema descriptor for updated_at field.
+	upstreammonitorupstreamDescUpdatedAt := upstreammonitorupstreamFields[9].Descriptor()
+	// upstreammonitorupstream.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	upstreammonitorupstream.DefaultUpdatedAt = upstreammonitorupstreamDescUpdatedAt.Default.(func() time.Time)
+	// upstreammonitorupstream.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	upstreammonitorupstream.UpdateDefaultUpdatedAt = upstreammonitorupstreamDescUpdatedAt.UpdateDefault.(func() time.Time)
 	usagecleanuptaskMixin := schema.UsageCleanupTask{}.Mixin()
 	usagecleanuptaskMixinFields0 := usagecleanuptaskMixin[0].Fields()
 	_ = usagecleanuptaskMixinFields0
