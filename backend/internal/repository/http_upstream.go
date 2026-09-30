@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"os"
 	"strings"
@@ -21,14 +22,18 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/andybalholm/brotli"
 	"github.com/klauspost/compress/zstd"
 	"golang.org/x/mod/semver"
 	"golang.org/x/net/http2"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/proxyurl"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/proxyutil"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/servertiming"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/tlsfingerprint"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
@@ -219,7 +224,7 @@ func (s *httpUpstreamService) Do(req *http.Request, proxyURL string, accountID i
 	// 执行请求
 	client := s.httpClientForUpstreamRequest(entry.client, req)
 	client = httpClientWithGrokAccessDeniedFallback(client)
-	resp, err := doUpstreamRequest(client, req)
+	resp, err := doUpstreamRequest(client, req, accountID)
 	if err != nil {
 		s.recordOpenAIHTTP2Failure(profile, entry.protocolMode, entry.proxyKey, err)
 		// 请求失败，立即减少计数
@@ -280,7 +285,7 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 
 	client := s.httpClientForUpstreamRequest(entry.client, req)
 	client = httpClientWithGrokAccessDeniedFallback(client)
-	resp, err := doUpstreamRequest(client, req)
+	resp, err := doUpstreamRequest(client, req, accountID)
 	if err != nil {
 		atomic.AddInt64(&entry.inFlight, -1)
 		atomic.StoreInt64(&entry.lastUsed, time.Now().UnixNano())
@@ -298,9 +303,76 @@ func (s *httpUpstreamService) DoWithTLS(req *http.Request, proxyURL string, acco
 
 // doUpstreamRequest owns cancellation for one attempt, without cancelling the
 // caller's context (which may be detached for billing or reused for retries).
-func doUpstreamRequest(client *http.Client, req *http.Request) (*http.Response, error) {
+func doUpstreamRequest(client *http.Client, req *http.Request, accountID int64) (*http.Response, error) {
+	observed := requestobs.FromContext(req.Context()) != nil
+	if !observed {
+		ctx, cancel := context.WithCancel(req.Context())
+		resp, err := servertiming.Do(client, req.WithContext(ctx))
+		if err != nil {
+			cancel()
+			return resp, err
+		}
+		decompressResponseBody(resp)
+		resp.Body = &cancelOnCloseBody{ReadCloser: resp.Body, cancel: cancel}
+		return resp, nil
+	}
+	startedAt := time.Now()
+	var traceMu sync.Mutex
+	var connectStartedAt time.Time
+	var connectDuration time.Duration
+	var firstByteDuration time.Duration
+	var connectionReused bool
+
+	trace := &httptrace.ClientTrace{
+		ConnectStart: func(_, _ string) {
+			traceMu.Lock()
+			defer traceMu.Unlock()
+			if connectStartedAt.IsZero() {
+				connectStartedAt = time.Now()
+			}
+		},
+		ConnectDone: func(_, _ string, _ error) {
+			traceMu.Lock()
+			defer traceMu.Unlock()
+			if !connectStartedAt.IsZero() && connectDuration == 0 {
+				connectDuration = time.Since(connectStartedAt)
+			}
+		},
+		GotConn: func(info httptrace.GotConnInfo) {
+			traceMu.Lock()
+			connectionReused = info.Reused
+			traceMu.Unlock()
+		},
+		GotFirstResponseByte: func() {
+			traceMu.Lock()
+			if firstByteDuration == 0 {
+				firstByteDuration = time.Since(startedAt)
+			}
+			traceMu.Unlock()
+		},
+	}
 	ctx, cancel := context.WithCancel(req.Context())
+	ctx = httptrace.WithClientTrace(ctx, trace)
 	resp, err := servertiming.Do(client, req.WithContext(ctx))
+	duration := time.Since(startedAt)
+	traceMu.Lock()
+	statusCode := 0
+	if resp != nil {
+		statusCode = resp.StatusCode
+	}
+	attempt := requestobs.UpstreamAttempt{
+		StatusCode:       statusCode,
+		Duration:         duration,
+		ConnectDuration:  connectDuration,
+		FirstByte:        firstByteDuration,
+		ConnectionReused: connectionReused,
+		Failed:           err != nil,
+	}
+	traceMu.Unlock()
+	if state := requestobs.FromContext(req.Context()); state != nil {
+		state.RecordUpstreamAttempt(attempt)
+	}
+	logUpstreamAttempt(req, accountID, attempt, err)
 	if err != nil {
 		cancel()
 		return resp, err
@@ -308,6 +380,44 @@ func doUpstreamRequest(client *http.Client, req *http.Request) (*http.Response, 
 	decompressResponseBody(resp)
 	resp.Body = &cancelOnCloseBody{ReadCloser: resp.Body, cancel: cancel}
 	return resp, nil
+}
+
+func logUpstreamAttempt(req *http.Request, accountID int64, attempt requestobs.UpstreamAttempt, err error) {
+	fields := []zap.Field{
+		zap.String("component", "http.upstream"),
+		zap.Int64("account_id", accountID),
+		zap.Int("status_code", attempt.StatusCode),
+		zap.Int64("duration_ms", attempt.Duration.Milliseconds()),
+		zap.Bool("connection_reused", attempt.ConnectionReused),
+	}
+	if attempt.ConnectDuration > 0 {
+		fields = append(fields, zap.Int64("connect_ms", attempt.ConnectDuration.Milliseconds()))
+	}
+	if attempt.FirstByte > 0 {
+		fields = append(fields, zap.Int64("first_byte_ms", attempt.FirstByte.Milliseconds()))
+	}
+	if req != nil {
+		fields = append(fields, zap.String("method", req.Method))
+		if state := requestobs.FromContext(req.Context()); state != nil {
+			snapshot := state.Snapshot()
+			fields = append(fields,
+				zap.Int("request_upstream_attempts", snapshot.UpstreamAttempts),
+				zap.Bool("downstream_started", !snapshot.FirstWriteAt.IsZero()),
+			)
+		}
+		if profile := service.HTTPUpstreamProfileFromContext(req.Context()); profile != "" {
+			fields = append(fields, zap.String("upstream_profile", string(profile)))
+		}
+	}
+	if err != nil {
+		fields = append(fields, zap.String("error_class", requestobs.ErrorClass(err)))
+	}
+	requestLog := logger.FromContext(req.Context())
+	if err != nil || attempt.StatusCode >= http.StatusInternalServerError {
+		requestLog.Warn("http upstream request completed", fields...)
+		return
+	}
+	requestLog.Info("http upstream request completed", fields...)
 }
 
 type cancelOnCloseBody struct {

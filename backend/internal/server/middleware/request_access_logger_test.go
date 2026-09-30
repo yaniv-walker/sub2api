@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,6 +13,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/require"
 )
 
 type testLogSink struct {
@@ -94,8 +97,12 @@ func TestRequestLogger_KeepIncomingRequestID(t *testing.T) {
 	r.Use(RequestLogger())
 	r.GET("/t", func(c *gin.Context) {
 		reqID, _ := c.Request.Context().Value(ctxkey.RequestID).(string)
-		if reqID != "rid-fixed" {
-			t.Fatalf("request_id=%q, want rid-fixed", reqID)
+		if reqID == "rid-fixed" || len(reqID) != 36 {
+			t.Fatalf("internal request_id must be independent UUID, got %q", reqID)
+		}
+		externalID, _ := c.Request.Context().Value(ctxkey.ExternalRequestID).(string)
+		if externalID != "rid-fixed" {
+			t.Fatalf("external_request_id=%q, want rid-fixed", externalID)
 		}
 		c.Status(http.StatusOK)
 	})
@@ -129,6 +136,80 @@ func TestRequestLoggerBoundsIncomingRequestID(t *testing.T) {
 	r.ServeHTTP(w, req)
 	if got := len(w.Header().Get(requestIDHeader)); got != 36 {
 		t.Fatalf("response request_id length=%d", got)
+	}
+}
+
+func TestRequestLoggerRejectsUnsafeClientCorrelationIDAndKeepsInternalUnique(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	seen := map[string]bool{}
+	seenClient := map[string]bool{}
+	r := gin.New()
+	r.Use(RequestLogger(), ClientRequestID())
+	r.GET("/t", func(c *gin.Context) {
+		requestID, _ := c.Request.Context().Value(ctxkey.RequestID).(string)
+		clientID, _ := c.Request.Context().Value(ctxkey.ClientRequestID).(string)
+		require.Len(t, requestID, 36)
+		externalID, _ := c.Request.Context().Value(ctxkey.ExternalRequestID).(string)
+		require.Equal(t, "same-id", externalID)
+		require.Len(t, clientID, 36)
+		require.NotEqual(t, requestID, clientID)
+		require.False(t, seen[requestID])
+		seen[requestID] = true
+		require.False(t, seenClient[clientID])
+		seenClient[clientID] = true
+	})
+
+	for range 2 {
+		req := httptest.NewRequest(http.MethodGet, "/t", nil)
+		req.Header.Set(requestIDHeader, "same-id")
+		req.Header.Set(clientRequestIDHeader, "unsafe/id?token=secret")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		require.Equal(t, "same-id", w.Header().Get(requestIDHeader))
+		require.NotEqual(t, "same-id", w.Header().Get(clientRequestIDHeader))
+		require.Len(t, w.Header().Get(clientRequestIDHeader), 36)
+	}
+}
+
+func TestRequestObservabilityLogsExternalHintOnlyWhenEnabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	for _, enabled := range []bool{false, true} {
+		sink := initMiddlewareTestLogger(t)
+		r := gin.New()
+		r.Use(RequestLogger())
+		if enabled {
+			r.Use(RequestObservability())
+		}
+		r.Use(Logger())
+		r.GET("/t", func(c *gin.Context) { c.Status(http.StatusOK) })
+		req := httptest.NewRequest(http.MethodGet, "/t", nil)
+		req.Header.Set(requestIDHeader, "client-hint")
+		r.ServeHTTP(httptest.NewRecorder(), req)
+		for _, event := range sink.list() {
+			if event == nil || event.Message != "http request completed" {
+				continue
+			}
+			if enabled {
+				sum := sha256.Sum256([]byte("client-hint"))
+				require.Equal(t, hex.EncodeToString(sum[:]), event.Fields["external_request_id_sha256"])
+				require.NotContains(t, event.Fields, "external_request_id")
+			} else {
+				require.NotContains(t, event.Fields, "external_request_id_sha256")
+				require.NotContains(t, event.Fields, "upstream_attempts")
+			}
+		}
+	}
+}
+
+func TestNormalizeCorrelationIDRejectsUnsafeValues(t *testing.T) {
+	for _, value := range []string{"a/b", "a?b", "a\nb", "a b", "a\xffb", strings.Repeat("a", maxPersistentRequestIDBytes+1)} {
+		_, ok := normalizeCorrelationID(value)
+		require.False(t, ok, "value %q must be rejected", value)
+	}
+	for _, value := range []string{"req-123", "req_123", "req:123", "req.123"} {
+		got, ok := normalizeCorrelationID(value)
+		require.True(t, ok)
+		require.Equal(t, value, got)
 	}
 }
 
