@@ -2,7 +2,7 @@
 
 ## 实现范围
 
-本分支的阶段观测功能是**默认关闭、显式启用**的日志扩展，不改网关转发、failover、计费和响应正文。启动应用时设置 `SUB2API_REQUEST_OBSERVABILITY=1` 可启用；其他值保持关闭。仅在应用进程启动时读取，运行时修改环境变量不会切换状态。启用需经过测试、容量评估与生产变更授权。内部 `RequestID` 的服务端生成语义属于始终生效的身份边界修正，不受此开关控制；有效外部 `X-Request-ID` 仍按原约定回显。
+阶段观测功能是**默认关闭、运行时启用**的日志扩展。管理员在「系统设置 → 网关服务 → 请求链路观测」卡片中切换并独立保存，无需重启。设置写入现有 settings 表，本节点从下一条新请求起生效，已开始的请求保留原状态。原 `SUB2API_REQUEST_OBSERVABILITY` 环境变量已移除，不再控制生产功能。内部 `RequestID` 的服务端生成语义始终生效；有效外部 `X-Request-ID` 仍按原约定回显。
 
 没有新增 `/metrics` 或公网观测接口。项目现有 Ops 监控、请求日志和 Server-Timing 各自维持原有用途；本 change 复用结构化日志，不新增数据库表、外部 collector 或 Prometheus 依赖。正式指标导出、直方图桶、采样和 SLO/告警要按 01 设计的决策门另行评审，不能把日志字段误称为已部署的时序指标。
 
@@ -18,7 +18,9 @@
 | `handler/failover_loop.go` | 已记录 same-account retry、账号切换与上游状态 | 不改 failover；本次增加真实 HTTP 调用的尝试日志 |
 | `repository/http_upstream.go` | 通用上游 HTTP `Do` / `DoWithTLS` | 仅有观测 context 时附加 `httptrace`，记录真实 HTTP 调用结果 |
 
-`server/router.go` 统一安装开关；原有 `RequestLogger` 和 `Logger` 的位置不变。WebSocket、部分自建 HTTP 客户端、未经过通用 `HTTPUpstream` 的上游调用不在上游阶段日志覆盖范围内。模拟/单元测试可直接安装中间件，不依赖环境变量。
+`server/router.go` 统一安装中间件，在请求进入时读取 SettingService 的内存快照。配置刷新异步进行，常规请求不等待数据库；同一节点的刷新与管理员保存串行发布，防止旧刷新覆盖新设置。多节点共用数据库时，其他节点在 30 秒缓存到期后的下一次请求触发异步同步；空闲、数据库故障等情况下不承诺精确 30 秒生效。启动读取最多使用 2 秒数据库超时，首次读取失败默认关闭；后续读取失败保留最近状态并使用 5 秒重试缓存。
+
+原有 `RequestLogger` 和 `Logger` 的位置不变。WebSocket、部分自建 HTTP 客户端、未经过通用 `HTTPUpstream` 的上游调用不在上游阶段日志覆盖范围内。本地独立演示仍使用 `-observe` 命令行参数，不连接系统设置数据库。
 
 ## 字段字典
 
@@ -47,8 +49,8 @@
 
 ## 使用与只读查询
 
-1. 仅在测试或获授权的小流量实例设置开关后重启进程；不需改 Caddy。
-2. 记录启用前日志量、CPU、内存、P95 请求耗时；启用后对同类负载比较。数据量增加不可接受时撤掉开关并重启。
+1. 部署包含本功能的新构建后，在系统设置的独立卡片中启用并保存；后续开关无需重启，也不需修改 Caddy。
+2. 记录启用前日志量、CPU、内存、P95 请求耗时；启用后对同类负载比较。数据量增加不可接受时在同一卡片关闭并保存。
 3. 在已有结构化日志平台按 `request_id` 查 `http request completed`、`http upstream request completed`、`gateway.failover_*`。若客户只提供其自定 `X-Request-ID`，先在受控本地环境计算该 ASCII 值的 SHA-256 十六进制小写摘要，按 `external_request_id_sha256` 和时间窗找到内部 `request_id`。例如 PowerShell：`$v='client-id'; $h=[Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($v)); [Convert]::ToHexString($h).ToLowerInvariant()`。不要将密钥代入这个查询过程。
 4. 对一条慢流检查 `first_write_ms`、`max_write_gap_ms`、`upstream_attempts`、`upstream_errors` 和终态；不能以单条日志判断客户公网丢包或谁先断连。
 5. 日志访问遵循现有权限与保留期；原 access log 仍有 client IP、路径和模型等既有字段。本次不扩大其收集范围，也不能声称日志完全匿名。事件导出、共享和长期留存前须另行脱敏与权限审查。

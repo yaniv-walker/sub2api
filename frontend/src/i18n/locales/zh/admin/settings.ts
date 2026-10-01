@@ -2,6 +2,18 @@ export default {
     settings: {
       title: '系统设置',
       description: '管理注册、邮箱验证、默认值和 SMTP 设置',
+      requestObservability: {
+        title: '请求链路观测',
+        description: '记录请求阶段、流式写出间隔和上游尝试，帮助排查响应慢与断连。开启后日志量会增加。',
+        enabled: '启用请求链路观测',
+        hint: '默认关闭。独立保存后无需重启，对新请求生效；正在进行的请求保持原状态。成功请求详情需 INFO 日志级别。',
+        currentEnabled: '已保存状态：开启',
+        currentDisabled: '已保存状态：关闭',
+        saved: '已保存，新请求将使用新的观测状态。',
+        loadFailed: '无法加载观测设置，请重试。',
+        saveFailed: '未能确认保存结果，请重试或重新加载设置。',
+        retry: '重新加载',
+      },
       tabs: {
         general: '通用设置',
         agreement: '登录条款',

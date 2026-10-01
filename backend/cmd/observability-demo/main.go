@@ -21,7 +21,7 @@ import (
 
 func main() {
 	port := flag.Int("port", 18080, "loopback TCP port")
-	observe := flag.Bool("observe", os.Getenv("SUB2API_REQUEST_OBSERVABILITY") == "1", "enable observability")
+	observe := flag.Bool("observe", false, "enable observability for this isolated demo")
 	flag.Parse()
 	if err := logger.Init(logger.InitOptions{
 		Level: "info", Format: "json", ServiceName: "observability-demo", Environment: "local",
