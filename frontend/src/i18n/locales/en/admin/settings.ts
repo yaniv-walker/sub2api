@@ -14,6 +14,18 @@ export default {
         saveFailed: 'Could not confirm the save. Please retry or reload the settings.',
         retry: 'Reload',
       },
+      upstreamMonitor: {
+        title: 'Upstream monitor',
+        description: 'Control the upstream account balance, error and usage monitoring API. Disabling keeps data and configuration but blocks monitor access.',
+        enabled: 'Enable upstream monitor',
+        hint: 'Defaults to the plugin configuration. New requests use the saved state immediately without a restart; data is not deleted when disabled.',
+        currentEnabled: 'Saved state: enabled',
+        currentDisabled: 'Saved state: disabled',
+        saved: 'Saved. Upstream monitor access was updated.',
+        loadFailed: 'Could not load upstream monitor settings. Please retry.',
+        saveFailed: 'Could not confirm the save. Please retry or reload the settings.',
+        retry: 'Reload',
+      },
       tabs: {
         general: 'General',
         agreement: 'Agreement',

@@ -111,3 +111,15 @@ func TestRequestObservabilityReadFailureKeepsLastKnownState(t *testing.T) {
 	fresh.InitializeRequestObservability()
 	require.False(t, fresh.RequestObservabilityEnabled())
 }
+
+func TestUpstreamMonitorSettingDefaultsToPluginConfigAndCanBeDisabled(t *testing.T) {
+	repo := &requestObservabilityTestRepo{}
+	svc := NewSettingService(repo, &config.Config{Plugins: config.PluginConfig{UpstreamMonitor: config.UpstreamMonitorPluginConfig{Enabled: true}}})
+	svc.InitializeUpstreamMonitorSettings()
+	require.True(t, svc.UpstreamMonitorEnabled())
+	require.NoError(t, svc.SetUpstreamMonitorSettings(t.Context(), UpstreamMonitorSettings{Enabled: false}))
+	require.False(t, svc.UpstreamMonitorEnabled())
+	restarted := NewSettingService(repo, &config.Config{Plugins: config.PluginConfig{UpstreamMonitor: config.UpstreamMonitorPluginConfig{Enabled: true}}})
+	restarted.InitializeUpstreamMonitorSettings()
+	require.False(t, restarted.UpstreamMonitorEnabled())
+}

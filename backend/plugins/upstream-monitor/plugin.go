@@ -6,11 +6,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/plugin"
+	hostservice "github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/handler"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/repository"
 	"github.com/gin-gonic/gin"
@@ -26,6 +28,7 @@ type Plugin struct {
 	entClient        *ent.Client
 	errorRecords     *repository.ErrorRecordRepository
 	balanceSnapshots *repository.BalanceSnapshotRepository
+	settingService   *hostservice.SettingService
 	enabled          bool
 }
 
@@ -38,6 +41,7 @@ func NewPluginWithHandler(
 	handler *handler.MonitorHandler,
 	errorRecords *repository.ErrorRecordRepository,
 	balanceSnapshots *repository.BalanceSnapshotRepository,
+	settingService *hostservice.SettingService,
 ) *Plugin {
 	if logger == nil {
 		logger = slog.Default()
@@ -51,6 +55,7 @@ func NewPluginWithHandler(
 		handler:          handler,
 		errorRecords:     errorRecords,
 		balanceSnapshots: balanceSnapshots,
+		settingService:   settingService,
 		enabled:          cfg.Enabled,
 	}
 }
@@ -101,6 +106,17 @@ func (p *Plugin) Init(ctx context.Context) error {
 // RegisterRoutes registers HTTP routes for the plugin.
 func (p *Plugin) RegisterRoutes(router *gin.RouterGroup) {
 	p.logger.Info("Registering routes", "base_path", router.BasePath())
+	router.Use(func(c *gin.Context) {
+		if p.settingService != nil && !p.settingService.UpstreamMonitorEnabled() {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"code":    "UPSTREAM_MONITOR_DISABLED",
+				"message": "upstream monitor is disabled",
+			})
+			c.Abort()
+			return
+		}
+		c.Next()
+	})
 	p.handler.RegisterRoutes(router)
 }
 

@@ -595,6 +595,8 @@ func registerSettingsRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		adminSettings.PUT("/stream-timeout", h.Admin.Setting.UpdateStreamTimeoutSettings)
 		adminSettings.GET("/request-observability", h.Admin.Setting.GetRequestObservabilitySettings)
 		adminSettings.PUT("/request-observability", h.Admin.Setting.UpdateRequestObservabilitySettings)
+		adminSettings.GET("/upstream-monitor", h.Admin.Setting.GetUpstreamMonitorSettings)
+		adminSettings.PUT("/upstream-monitor", h.Admin.Setting.UpdateUpstreamMonitorSettings)
 		// 请求整流器配置
 		adminSettings.GET("/rectifier", h.Admin.Setting.GetRectifierSettings)
 		adminSettings.PUT("/rectifier", h.Admin.Setting.UpdateRectifierSettings)
