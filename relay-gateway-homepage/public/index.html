@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="RelayGateway，面向开发者的统一 AI API 服务。">
+  <title>RelayGateway · AI API 服务</title>
+  <link rel="icon" href="/homepage-assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/homepage-assets/home.css">
+  <script type="module" src="/homepage-assets/home.mjs"></script>
+</head>
+<body>
+  <a class="skip" href="#main">跳转到内容</a>
+  <header class="header wrap">
+    <a class="brand" href="/" aria-label="首页"><span class="logo" id="logo">R</span><span id="brand">RelayGateway</span></a>
+    <button id="menu-toggle" class="btn menu-toggle" aria-expanded="false" aria-controls="navigation">菜单</button>
+    <nav id="navigation" aria-label="主导航"><a href="/login">登录控制台</a></nav>
+  </header>
+  <main id="main">
+    <div class="wrap load-status" id="load-status" role="status" hidden></div>
+    <section class="hero wrap">
+      <div class="eyebrow"><span class="spark"></span><span id="badge">面向开发者的 AI API 服务</span></div>
+      <h1><span id="hero-title">让 AI 能力，</span><br><span class="accent" id="hero-accent">以 API 触手可及</span></h1>
+      <p id="hero-description" class="lead">正在载入服务信息…</p>
+      <div id="actions" class="actions"><a class="btn primary" href="/login">登录控制台 →</a></div>
+    </section>
+    <section class="api-section wrap" id="api-section" aria-label="API 接入地址">
+      <div class="api-card"><div><span class="mono-label" id="api-label">API BASE URL</span><code id="base-url">等待配置加载</code></div><button class="btn copy" id="copy" disabled>复制地址</button></div>
+      <p class="api-hint" id="api-hint"></p>
+    </section>
+    <section id="models" class="model-section wrap" aria-labelledby="models-title">
+      <div class="section-head"><span class="section-kicker">MODEL CATALOG</span><h2 id="models-title">一个入口，多种模型</h2><p id="models-description" class="muted"></p></div>
+      <div class="model-tools"><div id="filters" class="filters" role="group" aria-label="模型分类"></div><label class="search">搜索模型<input id="model-search" type="search" placeholder="输入模型名称" maxlength="160"></label></div>
+      <div id="model-list" class="models" aria-live="polite"></div>
+      <p id="model-meta" class="model-meta"></p>
+    </section>
+    <section class="wrap capabilities-section" id="capabilities" aria-labelledby="features-title"><h2 id="features-title" class="sr-only">服务能力</h2><div class="features" id="features"></div></section>
+    <section class="wrap notice-section" id="notice-section" hidden><div class="inline-notice"><div><span class="section-kicker">ANNOUNCEMENT</span><h2 id="inline-title"></h2><p id="inline-body"></p></div><button class="btn" id="notice-open">查看完整公告 ↗</button></div></section>
+  </main>
+  <footer class="footer"><div class="wrap foot-row"><div><span class="footer-brand" id="footer-brand">RelayGateway</span><p id="copyright">© 2026 RelayGateway</p></div><nav id="footer-links" aria-label="页脚导航"></nav></div></footer>
+  <dialog id="notice-dialog" aria-labelledby="notice-title"><div class="dialog-top"><span class="section-kicker">服务公告</span><button class="icon-btn" id="notice-close" aria-label="关闭公告">×</button></div><h2 id="notice-title"></h2><p id="notice-date" class="muted"></p><div class="notice-body" id="notice-body"></div><div id="notice-actions" class="actions"></div><div class="dialog-bottom"><span class="muted">展示偏好仅保存在当前浏览器</span><div><button class="btn" id="notice-today">今日关闭</button><button class="btn" id="notice-never">不再提示</button></div></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="wrap">页面需要启用 JavaScript 才能显示最新配置。你仍可<a href="/login">登录控制台</a>。</p></noscript>
+</body></html>

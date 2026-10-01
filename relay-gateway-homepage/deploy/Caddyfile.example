@@ -1,0 +1,72 @@
+# Review and merge into /etc/caddy/Caddyfile only during an approved deployment.
+# Caddy root is an immutable release selected by the current symlink.
+{
+	servers {
+		max_header_size 64KB
+		timeouts {
+			read_header 10s
+			idle 2m
+		}
+	}
+}
+
+relay-gateway.xyz {
+	encode {
+		zstd
+		gzip
+		match {
+			header Content-Type application/json*
+			header Content-Type application/javascript*
+			header Content-Type application/xhtml+xml*
+			header Content-Type image/svg+xml*
+			header Content-Type text/html*
+			header Content-Type text/javascript*
+			header Content-Type text/css*
+			header Content-Type text/plain*
+		}
+	}
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	@homepage path /
+	@publicConfig path /homepage/config.json
+	@homepageAssets path /homepage-assets/*
+
+	handle @homepage {
+		root * /srv/sub2api-homepage/current
+		rewrite * /index.html
+		header Cache-Control "no-cache"
+		header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+		file_server
+	}
+	handle @publicConfig {
+		root * /srv/sub2api-homepage/current
+		header Cache-Control "no-cache"
+		file_server
+	}
+	handle @homepageAssets {
+		root * /srv/sub2api-homepage/current
+		# Stable filenames: revalidate; never set immutable without hashed URLs.
+		header Cache-Control "no-cache"
+		file_server
+	}
+	handle {
+		# Preserve existing Sub2API SPA, /assets, OAuth, /api, /v1, /health,
+		# webhooks and streaming behavior. Do not rewrite these to index.html.
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	log {
+		output file /var/log/caddy/relaygateway.log {
+			roll_size 50mb
+			roll_keep 10
+			roll_keep_for 168h
+		}
+		format json
+	}
+}

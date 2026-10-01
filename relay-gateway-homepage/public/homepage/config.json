@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "published_at": "2026-10-01T00:00:00+08:00",
+  "config": {
+    "schema_version": 1,
+    "brand": {"name":"RelayGateway","logo_text":"R","logo_url":""},
+    "hero": {"badge":"面向开发者的 AI API 服务","title":"让 AI 能力，","accent":"以 API 触手可及","description":"一个入口，连接多种 AI 模型。在统一控制台创建密钥、管理额度，轻松接入你的下一款应用。"},
+    "navigation": [
+      {"id":"models","label":"模型目录","href":"#models","enabled":true,"variant":"text"},
+      {"id":"capabilities","label":"服务能力","href":"#capabilities","enabled":true,"variant":"text"},
+      {"id":"plaza","label":"模型与价格","href":"/model-plaza","enabled":true,"variant":"text"},
+      {"id":"login","label":"登录控制台","href":"/login","enabled":true,"variant":"secondary"}
+    ],
+    "actions": [
+      {"id":"register","label":"立即注册","href":"/register","enabled":true,"variant":"primary"},
+      {"id":"dashboard","label":"进入控制台","href":"/dashboard","enabled":true,"variant":"secondary"}
+    ],
+    "api": {"enabled":true,"base_url":"https://relay-gateway.xyz/v1","label":"API BASE URL","hint":"兼容 OpenAI 接口格式。请在控制台创建并妥善保存你的 API Key。","copy_enabled":true},
+    "models": {"enabled":true,"title":"一个入口，多种模型","description":"以下为初始示例目录，可在配置页替换。实际可用模型以你的分组权限和接口返回为准。","observed_at":"","items":[
+      {"id":"gpt-4o","label":"GPT-4o","category":"text","enabled":true},
+      {"id":"deepseek-chat","label":"DeepSeek Chat","category":"text","enabled":true},
+      {"id":"qwen-plus","label":"Qwen Plus","category":"text","enabled":true},
+      {"id":"gpt-image-1","label":"GPT Image 1","category":"image","enabled":true}
+    ]},
+    "capabilities": [
+      {"id":"protocol","icon":"layers","title":"统一接口，快速接入","description":"沿用熟悉的 API 协议与 SDK，把模型能力接入现有应用。","enabled":true},
+      {"id":"console","icon":"chart","title":"用量与额度，一目了然","description":"在控制台管理密钥、订阅和调用记录，让每一次调用清晰可查。","enabled":true},
+      {"id":"security","icon":"shield","title":"你的密钥，由你掌控","description":"独立管理访问密钥。发现泄露时，及时在控制台撤销并重新创建。","enabled":true}
+    ],
+    "announcement": {"enabled":true,"id":"usage-guide","version":1,"title":"开始使用前，先了解这些","date":"服务使用提示","body":"请勿将 API Key 发送到群聊或公开仓库。\n\n模型目录用于展示服务内容，实际调用权限与额度以控制台为准。遇到接口错误时，请提供请求时间和错误信息，切勿提供完整密钥。","mode":"popup","policy":"daily","starts_at":null,"ends_at":null,"actions":[{"id":"console","label":"前往控制台","href":"/dashboard","enabled":true,"variant":"primary"}]},
+    "footer": {"copyright":"© 2026 RelayGateway","links":[{"id":"plaza","label":"模型与价格","href":"/model-plaza","enabled":true,"variant":"text"},{"id":"login","label":"用户控制台","href":"/login","enabled":true,"variant":"text"}]},
+    "runtime": {"system_settings":false}
+  }
+}
