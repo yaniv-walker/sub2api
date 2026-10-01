@@ -350,7 +350,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	upstreamRepository := repository2.NewUpstreamRepository(client)
 	credentialCipher := repository2.NewCredentialCipher(client)
 	monitorHandler := handler2.NewMonitorHandler(upstreamInfoFetcher, balanceAggregator, errorAnalyzer, usagePredictor, accountProvider, upstreamRepository, credentialCipher, upstreamMonitorPluginConfig)
-	plugin := upstreammonitor.NewPluginWithHandler(upstreamMonitorPluginConfig, redisClient, client, logger, monitorHandler, errorRecordRepository, balanceSnapshotRepository)
+	plugin := upstreammonitor.NewPluginWithHandler(upstreamMonitorPluginConfig, redisClient, client, logger, monitorHandler, errorRecordRepository, balanceSnapshotRepository, settingService)
 	manager, err := provideInternalPluginManager(logger, plugin)
 	if err != nil {
 		return nil, err

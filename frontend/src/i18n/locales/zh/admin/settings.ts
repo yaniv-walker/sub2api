@@ -14,6 +14,18 @@ export default {
         saveFailed: '未能确认保存结果，请重试或重新加载设置。',
         retry: '重新加载',
       },
+      upstreamMonitor: {
+        title: '上游监控',
+        description: '控制上游账号余额、错误和用量监控 API。关闭后保留监控数据与配置，但监控接口暂时不可访问。',
+        enabled: '启用上游监控',
+        hint: '默认沿用插件配置。保存后新请求立即生效，无需重启；关闭不会删除数据。',
+        currentEnabled: '已保存状态：开启',
+        currentDisabled: '已保存状态：关闭',
+        saved: '已保存，上游监控访问状态已更新。',
+        loadFailed: '无法加载上游监控设置，请重试。',
+        saveFailed: '未能确认保存结果，请重试或重新加载设置。',
+        retry: '重新加载',
+      },
       tabs: {
         general: '通用设置',
         agreement: '登录条款',
