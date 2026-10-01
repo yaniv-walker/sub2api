@@ -28,6 +28,8 @@ Set-Location 'E:\ai\claude\dev\sub2api-original'
 
 验收输出必须包含 `PASS: disabled` 和 `PASS: enabled`。脚本实际检查：关闭时无新增阶段字段；开启时四段 SSE 逐段输出；模拟两次上游调用（503、200）计数为 2/1，最终结果为 `completed`；约 0.5 秒取消流后记录 `client_cancelled`。取消时 curl 的 28 退出码是测试预期。
 
+Windows PowerShell 5.1 会把 curl 的 stderr 当作 PowerShell 错误，旧脚本在预期超时处提前退出。脚本已改为单独运行取消请求、捕获 stderr 并检查退出码，保留对异常退出码的报错；取消诊断保存于缓存目录的 `disabled.cancel.stderr.log` / `enabled.cancel.stderr.log`。如果只看到红色 `NativeCommandError` 而没有两个 PASS，说明旧脚本未完成全部验证，应使用修正后的脚本重跑。
+
 2026-10-01 本机实测通过，流的首写与段间间隔约 300 ms，模拟重试计数符合预期。数据由本地 mock 产生，不能用来推断生产服务器或客户线路表现。
 
 ## 手工体验流式输出和日志

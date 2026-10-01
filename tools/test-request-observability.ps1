@@ -29,7 +29,7 @@ try {
             $ready = $false
             for ($i = 0; $i -lt 40; $i++) {
                 if ($process.HasExited) { throw "Demo exited; see $stderr" }
-                try { Invoke-WebRequest "$base/demo/plain" -TimeoutSec 1 | Out-Null; $ready = $true; break } catch { Start-Sleep -Milliseconds 100 }
+                try { Invoke-WebRequest "$base/demo/plain" -UseBasicParsing -TimeoutSec 1 | Out-Null; $ready = $true; break } catch { Start-Sleep -Milliseconds 100 }
             }
             if (!$ready) { throw 'Demo did not become ready' }
             & curl.exe -sS -N --max-time 5 "$base/demo/stream"
@@ -37,8 +37,16 @@ try {
             & curl.exe -sS --max-time 5 "$base/demo/retry"
             if ($LASTEXITCODE -ne 0) { throw 'Mock retry failed' }
             # Timeout is intentional: cancel after the first SSE chunk.
-            & curl.exe -sS -N --max-time 0.5 "$base/demo/stream" 2>$null
-            if ($LASTEXITCODE -ne 28) { throw 'Expected curl cancellation (exit 28)' }
+            # Windows PowerShell 5.1 turns native stderr into a terminating
+            # error under ErrorActionPreference=Stop, even with 2>$null.
+            # Run the expected failure separately and inspect its exit code.
+            $cancelStdout = Join-Path $outputDir "$mode.cancel.stdout.log"
+            $cancelStderr = Join-Path $outputDir "$mode.cancel.stderr.log"
+            $cancel = Start-Process -FilePath 'curl.exe' -ArgumentList @('-sS', '-N', '--max-time', '0.5', "$base/demo/stream") -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $cancelStdout -RedirectStandardError $cancelStderr
+            try {
+                Get-Content -LiteralPath $cancelStdout
+                if ($cancel.ExitCode -ne 28) { throw "Expected curl cancellation (exit 28), got $($cancel.ExitCode); see $cancelStderr" }
+            } finally { $cancel.Dispose() }
             Start-Sleep -Milliseconds 300
             $events = @(Get-Content -LiteralPath $stdout | ForEach-Object { $_ | ConvertFrom-Json })
             $completed = @($events | Where-Object { $_.msg -eq 'http request completed' })
