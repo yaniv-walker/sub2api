@@ -62,6 +62,7 @@ func Logger() gin.HandlerFunc {
 			zap.String("method", method),
 			zap.String("path", path),
 		}
+		fields = appendRequestObservabilityFields(fields, c, endTime)
 		if rejected {
 			fields = append(fields,
 				zap.String("ingress_reject_reason", string(reason)),

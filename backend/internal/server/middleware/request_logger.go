@@ -21,13 +21,26 @@ func RequestLogger() gin.HandlerFunc {
 			return
 		}
 
-		requestID, validRequestID := normalizeCorrelationID(c.GetHeader(requestIDHeader))
-		if !validRequestID {
-			requestID = uuid.NewString()
+		// Incoming correlation headers are client-controlled hints, never the
+		// server's internal request identity.
+		requestID := uuid.NewString()
+		responseRequestID := requestID
+		if incoming, valid := normalizeCorrelationID(c.GetHeader(requestIDHeader)); valid {
+			responseRequestID = incoming
 		}
-		c.Header(requestIDHeader, requestID)
+		c.Header(requestIDHeader, responseRequestID)
 
 		ctx := context.WithValue(c.Request.Context(), ctxkey.RequestID, requestID)
+		externalRequestID := ""
+		for _, header := range []string{clientRequestIDHeader, requestIDHeader} {
+			if value, valid := normalizeExternalCorrelationID(c.GetHeader(header)); valid {
+				externalRequestID = value
+				break
+			}
+		}
+		if externalRequestID != "" {
+			ctx = context.WithValue(ctx, ctxkey.ExternalRequestID, externalRequestID)
+		}
 		clientRequestID, _ := ctx.Value(ctxkey.ClientRequestID).(string)
 		clientRequestID, _ = normalizeCorrelationID(clientRequestID)
 

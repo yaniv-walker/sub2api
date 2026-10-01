@@ -18,9 +18,17 @@ func resetViperWithJWTSecret(t *testing.T) {
 	t.Helper()
 	viper.Reset()
 	t.Cleanup(viper.Reset)
-	t.Setenv("CONFIG_FILE", "")
+	t.Setenv("CONFIG_FILE", emptyTestConfigFile(t))
 	t.Setenv("DATA_DIR", "")
 	t.Setenv("JWT_SECRET", strings.Repeat("x", 32))
+}
+
+// Default-value tests must not load a developer's /app/data/config.yaml.
+func emptyTestConfigFile(t *testing.T) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "empty.yaml")
+	require.NoError(t, os.WriteFile(path, []byte("{}\n"), 0o600))
+	return path
 }
 
 func TestLoadDefaultModelsListReadMaxBytes(t *testing.T) {
@@ -294,6 +302,7 @@ func TestLoadTrustedProxiesPresenceFromYAML(t *testing.T) {
 			resetViperWithJWTSecret(t)
 			configDir := t.TempDir()
 			require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(test.yaml), 0o600))
+			t.Setenv("CONFIG_FILE", "")
 			t.Setenv("DATA_DIR", configDir)
 
 			cfg, err := Load()
@@ -349,7 +358,7 @@ func TestLoadReturnsErrorForMissingConfigFile(t *testing.T) {
 func TestLoadForBootstrapAllowsMissingJWTSecret(t *testing.T) {
 	viper.Reset()
 	t.Cleanup(viper.Reset)
-	t.Setenv("CONFIG_FILE", "")
+	t.Setenv("CONFIG_FILE", emptyTestConfigFile(t))
 	t.Setenv("DATA_DIR", "")
 	t.Setenv("JWT_SECRET", "")
 
@@ -800,6 +809,7 @@ func TestLoadForcedCodexInstructionsTemplate(t *testing.T) {
 	require.NoError(t, os.WriteFile(templatePath, []byte("server-prefix\n\n{{ .ExistingInstructions }}"), 0o644))
 	yamlSafePath := filepath.ToSlash(templatePath)
 	require.NoError(t, os.WriteFile(configPath, []byte("gateway:\n  forced_codex_instructions_template_file: \""+yamlSafePath+"\"\n"), 0o644))
+	t.Setenv("CONFIG_FILE", "")
 	t.Setenv("DATA_DIR", tempDir)
 
 	cfg, err := Load()
