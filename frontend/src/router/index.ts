@@ -538,6 +538,12 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/upstream-monitor',
+    name: 'AdminUpstreamMonitor',
+    component: () => import('@/views/admin/UpstreamMonitorView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, title: 'Upstream Monitor' }
+  },
+  {
     path: '/admin/announcements',
     name: 'AdminAnnouncements',
     component: () => import('@/views/admin/AnnouncementsView.vue'),
