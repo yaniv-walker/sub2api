@@ -1,0 +1,80 @@
+# Isolated local acceptance stack. Never use production data or credentials.
+# Start with the generated local .env file and an explicit Compose project name.
+services:
+  sub2api:
+    image: ${OBSERVABILITY_TEST_IMAGE:?local test image is required}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${OBSERVABILITY_TEST_PORT:-18088}:8080"
+    volumes:
+      - app_data:/app/data
+    environment:
+      AUTO_SETUP: "true"
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: "8080"
+      SERVER_MODE: release
+      DATABASE_HOST: postgres
+      DATABASE_PORT: "5432"
+      DATABASE_USER: sub2api
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?local password is required}
+      DATABASE_DBNAME: sub2api
+      DATABASE_SSLMODE: disable
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?local password is required}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?local admin email is required}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?local admin password is required}
+      JWT_SECRET: ${JWT_SECRET:?local JWT secret is required}
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:?local TOTP key is required}
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      LOG_OUTPUT_TO_STDOUT: "true"
+      TZ: Asia/Shanghai
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+    security_opt: ["no-new-privileges:true"]
+    cpus: 2
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  postgres:
+    image: ${OBSERVABILITY_TEST_POSTGRES_IMAGE:-docker.m.daocloud.io/library/postgres:18-alpine}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sub2api
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?local password is required}
+      POSTGRES_DB: sub2api
+      PGDATA: /var/lib/postgresql/data
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sub2api -d sub2api"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 512m
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?local password is required}
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?local password is required}
+    command: ["sh", "-c", 'exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"']
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 128m
+volumes:
+  app_data:
+  postgres_data:
+  redis_data:
