@@ -33,7 +33,7 @@ func RequestLogger() gin.HandlerFunc {
 		ctx := context.WithValue(c.Request.Context(), ctxkey.RequestID, requestID)
 		externalRequestID := ""
 		for _, header := range []string{clientRequestIDHeader, requestIDHeader} {
-			if value, valid := normalizeCorrelationID(c.GetHeader(header)); valid {
+			if value, valid := normalizeExternalCorrelationID(c.GetHeader(header)); valid {
 				externalRequestID = value
 				break
 			}

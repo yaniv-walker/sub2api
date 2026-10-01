@@ -8,8 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type observabilityRoundTrip func(*http.Request) (*http.Response, error)
@@ -64,4 +67,30 @@ func TestDoUpstreamRequestRecordsTransportError(t *testing.T) {
 	require.Equal(t, 1, snapshot.UpstreamAttempts)
 	require.Equal(t, 1, snapshot.UpstreamErrors)
 	require.Equal(t, 0, snapshot.UpstreamLastStatus)
+}
+
+type panickingObservabilitySink struct{}
+
+func (panickingObservabilitySink) Write([]byte) (int, error) { panic("broken telemetry sink") }
+func (panickingObservabilitySink) Sync() error               { return nil }
+
+func TestDoUpstreamRequestSinkFailurePreservesResponse(t *testing.T) {
+	state := requestobs.New(time.Now())
+	core := zapcore.NewCore(zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()), panickingObservabilitySink{}, zapcore.InfoLevel)
+	ctx := logger.IntoContext(requestobs.WithContext(t.Context(), state), zap.New(core))
+	calls := 0
+	client := &http.Client{Transport: observabilityRoundTrip(func(req *http.Request) (*http.Response, error) {
+		calls++
+		return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("intact body")), Request: req}, nil
+	})}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://example.test", nil)
+	require.NoError(t, err)
+	resp, err := doUpstreamRequest(client, req, 42)
+	require.NoError(t, err)
+	data, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	require.Equal(t, "intact body", string(data))
+	require.NoError(t, resp.Body.Close())
+	require.NoError(t, ctx.Err(), "attempt cleanup must not cancel caller")
+	require.Equal(t, 1, calls, "telemetry failure must not replay the request")
 }

@@ -2,7 +2,7 @@
 
 - **类型：**开发设计 + 实施待办
 - **优先级：**P0；后续 P1–P5 的判因基础
-- **状态：**部分实现于 `feature/production-request-observability`；已实现范围与未完成项见 [实现说明](01-implementation-notes.md)，不代表已部署或全部验收通过
+- **状态：**日志观测范围已实现并通过本地回归；开发分支 `feature/production-request-observability`。覆盖范围与后续项见 [实现说明](01-implementation-notes.md) / [测试与审查](01-testing-and-review.md)，生产灰度及完整指标体系仍待后续实施
 - **目标仓库：**sub2api-original
 - **关联：**[02 上游错误与重试](02-upstream-retry.md)、[03 Caddy 流式代理核验](03-caddy-streaming.md)、[04 香港入口实验](04-hk-entry-ab.md)、[05 403/404 分流](05-client-errors.md)、[06 运行监控](06-monitoring-capacity.md)
 

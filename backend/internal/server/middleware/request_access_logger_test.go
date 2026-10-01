@@ -201,13 +201,13 @@ func TestRequestObservabilityLogsExternalHintOnlyWhenEnabled(t *testing.T) {
 	}
 }
 
-func TestNormalizeCorrelationIDRejectsUnsafeValues(t *testing.T) {
+func TestNormalizeExternalCorrelationIDRejectsUnsafeValues(t *testing.T) {
 	for _, value := range []string{"a/b", "a?b", "a\nb", "a b", "a\xffb", strings.Repeat("a", maxPersistentRequestIDBytes+1)} {
-		_, ok := normalizeCorrelationID(value)
+		_, ok := normalizeExternalCorrelationID(value)
 		require.False(t, ok, "value %q must be rejected", value)
 	}
 	for _, value := range []string{"req-123", "req_123", "req:123", "req.123"} {
-		got, ok := normalizeCorrelationID(value)
+		got, ok := normalizeExternalCorrelationID(value)
 		require.True(t, ok)
 		require.Equal(t, value, got)
 	}

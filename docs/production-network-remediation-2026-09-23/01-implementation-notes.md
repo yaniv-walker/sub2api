@@ -59,5 +59,5 @@
 - 没有独立 Prometheus/OTel 指标导出或告警，也就没有“指标标签基数自动验证”；按 01 文档决策门单独设计鉴权、网络暴露、采样与桶配置。
 - 未覆盖所有非通用上游客户端、WebSocket 帧和 Caddy 到客户的真实网络写入；需要端到端样本及客户侧测量。
 - 未在生产做压测或灰度。Windows 本机 `BenchmarkRequestObservabilityMiddleware`（单次 12 字节响应、各重复 3 次）测得关闭时约 301–323 ns/op、288 B/op、6 allocs/op，开启时约 804–873 ns/op、840 B/op、10 allocs/op。此数据只说明中间件本身有约 4 次分配和约 0.5 微秒级额外成本；不包括日志 I/O、真实上游、长流并发或生产负载，不能作为容量承诺。
-- 本机 `go test -race` 在测试运行时以 Windows 状态 `0xc0000139` 退出，未取得竞态检测结论；需要在可运行 race 的环境补测。
-- 完整后端 `go test -tags=unit ./...` 未通过：现有 plugin 包/类型缺失，以及 config、repository、service 套件失败。针对本功能的 `server/...` 全包测试、上游定向测试与 `go vet` 已通过。全量基线修复/确认前，不满足合并门槛。
+- Windows 本机 `go test -race` 运行时曾以 `0xc0000139` 退出；2026-10-01 已在本地 Linux 容器中通过请求状态、中间件和 HTTP 上游的定向竞态测试。
+- 2026-10-01 已修复插件类型/包遗漏、过期 Wire 注入和前端 pnpm 构建配置；已完成普通/嵌入前端服务端构建和前端生产构建。完整回归、可体验的本地演示与低侵入性审查见 [测试与审查说明](01-testing-and-review.md)。

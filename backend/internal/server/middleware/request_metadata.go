@@ -25,20 +25,6 @@ func normalizePersistentText(value string, maxBytes int) string {
 }
 
 func normalizeCorrelationID(value string) (string, bool) {
-	if !utf8.ValidString(value) {
-		return "", false
-	}
-	value = strings.TrimSpace(value)
-	if value == "" || len(value) > maxPersistentRequestIDBytes {
-		return "", false
-	}
-	for i := 0; i < len(value); i++ {
-		c := value[i]
-		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-			(c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == ':' {
-			continue
-		}
-		return "", false
-	}
-	return value, true
+	value = strings.TrimSpace(strings.ToValidUTF8(value, ""))
+	return value, value != "" && len(value) <= maxPersistentRequestIDBytes
 }

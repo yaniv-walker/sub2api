@@ -102,7 +102,7 @@ func TestRequestTerminalReasonIsConservative(t *testing.T) {
 
 	require.Equal(t, requestobs.TerminalDownstreamWrite, requestTerminalReason(c, requestobs.Snapshot{WriteFailed: true, StatusCode: 200}))
 	require.Equal(t, requestobs.TerminalUpstreamError, requestTerminalReason(c, requestobs.Snapshot{StatusCode: 502, UpstreamErrors: 1}))
-	require.Equal(t, requestobs.TerminalUpstreamError, requestTerminalReason(c, requestobs.Snapshot{StatusCode: 200, UpstreamErrors: 1, UpstreamLastStatus: 503}))
+	require.Equal(t, requestobs.TerminalUnknown, requestTerminalReason(c, requestobs.Snapshot{StatusCode: 200, UpstreamErrors: 1, UpstreamLastStatus: 503}))
 	require.Equal(t, requestobs.TerminalCompleted, requestTerminalReason(c, requestobs.Snapshot{StatusCode: 200, UpstreamErrors: 1, UpstreamLastStatus: 200}))
 	require.Equal(t, requestobs.TerminalHandlerError, requestTerminalReason(c, requestobs.Snapshot{StatusCode: 500}))
 	require.Equal(t, requestobs.TerminalUnknown, requestTerminalReason(c, requestobs.Snapshot{StatusCode: 0}))
