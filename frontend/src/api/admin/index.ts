@@ -36,6 +36,7 @@ import riskControlAPI from './riskControl'
 import adminComplianceAPI from './compliance'
 import auditAPI from './audit'
 import pluginsAPI from './plugins'
+import upstreamMonitorAPI from './upstreamMonitor'
 
 /**
  * Unified admin API object for convenient access
@@ -73,7 +74,8 @@ export const adminAPI = {
   riskControl: riskControlAPI,
   compliance: adminComplianceAPI,
   audit: auditAPI,
-  plugins: pluginsAPI
+  plugins: pluginsAPI,
+  upstreamMonitor: upstreamMonitorAPI
 }
 
 export {
@@ -109,7 +111,8 @@ export {
   riskControlAPI,
   adminComplianceAPI,
   auditAPI,
-  pluginsAPI
+  pluginsAPI,
+  upstreamMonitorAPI
 }
 
 export default adminAPI
@@ -127,3 +130,12 @@ export type {
   PluginUISession,
   PluginTestResult
 } from './plugins'
+export type {
+  MonitorOverview,
+  UpstreamSummary,
+  MonitorAccount,
+  RefreshResponse,
+  ErrorAnalytics,
+  UsageAnalytics,
+  PredictionAnalytics
+} from './upstreamMonitor'
