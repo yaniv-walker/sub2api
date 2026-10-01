@@ -13,6 +13,8 @@ services:
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: "8080"
       SERVER_MODE: release
+      PLUGINS_UPSTREAM_MONITOR_ENABLED: "true"
+      PLUGINS_UPSTREAM_MONITOR_AUTO_MIGRATE: "true"
       DATABASE_HOST: postgres
       DATABASE_PORT: "5432"
       DATABASE_USER: sub2api
