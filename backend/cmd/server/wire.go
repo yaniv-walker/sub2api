@@ -54,6 +54,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		// Plugin layer ProviderSets
 		upstreammonitor.ProviderSet,
 		provideInternalPluginManager,
+		provideInternalPluginLogger,
 
 		// Privacy client factory for OpenAI training opt-out
 		providePrivacyClientFactory,
@@ -96,6 +97,10 @@ func provideInternalPluginManager(logger *slog.Logger, upstream *upstreammonitor
 		return nil, err
 	}
 	return manager, nil
+}
+
+func provideInternalPluginLogger() *slog.Logger {
+	return slog.Default()
 }
 
 func provideCleanup(

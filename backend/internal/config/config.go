@@ -118,12 +118,13 @@ type SimpleModeConfig struct {
 // PluginConfig 控制管理员手动上传的本地进程插件。
 // 默认不包含插件，也不允许安装未签名插件；TrustedPublishers 用于追加第三方发布者。
 type PluginConfig struct {
-	DataDir              string            `mapstructure:"data_dir"`
-	AllowUnsigned        bool              `mapstructure:"allow_unsigned"`
-	TrustedPublishers    map[string]string `mapstructure:"trusted_publishers"`
-	MaxUploadBytes       int64             `mapstructure:"max_upload_bytes"`
-	MaxUncompressedBytes int64             `mapstructure:"max_uncompressed_bytes"`
-	StartTimeoutSeconds  int               `mapstructure:"start_timeout_seconds"`
+	DataDir              string                      `mapstructure:"data_dir"`
+	AllowUnsigned        bool                        `mapstructure:"allow_unsigned"`
+	TrustedPublishers    map[string]string           `mapstructure:"trusted_publishers"`
+	MaxUploadBytes       int64                       `mapstructure:"max_upload_bytes"`
+	MaxUncompressedBytes int64                       `mapstructure:"max_uncompressed_bytes"`
+	StartTimeoutSeconds  int                         `mapstructure:"start_timeout_seconds"`
+	UpstreamMonitor      UpstreamMonitorPluginConfig `mapstructure:"upstream_monitor"`
 }
 
 type LogConfig struct {
@@ -2315,6 +2316,7 @@ func setDefaults() {
 	viper.SetDefault("plugins.max_upload_bytes", int64(128*1024*1024))
 	viper.SetDefault("plugins.max_uncompressed_bytes", int64(256*1024*1024))
 	viper.SetDefault("plugins.start_timeout_seconds", 15)
+	setUpstreamMonitorDefaults()
 
 	// Timezone (default to Asia/Shanghai for Chinese users)
 	viper.SetDefault("timezone", "Asia/Shanghai")
