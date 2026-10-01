@@ -64,6 +64,9 @@ logs/
 tmp/
 temp/
 *.tmp
+.tmp-go-build-cache/
+.codex-go-cache/
+*.exe
 
 # Deploy files (not needed in image)
 deploy/install.sh
