@@ -4440,6 +4440,7 @@
 
         <!-- Tab: Gateway — Claude Code, Scheduling -->
         <div v-show="activeTab === 'gateway'" class="space-y-6">
+          <RequestObservabilitySettings />
           <!-- Claude Code Settings -->
           <div class="card">
             <div
@@ -8967,6 +8968,7 @@
 </template>
 
 <script setup lang="ts">
+import RequestObservabilitySettings from '@/components/admin/RequestObservabilitySettings.vue';
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { adminAPI } from "@/api";

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -126,6 +127,53 @@ func TestStatusClassUsesFixedValues(t *testing.T) {
 	} {
 		require.Equal(t, tc.want, statusClass(tc.status))
 	}
+}
+
+func TestRequestObservabilityRuntimeSwitchPreservesInFlightSnapshot(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	var enabled atomic.Bool
+	enabled.Store(true)
+	router := gin.New()
+	router.Use(RequestObservability(enabled.Load))
+	started := make(chan *requestobs.State, 1)
+	release := make(chan struct{})
+	router.GET("/long", func(c *gin.Context) {
+		state := requestobs.FromContext(c.Request.Context())
+		_, _ = c.Writer.WriteString("first")
+		started <- state
+		<-release
+		_, _ = c.Writer.WriteString("last")
+	})
+	router.GET("/probe", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"observed": requestobs.FromContext(c.Request.Context()) != nil})
+	})
+	finished := make(chan struct{})
+	go func() {
+		defer close(finished)
+		router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/long", nil))
+	}()
+	var state *requestobs.State
+	select {
+	case state = <-started:
+	case <-time.After(time.Second):
+		t.Fatal("long request did not start")
+	}
+	enabled.Store(false)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/probe", nil))
+	require.JSONEq(t, `{"observed":false}`, w.Body.String())
+	close(release)
+	select {
+	case <-finished:
+	case <-time.After(time.Second):
+		t.Fatal("long request did not finish")
+	}
+	require.NotNil(t, state)
+	require.Equal(t, int64(2), state.Snapshot().WriteCount)
+	enabled.Store(true)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/probe", nil))
+	require.JSONEq(t, `{"observed":true}`, w.Body.String())
 }
 
 func BenchmarkRequestObservabilityMiddleware(b *testing.B) {

@@ -2,6 +2,18 @@ export default {
     settings: {
       title: 'System Settings',
       description: 'Manage registration, email verification, default values, and SMTP settings',
+      requestObservability: {
+        title: 'Request observability',
+        description: 'Record request timing, streaming write gaps and upstream attempts to diagnose slow responses and disconnects. Enabling increases log volume.',
+        enabled: 'Enable request observability',
+        hint: 'Disabled by default. Save separately to apply to new requests without restarting. In-flight requests keep their original state. Successful request details require INFO logging.',
+        currentEnabled: 'Saved state: enabled',
+        currentDisabled: 'Saved state: disabled',
+        saved: 'Saved. New requests will use the updated state.',
+        loadFailed: 'Could not load observability settings. Please retry.',
+        saveFailed: 'Could not confirm the save. Please retry or reload the settings.',
+        retry: 'Reload',
+      },
       tabs: {
         general: 'General',
         agreement: 'Agreement',

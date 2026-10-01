@@ -52,9 +52,9 @@ func (w *requestObservabilityWriter) Flush() {
 // RequestObservability installs request-scoped state and observes downstream
 // writes. It does not emit logs itself; the existing Logger middleware emits
 // one bounded completion event after all handlers return.
-func RequestObservability() gin.HandlerFunc {
+func RequestObservability(enabled ...func() bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if c.Request == nil {
+		if c.Request == nil || (len(enabled) > 0 && (enabled[0] == nil || !enabled[0]())) {
 			c.Next()
 			return
 		}
