@@ -26,6 +26,18 @@ export default {
         saveFailed: '未能确认保存结果，请重试或重新加载设置。',
         retry: '重新加载',
       },
+      upstreamRetryGuardrails: {
+        title: '上游重试保护',
+        description: '防止已向客户端提交响应后透明切换账号重放请求，降低流式响应拼接和重复计费风险。',
+        enabled: '启用严格重试保护',
+        hint: '默认关闭。开启后，新请求在已有响应写出或客户端取消后不会再切换账号重试；同账号重试次数和账号调度策略不变。',
+        currentEnabled: '已保存状态：开启',
+        currentDisabled: '已保存状态：关闭',
+        saved: '已保存，新请求将使用新的重试保护策略。',
+        loadFailed: '无法加载上游重试保护设置，请重试。',
+        saveFailed: '未能确认保存结果，请重试或重新加载设置。',
+        retry: '重新加载',
+      },
       tabs: {
         general: '通用设置',
         agreement: '登录条款',

@@ -763,6 +763,7 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 		// 用扣除非语义心跳字节的口径快照：心跳注释不构成语义响应，
 		// 不能因心跳字节变化而放弃 failover 换号（#3887）。
 		writerSizeBeforeForward := service.OpenAICompactKeepaliveAdjustedWrittenSize(c)
+		rawWriterSizeBeforeForward := c.Writer.Size()
 		// 跨 passthrough 边界的 failover：从 Kiro 等透传账号切到 Bedrock 等非透传账号前，
 		// 从不可变的 canonical forwardBody 派生本次尝试 body 并整块剔除上游私有的加密
 		// reasoning item（含耦合的 id/summary），避免非透传上游 400 拒绝 Kiro reasoning 形态。
@@ -869,7 +870,7 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 						)
 						return
 					}
-					if !openAIForwardMayFailover(c, writerSizeBeforeForward, failoverErr) {
+					if !openAIForwardMayFailover(c, writerSizeBeforeForward, rawWriterSizeBeforeForward, failoverErr) {
 						h.gatewayService.ObserveOpenAIAccountHealthFailure(c.Request.Context(), account, err)
 						h.handleFailoverExhausted(c, failoverErr, true)
 						return
@@ -3711,14 +3712,13 @@ func openAIForwardErrorAlreadyCommunicated(c *gin.Context, writerSizeBeforeForwa
 	return false
 }
 
-func openAIForwardMayFailover(c *gin.Context, writerSizeBeforeForward int, failoverErr *service.UpstreamFailoverError) bool {
+func openAIForwardMayFailover(c *gin.Context, writerSizeBeforeForward, rawWriterSizeBeforeForward int, failoverErr *service.UpstreamFailoverError) bool {
 	if c == nil || c.Writer == nil {
 		return false
 	}
-	if service.OpenAICompactKeepaliveAdjustedWrittenSize(c) == writerSizeBeforeForward {
-		return true
-	}
-	return failoverErr != nil && failoverErr.SafeToFailoverAfterWrite
+	downstreamResponseStarted := service.OpenAICompactKeepaliveAdjustedWrittenSize(c) != writerSizeBeforeForward
+	rawDownstreamResponseStarted := c.Writer.Size() != rawWriterSizeBeforeForward
+	return upstreamRetryAllowedAfterWrite(c, downstreamResponseStarted, rawDownstreamResponseStarted, failoverErr != nil && failoverErr.SafeToFailoverAfterWrite)
 }
 
 func openAIRequestAllowsFailoverReplay(c *gin.Context) bool {

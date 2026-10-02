@@ -26,6 +26,18 @@ export default {
         saveFailed: 'Could not confirm the save. Please retry or reload the settings.',
         retry: 'Reload',
       },
+      upstreamRetryGuardrails: {
+        title: 'Upstream retry guardrails',
+        description: 'Prevent transparent account switching after a response has been sent to the client, reducing stream corruption and duplicate billing risk.',
+        enabled: 'Enable strict retry protection',
+        hint: 'Disabled by default. When enabled, new requests do not switch accounts after downstream output or client cancellation; retry counts and account scheduling remain unchanged.',
+        currentEnabled: 'Saved state: enabled',
+        currentDisabled: 'Saved state: disabled',
+        saved: 'Saved. New requests will use the updated retry policy.',
+        loadFailed: 'Could not load upstream retry guardrails. Please retry.',
+        saveFailed: 'Could not confirm the save. Please retry or reload the settings.',
+        retry: 'Reload',
+      },
       tabs: {
         general: 'General',
         agreement: 'Agreement',

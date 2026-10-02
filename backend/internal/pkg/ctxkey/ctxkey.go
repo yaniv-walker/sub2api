@@ -26,6 +26,10 @@ const (
 	// ExternalRequestID 是经校验的客户端关联提示，不得用于鉴权或计费去重。
 	ExternalRequestID Key = "ctx_external_request_id"
 
+	// UpstreamRetryGuardrailsEnabled controls the opt-in strict failover safety
+	// policy for the current request. It is injected by router middleware.
+	UpstreamRetryGuardrailsEnabled Key = "ctx_upstream_retry_guardrails_enabled"
+
 	// ClientRequestID 客户端请求的唯一标识，用于追踪请求全生命周期（用于 Ops 监控与排障）。
 	ClientRequestID Key = "ctx_client_request_id"
 
