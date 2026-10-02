@@ -597,6 +597,8 @@ func registerSettingsRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		adminSettings.PUT("/request-observability", h.Admin.Setting.UpdateRequestObservabilitySettings)
 		adminSettings.GET("/upstream-monitor", h.Admin.Setting.GetUpstreamMonitorSettings)
 		adminSettings.PUT("/upstream-monitor", h.Admin.Setting.UpdateUpstreamMonitorSettings)
+		adminSettings.GET("/upstream-retry-guardrails", h.Admin.Setting.GetUpstreamRetryGuardrailsSettings)
+		adminSettings.PUT("/upstream-retry-guardrails", h.Admin.Setting.UpdateUpstreamRetryGuardrailsSettings)
 		// 请求整流器配置
 		adminSettings.GET("/rectifier", h.Admin.Setting.GetRectifierSettings)
 		adminSettings.PUT("/rectifier", h.Admin.Setting.UpdateRectifierSettings)

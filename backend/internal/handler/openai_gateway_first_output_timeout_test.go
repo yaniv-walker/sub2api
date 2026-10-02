@@ -21,10 +21,10 @@ func TestOpenAIForwardMayFailoverOnlyAfterNonSemanticWrite(t *testing.T) {
 	require.NoError(t, err)
 	c.Writer.Flush()
 
-	require.True(t, openAIForwardMayFailover(c, before, &service.UpstreamFailoverError{
+	require.True(t, openAIForwardMayFailover(c, before, before, &service.UpstreamFailoverError{
 		SafeToFailoverAfterWrite: true,
 	}))
-	require.False(t, openAIForwardMayFailover(c, before, &service.UpstreamFailoverError{}))
+	require.False(t, openAIForwardMayFailover(c, before, before, &service.UpstreamFailoverError{}))
 }
 
 func TestOpenAIFirstOutputFailoverStopsAfterOneAccountSwitch(t *testing.T) {

@@ -141,10 +141,11 @@ type SettingService struct {
 
 	// panelRateLimitCache 面板 API 限流配置进程内缓存（*cachedPanelRateLimitSettings）。
 	// 面板每个认证请求都会读取，禁止在热路径上直接访问 DB。
-	panelRateLimitCache           atomic.Value
-	panelRateLimitSF              singleflight.Group
-	requestObservabilityRuntime   requestObservabilityRuntime
-	upstreamMonitorSettingRuntime upstreamMonitorSettingRuntime
+	panelRateLimitCache            atomic.Value
+	panelRateLimitSF               singleflight.Group
+	requestObservabilityRuntime    requestObservabilityRuntime
+	upstreamMonitorSettingRuntime  upstreamMonitorSettingRuntime
+	upstreamRetryGuardrailsRuntime upstreamRetryGuardrailsRuntime
 
 	// openAIQuotaAutoPauseSettingsCache holds the most recently observed quota auto-pause
 	// settings. GetOpenAIQuotaAutoPauseSettings reads this atomic.Value on the request hot
