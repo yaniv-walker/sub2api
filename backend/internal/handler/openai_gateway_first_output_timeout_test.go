@@ -16,15 +16,16 @@ func TestOpenAIForwardMayFailoverOnlyAfterNonSemanticWrite(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(rec)
 	before := service.OpenAICompactKeepaliveAdjustedWrittenSize(c)
+	rawBefore := c.Writer.Size()
 
 	_, err := fmt.Fprint(c.Writer, ":\n\n")
 	require.NoError(t, err)
 	c.Writer.Flush()
 
-	require.True(t, openAIForwardMayFailover(c, before, before, &service.UpstreamFailoverError{
+	require.True(t, openAIForwardMayFailover(c, before, rawBefore, &service.UpstreamFailoverError{
 		SafeToFailoverAfterWrite: true,
 	}))
-	require.False(t, openAIForwardMayFailover(c, before, before, &service.UpstreamFailoverError{}))
+	require.False(t, openAIForwardMayFailover(c, before, rawBefore, &service.UpstreamFailoverError{}))
 }
 
 func TestOpenAIFirstOutputFailoverStopsAfterOneAccountSwitch(t *testing.T) {

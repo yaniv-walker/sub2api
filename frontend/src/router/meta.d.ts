@@ -61,6 +61,9 @@ declare module 'vue-router' {
      */
     requiresSubscription?: boolean
 
+    /** Whether this route requires the tutorial and support feature switch. */
+    requiresTutorial?: boolean
+
     /**
      * i18n key for the page title
      */

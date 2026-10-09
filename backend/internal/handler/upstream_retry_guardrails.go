@@ -27,8 +27,13 @@ func upstreamRetryAllowedAfterWrite(c *gin.Context, downstreamResponseStarted, r
 	if c.Request != nil && c.Request.Context().Err() != nil {
 		return false
 	}
-	if upstreamRetryGuardrailsEnabled(c) && rawDownstreamResponseStarted {
+	if upstreamRetryGuardrailsEnabled(c) && (downstreamResponseStarted || rawDownstreamResponseStarted) {
 		return false
+	}
+	// Preserve the legacy behavior: a non-semantic keepalive does not count as
+	// downstream output for the existing failover decision.
+	if !downstreamResponseStarted {
+		return true
 	}
 	return safeToFailoverAfterWrite
 }

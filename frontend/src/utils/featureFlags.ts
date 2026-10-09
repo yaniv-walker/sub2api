@@ -134,6 +134,11 @@ export const FeatureFlags = {
     mode: 'opt-in',
     label: 'Affiliate',
   }),
+  tutorial: defineFlag({
+    key: 'tutorial_enabled',
+    mode: 'opt-in',
+    label: 'Tutorial and support',
+  }),
 } as const
 
 export type RegisteredFeatureFlag = keyof typeof FeatureFlags

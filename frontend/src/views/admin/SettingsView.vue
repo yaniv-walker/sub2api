@@ -6413,9 +6413,24 @@
                   <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     {{ t("admin.settings.site.backendModeDescription") }}
                   </p>
-	                </div>
-	                <Toggle v-model="form.backend_mode_enabled" />
-	              </div>
+                </div>
+                <Toggle v-model="form.backend_mode_enabled" />
+              </div>
+
+              <!-- Tutorial and support -->
+              <div
+                class="flex items-center justify-between rounded-lg border border-primary-200 bg-primary-50/60 p-4 dark:border-primary-800 dark:bg-primary-900/20"
+              >
+                <div>
+                  <h3 class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ localText("教程与售后", "Tutorial and support") }}
+                  </h3>
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {{ localText("开启后，登录用户可以从左侧边栏访问教程与售后文档；管理员可在文档页编辑内容。", "Show the tutorial and support page in the sidebar. Administrators can edit it from the page.") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.tutorial_enabled" />
+              </div>
 
 	              <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
@@ -9812,6 +9827,7 @@ const form = reactive<SettingsForm>({
   contact_info: "",
   doc_url: "",
   home_content: "",
+  tutorial_enabled: false,
   compact_home_enabled: false,
   backend_mode_enabled: false,
   hide_ccs_import_button: false,
@@ -11519,6 +11535,7 @@ async function saveSettings() {
       contact_info: form.contact_info,
       doc_url: form.doc_url,
       home_content: form.home_content,
+      tutorial_enabled: form.tutorial_enabled,
       compact_home_enabled: form.compact_home_enabled,
       backend_mode_enabled: form.backend_mode_enabled,
       hide_ccs_import_button: form.hide_ccs_import_button,

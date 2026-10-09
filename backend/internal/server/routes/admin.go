@@ -76,6 +76,18 @@ func RegisterAdminRoutes(
 		// 系统设置
 		registerSettingsRoutes(admin, h)
 
+		// 教程与售后内容管理（独立设置键，避免改动核心业务表）
+		tutorials := admin.Group("/tutorials")
+		tutorials.GET("", h.Admin.Tutorial.List)
+		tutorials.POST("", h.Admin.Tutorial.Create)
+		tutorials.GET("/:id", h.Admin.Tutorial.Get)
+		tutorials.PATCH("/:id", h.Admin.Tutorial.Update)
+		tutorials.DELETE("/:id", h.Admin.Tutorial.Delete)
+		tutorials.PUT("/:id/status", h.Admin.Tutorial.SetStatus)
+		tutorials.GET("/:id/assets", h.Admin.Tutorial.ListAssets)
+		tutorials.POST("/:id/assets", h.Admin.Tutorial.UploadAsset)
+		tutorials.DELETE("/:id/assets/:asset_id", h.Admin.Tutorial.DeleteAsset)
+
 		// 数据管理
 		registerDataManagementRoutes(admin, h, stepUpAuth)
 

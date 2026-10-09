@@ -13,6 +13,7 @@ import { useRoutePrefetch } from '@/composables/useRoutePrefetch'
 import { getSetupStatus } from '@/api/setup'
 import { resolveCompletedSetupRedirectPath } from './setupRedirect'
 import { resolveRouteDocumentTitle } from './title'
+import { FeatureFlags } from '@/utils/featureFlags'
 
 /**
  * Route definitions with lazy loading
@@ -289,6 +290,23 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/tutorial',
+    name: 'Tutorial',
+    component: () => import('@/views/user/TutorialView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      requiresTutorial: true,
+      title: 'Tutorial and Support'
+    }
+  },
+  {
+    path: '/tutorial/:slug',
+    name: 'TutorialDetail',
+    component: () => import('@/views/user/TutorialDetailView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: false, requiresTutorial: true, title: 'Tutorial' }
+  },
+  {
     path: '/subscriptions',
     name: 'Subscriptions',
     component: () => import('@/views/user/SubscriptionsView.vue'),
@@ -536,6 +554,12 @@ const routes: RouteRecordRaw[] = [
       titleKey: 'admin.plugins.title',
       descriptionKey: 'admin.plugins.description'
     }
+  },
+  {
+    path: '/admin/tutorials',
+    name: 'AdminTutorials',
+    component: () => import('@/views/admin/TutorialsView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, title: 'Tutorial Management' }
   },
   {
     path: '/admin/upstream-monitor',
@@ -914,7 +938,7 @@ router.beforeEach(async (to, _from, next) => {
   // 公共设置可能尚未加载（App.vue 的 onMounted 异步拉取晚于首次导航，且纯静态部署
   // 无 __APP_CONFIG__ 注入）。此时 cachedPublicSettings 为空会把 payment/risk_control
   // 误判为“未启用”而错误拦截，故这里先确保设置加载完成。
-  if ((to.meta.requiresPayment || to.meta.requiresRiskControl || to.meta.requiresSubscription) && !appStore.publicSettingsLoaded) {
+  if ((to.meta.requiresPayment || to.meta.requiresRiskControl || to.meta.requiresSubscription || to.meta.requiresTutorial) && !appStore.publicSettingsLoaded) {
     try {
       await appStore.fetchPublicSettings()
     } catch (error) {
@@ -949,6 +973,16 @@ router.beforeEach(async (to, _from, next) => {
     appStore.cachedPublicSettings?.subscription_enabled === false
   ) {
     next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard')
+    return
+  }
+
+  if (
+    to.meta.requiresTutorial &&
+    !authStore.isAdmin &&
+    appStore.publicSettingsLoaded &&
+    appStore.cachedPublicSettings?.[FeatureFlags.tutorial.key] !== true
+  ) {
+    next(authStore.isAdmin ? '/admin/settings' : '/dashboard')
     return
   }
 

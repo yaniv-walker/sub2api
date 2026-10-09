@@ -14,6 +14,8 @@ ARG POSTGRES_IMAGE=postgres:18-alpine
 ARG GOPROXY=https://goproxy.cn,direct
 ARG GOSUMDB=sum.golang.google.cn
 ARG NPM_CONFIG_REGISTRY=
+ARG HTTP_PROXY=
+ARG HTTPS_PROXY=
 
 # -----------------------------------------------------------------------------
 # Stage 1: Frontend Builder
@@ -22,6 +24,8 @@ ARG NPM_CONFIG_REGISTRY=
 # it on the native host arch instead of under QEMU emulation for the target.
 FROM --platform=${BUILDPLATFORM} ${NODE_IMAGE} AS frontend-builder
 ARG NPM_CONFIG_REGISTRY
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
 
 WORKDIR /app/frontend
 
@@ -58,6 +62,8 @@ ARG COMMIT=docker
 ARG DATE
 ARG GOPROXY
 ARG GOSUMDB
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
 # Populated by buildx from the --platform target (e.g. linux/amd64).
 ARG TARGETOS
 ARG TARGETARCH
@@ -107,6 +113,8 @@ FROM ${POSTGRES_IMAGE} AS pg-client
 # Stage 4: Final Runtime Image
 # -----------------------------------------------------------------------------
 FROM ${ALPINE_IMAGE}
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
 
 # Labels
 LABEL maintainer="Wei-Shaw <github.com/Wei-Shaw>"

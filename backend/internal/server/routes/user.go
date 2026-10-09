@@ -25,6 +25,11 @@ func RegisterUserRoutes(
 	// 用户管理面变更类操作入审计（含 TOTP 启用/禁用、step-up 验证、密码修改等安全事件）
 	authenticated.Use(gin.HandlerFunc(auditLog))
 	{
+		// 教程中心（登录用户只读）
+		authenticated.GET("/tutorials", h.Tutorial.List)
+		authenticated.GET("/tutorials/:slug", h.Tutorial.Get)
+		v1.GET("/tutorial-assets/:token", h.Tutorial.Asset)
+
 		// 用户接口
 		user := authenticated.Group("/user")
 		{

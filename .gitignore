@@ -102,6 +102,8 @@ backend/internal/web/dist/
 !backend/internal/web/dist/
 backend/internal/web/dist/*
 !backend/internal/web/dist/.keep
+.tmp-go-build-cache
+.codex-go-cache
 
 # 后端运行时缓存数据
 backend/data/

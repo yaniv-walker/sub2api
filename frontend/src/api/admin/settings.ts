@@ -491,6 +491,7 @@ export interface SystemSettings {
   backend_mode_enabled: boolean;
   custom_menu_items: CustomMenuItem[];
   custom_endpoints: CustomEndpoint[];
+  tutorial_enabled: boolean;
   // SMTP settings
   smtp_host: string;
   smtp_port: number;
@@ -758,6 +759,7 @@ export interface SystemSettings {
 }
 
 export interface UpdateSettingsRequest {
+  tutorial_enabled?: boolean;
   registration_enabled?: boolean;
   email_verify_enabled?: boolean;
   registration_email_suffix_whitelist?: string[];

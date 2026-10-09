@@ -362,6 +362,19 @@ const UserIcon = {
     )
 }
 
+const TutorialIcon = {
+  render: () =>
+    h(
+      'svg',
+      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
+      [
+        h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M12 18.75a6.75 6.75 0 006.75-6.75V6.75A2.25 2.25 0 0016.5 4.5h-9A2.25 2.25 0 005.25 6.75V12A6.75 6.75 0 0012 18.75z' }),
+        h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M9.75 9.75h4.5m-4.5 3h3' }),
+        h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M9 18.75v1.5h6v-1.5' })
+      ]
+    )
+}
+
 const UsersIcon = {
   render: () =>
     h(
@@ -711,6 +724,7 @@ const flagPluginManagement = makeSidebarFlag(FeatureFlags.pluginManagement)
 const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
 const flagAdminPayment = () => adminSettingsStore.paymentEnabled
 const flagBatchImageAccess = () => canUseBatchImage.value
+const flagTutorial = makeSidebarFlag(FeatureFlags.tutorial)
 
 // buildSelfNavItems 构造用户自己的导航项（用户端主菜单和管理员的"我的账户"子菜单共享这组声明）。
 // withDashboard=true 时包含仪表盘（用户端），false 时不含（管理员的个人区已经有独立仪表盘入口）。
@@ -734,6 +748,7 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
     { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true },
     { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate },
     { path: '/profile', label: t('nav.profile'), icon: UserIcon },
+    ...(authStore.isAdmin ? [] : [{ path: '/tutorial', label: '教程与售后', icon: TutorialIcon, featureFlag: flagTutorial }]),
     ...customMenuItemsForUser.value.map((item): NavItem => ({
       path: `/custom/${item.id}`,
       label: item.label,
@@ -776,6 +791,7 @@ const customMenuItemsForAdmin = computed(() => {
 const adminNavItems = computed((): NavItem[] => {
   const baseItems: NavItem[] = [
     { path: '/admin/dashboard', label: t('nav.dashboard'), icon: DashboardIcon },
+    { path: '/admin/tutorials', label: '教程与售后', icon: TutorialIcon },
     { path: '/admin/ops', label: t('nav.ops'), icon: ChartIcon, featureFlag: flagOpsMonitoring },
     { path: '/admin/users', label: t('nav.users'), icon: UsersIcon, hideInSimpleMode: true },
     { path: '/admin/groups', label: t('nav.groups'), icon: FolderIcon },
