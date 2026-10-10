@@ -5,11 +5,11 @@ export interface RequestObservabilitySettings {
 }
 
 export async function getRequestObservabilitySettings(): Promise<RequestObservabilitySettings> {
-  const { data } = await apiClient.get<RequestObservabilitySettings>('/admin/settings/request-observability')
+  const { data } = await apiClient.get<RequestObservabilitySettings>('/admin/settings/gateway-remediation')
   return data
 }
 
 export async function updateRequestObservabilitySettings(enabled: boolean): Promise<RequestObservabilitySettings> {
-  const { data } = await apiClient.put<RequestObservabilitySettings>('/admin/settings/request-observability', { enabled })
+  const { data } = await apiClient.put<RequestObservabilitySettings>('/admin/settings/gateway-remediation', { enabled })
   return data
 }

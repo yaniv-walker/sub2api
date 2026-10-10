@@ -609,6 +609,8 @@ func registerSettingsRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		adminSettings.PUT("/stream-timeout", h.Admin.Setting.UpdateStreamTimeoutSettings)
 		adminSettings.GET("/request-observability", h.Admin.Setting.GetRequestObservabilitySettings)
 		adminSettings.PUT("/request-observability", h.Admin.Setting.UpdateRequestObservabilitySettings)
+		adminSettings.GET("/gateway-remediation", h.Admin.Setting.GetRequestObservabilitySettings)
+		adminSettings.PUT("/gateway-remediation", h.Admin.Setting.UpdateRequestObservabilitySettings)
 		adminSettings.GET("/upstream-monitor", h.Admin.Setting.GetUpstreamMonitorSettings)
 		adminSettings.PUT("/upstream-monitor", h.Admin.Setting.UpdateUpstreamMonitorSettings)
 		adminSettings.GET("/upstream-retry-guardrails", h.Admin.Setting.GetUpstreamRetryGuardrailsSettings)

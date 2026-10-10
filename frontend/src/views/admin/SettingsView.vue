@@ -4441,7 +4441,6 @@
         <!-- Tab: Gateway — Claude Code, Scheduling -->
         <div v-show="activeTab === 'gateway'" class="space-y-6">
           <RequestObservabilitySettings />
-          <UpstreamRetryGuardrailsSettings />
           <UpstreamMonitorSettings />
           <!-- Claude Code Settings -->
           <div class="card">
@@ -8994,7 +8993,6 @@
 
 <script setup lang="ts">
 import RequestObservabilitySettings from '@/components/admin/RequestObservabilitySettings.vue';
-import UpstreamRetryGuardrailsSettings from '@/components/admin/UpstreamRetryGuardrailsSettings.vue';
 import UpstreamMonitorSettings from '@/components/admin/UpstreamMonitorSettings.vue';
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { listPlatformIds } from "@/constants/platformCatalog";
