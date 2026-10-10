@@ -60,6 +60,9 @@ type Snapshot struct {
 type State struct {
 	mu sync.Mutex
 
+	stages          [stageCount]stageTiming
+	firstUpstreamAt time.Time
+
 	startedAt    time.Time
 	firstWriteAt time.Time
 	lastWriteAt  time.Time
