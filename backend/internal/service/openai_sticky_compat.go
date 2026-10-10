@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/cespare/xxhash/v2"
 	"github.com/gin-gonic/gin"
 )
@@ -120,6 +121,8 @@ func (s *OpenAIGatewayService) openAIStickyLegacyTTL(ttl time.Duration) time.Dur
 }
 
 func (s *OpenAIGatewayService) getStickySessionAccountID(ctx context.Context, groupID *int64, sessionHash string) (int64, error) {
+	ctx, finishStage := requestobs.WithStage(ctx, requestobs.StageStickyLookup)
+	defer finishStage()
 	if s == nil || s.cache == nil {
 		return 0, nil
 	}

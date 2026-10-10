@@ -148,7 +148,7 @@ func (h *OpenAIGatewayHandler) GrokCountTokens(c *gin.Context) {
 	}
 
 	bodyRef := service.NewRequestBodyRef(body)
-	parsedReq, err := service.ParseGatewayRequest(bodyRef, domain.PlatformAnthropic)
+	parsedReq, err := service.ParseGatewayRequestWithContext(c.Request.Context(), bodyRef, domain.PlatformAnthropic)
 	if err != nil {
 		logRequestBodyParseFailure(requestLogger(c, "handler.openai_gateway.grok_count_tokens"), body, err)
 		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
@@ -218,7 +218,7 @@ func (h *OpenAIGatewayHandler) CountTokens(c *gin.Context) {
 	}
 
 	bodyRef := service.NewRequestBodyRef(body)
-	parsedReq, err := service.ParseGatewayRequest(bodyRef, domain.PlatformAnthropic)
+	parsedReq, err := service.ParseGatewayRequestWithContext(c.Request.Context(), bodyRef, domain.PlatformAnthropic)
 	if err != nil {
 		logRequestBodyParseFailure(reqLog, body, err)
 		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")

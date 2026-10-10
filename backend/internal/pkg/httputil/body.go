@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/klauspost/compress/zstd"
 )
 
@@ -67,6 +68,7 @@ func ReadRequestBodyWithPrealloc(req *http.Request) ([]byte, error) {
 	if req == nil || req.Body == nil {
 		return nil, nil
 	}
+	defer requestobs.StartStage(req.Context(), requestobs.StageBodyDecode)()
 	if preread, ok := req.Body.(*PrereadBody); ok {
 		return preread.Bytes(), nil
 	}

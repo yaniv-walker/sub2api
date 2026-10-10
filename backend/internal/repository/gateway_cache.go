@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/redis/go-redis/v9"
 )
@@ -37,6 +38,8 @@ func buildOpenAIResponsesSessionWindowKey(groupID int64, sessionHash string) str
 }
 
 func (c *gatewayCache) GetSessionAccountID(ctx context.Context, groupID int64, sessionHash string) (int64, error) {
+	ctx, finishStage := requestobs.WithStage(ctx, requestobs.StageStickyLookup)
+	defer finishStage()
 	key := buildSessionKey(groupID, sessionHash)
 	accountID, err := c.rdb.Get(ctx, key).Int64()
 	if err != nil {

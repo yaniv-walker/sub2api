@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -48,6 +49,7 @@ func (h *UserMsgQueueHelper) AcquireWithWait(
 	timeout time.Duration,
 	reqLog *zap.Logger,
 ) (releaseFunc func(), err error) {
+	defer requestobs.StartStage(c.Request.Context(), requestobs.StageMessageQueue)()
 	ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
 	defer cancel()
 
@@ -182,6 +184,7 @@ func (h *UserMsgQueueHelper) ThrottleWithPing(
 	timeout time.Duration,
 	reqLog *zap.Logger,
 ) error {
+	defer requestobs.StartStage(c.Request.Context(), requestobs.StageMessageThrottle)()
 	ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
 	defer cancel()
 

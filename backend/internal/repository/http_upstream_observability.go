@@ -20,6 +20,7 @@ func observeUpstreamDo(client *http.Client, req *http.Request, accountID int64) 
 		return servertiming.Do(client, req)
 	}
 	startedAt := time.Now()
+	requestobs.ObserveUpstreamStart(req.Context(), startedAt)
 	var traceMu sync.Mutex
 	var connectStartedAt time.Time
 	var connectDuration time.Duration

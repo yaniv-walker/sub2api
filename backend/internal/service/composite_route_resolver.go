@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 )
 
 type CompositeRouteResolver struct {
@@ -69,6 +71,7 @@ func filterSystemOneRouteModels(routes []CompositeModelRoute, models []string, e
 }
 
 func (r *CompositeRouteResolver) Resolve(ctx context.Context, groupID int64, model, endpoint string) (CompositeRouteDecision, error) {
+	defer requestobs.StartStage(ctx, requestobs.StageCompositeRouting)()
 	model = strings.TrimSpace(model)
 	endpoint = normalizeCompositeRouteEndpoint(endpoint)
 	decision := CompositeRouteDecision{

@@ -456,7 +456,7 @@ func (h *OpenAIGatewayHandler) Responses(c *gin.Context) {
 	defer stopCompactKeepalive()
 
 	// 校验请求体 JSON 合法性
-	if !gjson.ValidBytes(body) {
+	if !validGatewayJSON(c, body) {
 		logRequestBodyParseFailure(reqLog, body, nil)
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
 		return
@@ -1201,7 +1201,7 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 		return
 	}
 
-	if !gjson.ValidBytes(body) {
+	if !validGatewayJSON(c, body) {
 		logRequestBodyParseFailure(reqLog, body, nil)
 		h.anthropicErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
 		return
@@ -2512,7 +2512,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 		closeOpenAIClientWS(wsConn, coderws.StatusPolicyViolation, "unsupported websocket message type")
 		return
 	}
-	if !gjson.ValidBytes(firstMessage) {
+	if !validGatewayJSON(c, firstMessage) {
 		closeOpenAIClientWS(wsConn, coderws.StatusPolicyViolation, "invalid JSON payload")
 		return
 	}
@@ -2982,7 +2982,7 @@ func (h *OpenAIGatewayHandler) ResponsesWebSocket(c *gin.Context) {
 				if turn == 1 {
 					return nil
 				}
-				if !gjson.ValidBytes(payload) {
+				if !validGatewayJSON(c, payload) {
 					return service.NewOpenAIWSClientCloseError(coderws.StatusPolicyViolation, "invalid websocket request payload", errors.New("invalid json"))
 				}
 				model := strings.TrimSpace(originalModel)

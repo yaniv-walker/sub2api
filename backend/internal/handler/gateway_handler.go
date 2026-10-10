@@ -161,7 +161,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 	setOpsRequestContext(c, "", false)
 
 	bodyRef := service.NewRequestBodyRef(body)
-	parsedReq, err := service.ParseGatewayRequest(bodyRef, domain.PlatformAnthropic)
+	parsedReq, err := service.ParseGatewayRequestWithContext(c.Request.Context(), bodyRef, domain.PlatformAnthropic)
 	if err != nil {
 		logRequestBodyParseFailure(reqLog, body, err)
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
@@ -2171,7 +2171,7 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 	setOpsRequestContext(c, "", false)
 
 	bodyRef := service.NewRequestBodyRef(body)
-	parsedReq, err := service.ParseGatewayRequest(bodyRef, domain.PlatformAnthropic)
+	parsedReq, err := service.ParseGatewayRequestWithContext(c.Request.Context(), bodyRef, domain.PlatformAnthropic)
 	if err != nil {
 		logRequestBodyParseFailure(reqLog, body, err)
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")

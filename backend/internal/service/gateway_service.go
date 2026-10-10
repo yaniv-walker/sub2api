@@ -21,6 +21,7 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/xai"
 	"github.com/Wei-Shaw/sub2api/internal/util/responseheaders"
 	"github.com/cespare/xxhash/v2"
@@ -1001,6 +1002,8 @@ func (s *GatewayService) BindStickySessionAfterProfitAdmission(ctx context.Conte
 // GetCachedSessionAccountID retrieves the account ID bound to a sticky session.
 // Returns 0 if no binding exists or on error.
 func (s *GatewayService) GetCachedSessionAccountID(ctx context.Context, groupID *int64, sessionHash string) (int64, error) {
+	ctx, finishStage := requestobs.WithStage(ctx, requestobs.StageStickyLookup)
+	defer finishStage()
 	if sessionHash == "" || s.cache == nil {
 		return 0, nil
 	}

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	middleware2 "github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
@@ -378,6 +379,12 @@ func (h *ConcurrencyHelper) waitForSlotWithPingTimeout(c *gin.Context, slotType 
 			return result.ReleaseFunc, nil
 		}
 	}
+
+	stage := requestobs.StageAccountSlotWait
+	if slotType == "user" {
+		stage = requestobs.StageUserSlotWait
+	}
+	defer requestobs.StartStage(c.Request.Context(), stage)()
 
 	// Determine if ping is needed (streaming + ping format defined)
 	needPing := isStream && h.pingFormat != ""

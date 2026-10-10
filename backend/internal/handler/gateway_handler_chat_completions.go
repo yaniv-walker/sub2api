@@ -63,7 +63,7 @@ func (h *GatewayHandler) ChatCompletions(c *gin.Context) {
 	setOpsRequestContext(c, "", false)
 
 	// Validate JSON
-	if !gjson.ValidBytes(body) {
+	if !validGatewayJSON(c, body) {
 		logRequestBodyParseFailure(reqLog, body, nil)
 		h.chatCompletionsErrorResponse(c, http.StatusBadRequest, "invalid_request_error", "Failed to parse request body")
 		return
@@ -165,7 +165,7 @@ func (h *GatewayHandler) ChatCompletions(c *gin.Context) {
 
 	// Parse request for session hash
 	bodyRef := service.NewRequestBodyRef(body)
-	parsedReq, _ := service.ParseGatewayRequest(bodyRef, "chat_completions")
+	parsedReq, _ := service.ParseGatewayRequestWithContext(c.Request.Context(), bodyRef, "chat_completions")
 	if parsedReq == nil {
 		parsedReq = &service.ParsedRequest{Model: reqModel, Stream: reqStream, Body: bodyRef}
 	}

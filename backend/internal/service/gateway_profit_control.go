@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 )
 
 // withGatewayProfitControlGate installs the gate only for explicitly marked
@@ -81,6 +82,7 @@ func (s *GatewayService) GatewayProfitControlVetoLatest(ctx context.Context, sel
 }
 
 func profitControlVetoLatest(ctx context.Context, selected *Account, snapshot *SchedulerSnapshotService) (*Account, bool, string) {
+	defer requestobs.StartStage(ctx, requestobs.StageProfitGate)()
 	gate, _ := ctx.Value(openAIProfitControlGateCtxKey{}).(*openAIProfitControlGate)
 	if gate == nil || selected == nil {
 		return selected, false, ""
