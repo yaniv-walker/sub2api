@@ -1040,3 +1040,17 @@ func TestFailoverClientGone(t *testing.T) {
 		require.False(t, failoverClientGone(nil))
 	})
 }
+
+func TestRemainingDeadlineMillisecondsIsBoundedAndOptional(t *testing.T) {
+	require.False(t, func() bool { _, ok := remainingDeadlineMilliseconds(context.Background()); return ok }())
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	remaining, ok := remainingDeadlineMilliseconds(ctx)
+	require.True(t, ok)
+	require.Greater(t, remaining, int64(0))
+	require.LessOrEqual(t, remaining, int64(2000))
+	cancel()
+	remaining, ok = remainingDeadlineMilliseconds(ctx)
+	require.True(t, ok)
+	require.GreaterOrEqual(t, remaining, int64(0))
+}

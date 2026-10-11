@@ -55,6 +55,29 @@ const (
 // 语义上等同于「无可用账号」：候选账号都不满足分组的利润约束。
 const profitVetoExhaustedMessage = "No available accounts: all candidates rejected by group profit control"
 
+func remainingDeadlineMilliseconds(ctx context.Context) (int64, bool) {
+	if ctx == nil {
+		return 0, false
+	}
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return 0, false
+	}
+	remaining := time.Until(deadline).Milliseconds()
+	if remaining < 0 {
+		remaining = 0
+	}
+	return remaining, true
+}
+
+func failoverDeadlineField(ctx context.Context) zap.Field {
+	remaining, ok := remainingDeadlineMilliseconds(ctx)
+	if !ok {
+		return zap.Skip()
+	}
+	return zap.Int64("remaining_deadline_ms", remaining)
+}
+
 func sameAccountRetryDelayFor(failoverErr *service.UpstreamFailoverError, retryCount int) time.Duration {
 	if failoverErr == nil {
 		return sameAccountRetryDelay
@@ -226,6 +249,7 @@ func (s *FailoverState) HandleFailoverError(
 			zap.Int("same_account_retry_count", s.SameAccountRetryCount[accountID]),
 			zap.Int("same_account_retry_max", retryLimit),
 			zap.Duration("retry_delay", retryDelay),
+			failoverDeadlineField(ctx),
 		)
 		if !sleepWithContext(ctx, retryDelay) {
 			return FailoverCanceled
@@ -253,6 +277,7 @@ func (s *FailoverState) HandleFailoverError(
 		zap.Int("upstream_status", failoverErr.StatusCode),
 		zap.Int("switch_count", s.SwitchCount),
 		zap.Int("max_switches", s.MaxSwitches),
+		failoverDeadlineField(ctx),
 	)
 
 	// Antigravity 平台换号线性递增延时
@@ -291,6 +316,7 @@ func (s *FailoverState) HandleSelectionExhausted(ctx context.Context) FailoverAc
 			logger.FromContext(ctx).Warn("gateway.failover_selection_exhausted_by_profit_veto",
 				zap.Int("profit_veto_count", s.profitVetoCount),
 				zap.Int("excluded_accounts", len(s.FailedAccountIDs)),
+				failoverDeadlineField(ctx),
 			)
 			return FailoverExhausted
 		}
@@ -299,6 +325,7 @@ func (s *FailoverState) HandleSelectionExhausted(ctx context.Context) FailoverAc
 			zap.Duration("backoff_delay", singleAccountBackoffDelay),
 			zap.Int("switch_count", s.SwitchCount),
 			zap.Int("max_switches", s.MaxSwitches),
+			failoverDeadlineField(ctx),
 		)
 		if !sleepWithContext(ctx, singleAccountBackoffDelay) {
 			return FailoverCanceled
@@ -306,6 +333,7 @@ func (s *FailoverState) HandleSelectionExhausted(ctx context.Context) FailoverAc
 		logger.FromContext(ctx).Warn("gateway.failover_single_account_retry",
 			zap.Int("switch_count", s.SwitchCount),
 			zap.Int("max_switches", s.MaxSwitches),
+			failoverDeadlineField(ctx),
 		)
 		s.FailedAccountIDs = make(map[int64]struct{})
 		// 利润门否决的账号不参与退避重试的解除：判定依据（冻结的下游倍率）在
