@@ -47,3 +47,14 @@ func TestErrorClassDoesNotExposeRawError(t *testing.T) {
 }
 
 const httpStatusServiceUnavailable = 503
+
+func TestStateBoundsAndCopiesFailoverDecisions(t *testing.T) {
+	s := New(time.Now())
+	s.RecordFailoverDecision(FailoverDecision{Action: "retry_same_account", Reason: "upstream_503", AccountID: 7, AttemptIndex: 1})
+	got := s.FailoverDecisions()
+	require.Len(t, got, 1)
+	got[0].Reason = "changed"
+	require.Equal(t, "upstream_503", s.FailoverDecisions()[0].Reason)
+	snapshot := s.Snapshot()
+	require.Len(t, snapshot.FailoverDecisions, 1)
+}

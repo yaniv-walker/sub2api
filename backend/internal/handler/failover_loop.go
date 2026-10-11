@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"go.uber.org/zap"
 )
@@ -68,6 +69,12 @@ func remainingDeadlineMilliseconds(ctx context.Context) (int64, bool) {
 		remaining = 0
 	}
 	return remaining, true
+}
+
+func recordFailoverDecision(ctx context.Context, action, reason string, accountID int64, attemptIndex, switchCount int) {
+	if state := requestobs.FromContext(ctx); state != nil {
+		state.RecordFailoverDecision(requestobs.FailoverDecision{Action: action, Reason: reason, AccountID: accountID, AttemptIndex: attemptIndex, SwitchCount: switchCount})
+	}
 }
 
 func failoverDeadlineField(ctx context.Context) zap.Field {
@@ -224,10 +231,13 @@ func (s *FailoverState) HandleFailoverError(
 	// 客户端已断开：failover 只会用已取消的 context 重新选号并必然失败，
 	// 不应再被当成账号耗尽处理（误报 502）。
 	if ctx != nil && ctx.Err() != nil {
+		recordFailoverDecision(ctx, "canceled", "context_done", accountID, s.SameAccountRetryCount[accountID], s.SwitchCount)
+		recordFailoverDecision(ctx, "canceled", "retry_delay_interrupted", accountID, s.SameAccountRetryCount[accountID], s.SwitchCount)
 		return FailoverCanceled
 	}
 	s.LastFailoverErr = failoverErr
 	if failoverErr == nil || !failoverErr.ShouldRetryNextAccount() {
+		recordFailoverDecision(ctx, "exhausted", "error_not_retryable", accountID, s.SameAccountRetryCount[accountID], s.SwitchCount)
 		return FailoverExhausted
 	}
 
@@ -252,8 +262,10 @@ func (s *FailoverState) HandleFailoverError(
 			failoverDeadlineField(ctx),
 		)
 		if !sleepWithContext(ctx, retryDelay) {
+			recordFailoverDecision(ctx, "canceled", "retry_delay_interrupted", accountID, s.SameAccountRetryCount[accountID], s.SwitchCount)
 			return FailoverCanceled
 		}
+		recordFailoverDecision(ctx, "retry_same_account", "retryable_same_account", accountID, s.SameAccountRetryCount[accountID], s.SwitchCount)
 		return FailoverContinue
 	}
 
@@ -267,6 +279,7 @@ func (s *FailoverState) HandleFailoverError(
 
 	// 检查是否耗尽
 	if s.SwitchCount >= s.MaxSwitches {
+		recordFailoverDecision(ctx, "exhausted", "switch_limit", accountID, s.SameAccountRetryCount[accountID], s.SwitchCount)
 		return FailoverExhausted
 	}
 
@@ -284,10 +297,12 @@ func (s *FailoverState) HandleFailoverError(
 	if platform == service.PlatformAntigravity {
 		delay := time.Duration(s.SwitchCount-1) * time.Second
 		if !sleepWithContext(ctx, delay) {
+			recordFailoverDecision(ctx, "canceled", "switch_delay_interrupted", accountID, s.SameAccountRetryCount[accountID], s.SwitchCount)
 			return FailoverCanceled
 		}
 	}
 
+	recordFailoverDecision(ctx, "switch_account", "retryable_next_account", accountID, s.SameAccountRetryCount[accountID], s.SwitchCount)
 	return FailoverContinue
 }
 
@@ -302,6 +317,7 @@ func (s *FailoverState) HandleSelectionExhausted(ctx context.Context) FailoverAc
 	// 客户端已断开时选号失败是 context canceled 的必然结果，
 	// 不代表账号耗尽，直接按取消终止。
 	if ctx.Err() != nil {
+		recordFailoverDecision(ctx, "canceled", "context_done", 0, 0, s.SwitchCount)
 		return FailoverCanceled
 	}
 
@@ -318,6 +334,7 @@ func (s *FailoverState) HandleSelectionExhausted(ctx context.Context) FailoverAc
 				zap.Int("excluded_accounts", len(s.FailedAccountIDs)),
 				failoverDeadlineField(ctx),
 			)
+			recordFailoverDecision(ctx, "exhausted", "profit_veto", 0, 0, s.SwitchCount)
 			return FailoverExhausted
 		}
 
@@ -328,6 +345,7 @@ func (s *FailoverState) HandleSelectionExhausted(ctx context.Context) FailoverAc
 			failoverDeadlineField(ctx),
 		)
 		if !sleepWithContext(ctx, singleAccountBackoffDelay) {
+			recordFailoverDecision(ctx, "canceled", "backoff_interrupted", 0, 0, s.SwitchCount)
 			return FailoverCanceled
 		}
 		logger.FromContext(ctx).Warn("gateway.failover_single_account_retry",
@@ -341,8 +359,10 @@ func (s *FailoverState) HandleSelectionExhausted(ctx context.Context) FailoverAc
 		for id := range s.profitVetoedAccountIDs {
 			s.FailedAccountIDs[id] = struct{}{}
 		}
+		recordFailoverDecision(ctx, "retry_selection", "single_account_backoff", 0, 0, s.SwitchCount)
 		return FailoverContinue
 	}
+	recordFailoverDecision(ctx, "exhausted", "no_retryable_selection", 0, 0, s.SwitchCount)
 	return FailoverExhausted
 }
 

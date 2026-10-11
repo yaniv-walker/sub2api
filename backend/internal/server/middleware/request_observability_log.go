@@ -22,6 +22,9 @@ func appendRequestObservabilityFields(fields []zap.Field, c *gin.Context, endTim
 	if state != nil {
 		snapshot := state.Snapshot()
 		snapshot.StatusCode = statusCode
+		if decisions := state.FailoverDecisions(); len(decisions) > 0 {
+			fields = append(fields, zap.Any("failover_decisions", decisions))
+		}
 		if stages := state.StageSnapshot(); len(stages) > 0 {
 			fields = append(fields, zap.Any("gateway_stages", stages))
 		}

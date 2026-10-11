@@ -39,6 +39,14 @@ type UpstreamAttempt struct {
 }
 
 // Snapshot is safe to copy and use after a request has completed.
+type FailoverDecision struct {
+	Action       string `json:"action"`
+	Reason       string `json:"reason"`
+	AccountID    int64  `json:"account_id,omitempty"`
+	AttemptIndex int    `json:"attempt_index"`
+	SwitchCount  int    `json:"switch_count"`
+}
+
 type Snapshot struct {
 	StartedAt             time.Time
 	FirstWriteAt          time.Time
@@ -53,6 +61,7 @@ type Snapshot struct {
 	UpstreamLastStatus    int
 	UpstreamLastDuration  time.Duration
 	UpstreamTotalDuration time.Duration
+	FailoverDecisions     []FailoverDecision
 }
 
 // State tracks only bounded numeric and enum data. It never stores request or
@@ -77,6 +86,7 @@ type State struct {
 	upstreamLastStatus    int
 	upstreamLastDuration  time.Duration
 	upstreamTotalDuration time.Duration
+	failoverDecisions     []FailoverDecision
 }
 
 func New(startedAt time.Time) *State {
@@ -155,6 +165,26 @@ func (s *State) RecordUpstreamAttempt(attempt UpstreamAttempt) {
 	s.mu.Unlock()
 }
 
+func (s *State) RecordFailoverDecision(decision FailoverDecision) {
+	if s == nil || decision.Action == "" {
+		return
+	}
+	s.mu.Lock()
+	if len(s.failoverDecisions) < 32 {
+		s.failoverDecisions = append(s.failoverDecisions, decision)
+	}
+	s.mu.Unlock()
+}
+
+func (s *State) FailoverDecisions() []FailoverDecision {
+	if s == nil {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]FailoverDecision(nil), s.failoverDecisions...)
+}
+
 func (s *State) Snapshot() Snapshot {
 	if s == nil {
 		return Snapshot{}
@@ -175,6 +205,7 @@ func (s *State) Snapshot() Snapshot {
 		UpstreamLastStatus:    s.upstreamLastStatus,
 		UpstreamLastDuration:  s.upstreamLastDuration,
 		UpstreamTotalDuration: s.upstreamTotalDuration,
+		FailoverDecisions:     append([]FailoverDecision(nil), s.failoverDecisions...),
 	}
 }
 
