@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -59,6 +60,15 @@ type responsesFailedEvent struct {
 // 此时 caller 也无法回退到 JSON（HTTP 200 已固化），通常意味着连接已经损坏，
 // 应当让请求处理函数 return，由上层关闭连接。
 func writeResponsesFailedSSE(c *gin.Context, errType, code, message string) bool {
+	enabled := false
+	if c != nil && c.Request != nil {
+		enabled, _ = c.Request.Context().Value(ctxkey.UpstreamRetryGuardrailsEnabled).(bool)
+	}
+	if c != nil && c.Request != nil {
+		if state := requestobs.FromContext(c.Request.Context()); enabled && state != nil {
+			state.MarkProtocolTerminal("response.failed", false)
+		}
+	}
 	flusher, ok := c.Writer.(http.Flusher)
 	if !ok {
 		return false

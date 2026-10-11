@@ -22,6 +22,9 @@ func appendRequestObservabilityFields(fields []zap.Field, c *gin.Context, endTim
 	if state != nil {
 		snapshot := state.Snapshot()
 		snapshot.StatusCode = statusCode
+		if snapshot.ProtocolTerminal != "" {
+			fields = append(fields, zap.String("protocol_terminal", snapshot.ProtocolTerminal), zap.Bool("protocol_complete", snapshot.ProtocolComplete))
+		}
 		if decisions := state.FailoverDecisions(); len(decisions) > 0 {
 			fields = append(fields, zap.Any("failover_decisions", decisions))
 		}
@@ -119,6 +122,9 @@ func requestTerminalReason(c *gin.Context, snapshot requestobs.Snapshot) request
 		return requestobs.TerminalHandlerError
 	}
 	if snapshot.StatusCode >= 200 && snapshot.StatusCode < 500 {
+		if snapshot.ProtocolTerminal != "" && !snapshot.ProtocolComplete {
+			return requestobs.TerminalUpstreamError
+		}
 		return requestobs.TerminalCompleted
 	}
 	return requestobs.TerminalUnknown

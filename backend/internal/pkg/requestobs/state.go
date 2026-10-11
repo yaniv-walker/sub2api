@@ -18,13 +18,14 @@ type contextKey struct{}
 type TerminalReason string
 
 const (
-	TerminalCompleted       TerminalReason = "completed"
-	TerminalClientCancelled TerminalReason = "client_cancelled"
-	TerminalDownstreamWrite TerminalReason = "downstream_write_error"
-	TerminalUpstreamError   TerminalReason = "upstream_error"
-	TerminalDeadline        TerminalReason = "deadline"
-	TerminalHandlerError    TerminalReason = "handler_error"
-	TerminalUnknown         TerminalReason = "unknown"
+	TerminalCompleted          TerminalReason = "completed"
+	TerminalClientCancelled    TerminalReason = "client_cancelled"
+	TerminalDownstreamWrite    TerminalReason = "downstream_write_error"
+	TerminalUpstreamError      TerminalReason = "upstream_error"
+	TerminalDeadline           TerminalReason = "deadline"
+	TerminalHandlerError       TerminalReason = "handler_error"
+	TerminalUnknown            TerminalReason = "unknown"
+	TerminalProtocolIncomplete TerminalReason = "protocol_incomplete"
 )
 
 // UpstreamAttempt is the bounded summary of one upstream HTTP attempt.
@@ -62,6 +63,8 @@ type Snapshot struct {
 	UpstreamLastDuration  time.Duration
 	UpstreamTotalDuration time.Duration
 	FailoverDecisions     []FailoverDecision
+	ProtocolTerminal      string
+	ProtocolComplete      bool
 }
 
 // State tracks only bounded numeric and enum data. It never stores request or
@@ -87,6 +90,8 @@ type State struct {
 	upstreamLastDuration  time.Duration
 	upstreamTotalDuration time.Duration
 	failoverDecisions     []FailoverDecision
+	protocolTerminal      string
+	protocolComplete      bool
 }
 
 func New(startedAt time.Time) *State {
@@ -165,6 +170,16 @@ func (s *State) RecordUpstreamAttempt(attempt UpstreamAttempt) {
 	s.mu.Unlock()
 }
 
+func (s *State) MarkProtocolTerminal(event string, complete bool) {
+	if s == nil || event == "" {
+		return
+	}
+	s.mu.Lock()
+	s.protocolTerminal = event
+	s.protocolComplete = complete
+	s.mu.Unlock()
+}
+
 func (s *State) RecordFailoverDecision(decision FailoverDecision) {
 	if s == nil || decision.Action == "" {
 		return
@@ -206,6 +221,8 @@ func (s *State) Snapshot() Snapshot {
 		UpstreamLastDuration:  s.upstreamLastDuration,
 		UpstreamTotalDuration: s.upstreamTotalDuration,
 		FailoverDecisions:     append([]FailoverDecision(nil), s.failoverDecisions...),
+		ProtocolTerminal:      s.protocolTerminal,
+		ProtocolComplete:      s.protocolComplete,
 	}
 }
 

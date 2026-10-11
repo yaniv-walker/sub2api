@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -1056,7 +1057,7 @@ func TestRemainingDeadlineMillisecondsIsBoundedAndOptional(t *testing.T) {
 }
 
 func TestSleepWithContextRejectsDelayExceedingRemainingDeadline(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	ctx, cancel := context.WithTimeout(withUpstreamRetryGuardrailsValue(context.Background(), true), 20*time.Millisecond)
 	defer cancel()
 	start := time.Now()
 	require.False(t, sleepWithContext(ctx, 200*time.Millisecond))
@@ -1067,4 +1068,23 @@ func TestSleepWithContextKeepsUnboundedContextBehavior(t *testing.T) {
 	start := time.Now()
 	require.True(t, sleepWithContext(context.Background(), 0))
 	require.Less(t, time.Since(start), 100*time.Millisecond)
+}
+
+func TestFailoverDecisionUsesActualAttemptsAndUnifiedGate(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		state := requestobs.New(time.Now())
+		state.RecordUpstreamAttempt(requestobs.UpstreamAttempt{StatusCode: 503})
+		ctx, cancel := context.WithCancel(withUpstreamRetryGuardrailsValue(requestobs.WithContext(context.Background(), state), enabled))
+		cancel()
+		fs := NewFailoverState(3, false)
+		require.Equal(t, FailoverCanceled, fs.HandleFailoverError(ctx, nil, 7, "openai", 3, nil))
+		decisions := state.FailoverDecisions()
+		if !enabled {
+			require.Empty(t, decisions)
+			continue
+		}
+		require.Len(t, decisions, 1)
+		require.Equal(t, 1, decisions[0].AttemptIndex)
+		require.Equal(t, "context_done", decisions[0].Reason)
+	}
 }

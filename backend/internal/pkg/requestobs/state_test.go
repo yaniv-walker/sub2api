@@ -58,3 +58,11 @@ func TestStateBoundsAndCopiesFailoverDecisions(t *testing.T) {
 	snapshot := s.Snapshot()
 	require.Len(t, snapshot.FailoverDecisions, 1)
 }
+
+func TestProtocolTerminalIsExplicitAndConservative(t *testing.T) {
+ s := New(time.Now())
+ s.MarkProtocolTerminal("response.failed", false)
+ snap := s.Snapshot()
+ require.Equal(t, "response.failed", snap.ProtocolTerminal)
+ require.False(t, snap.ProtocolComplete)
+}

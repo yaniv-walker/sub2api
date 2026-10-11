@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -72,7 +73,15 @@ func remainingDeadlineMilliseconds(ctx context.Context) (int64, bool) {
 }
 
 func recordFailoverDecision(ctx context.Context, action, reason string, accountID int64, attemptIndex, switchCount int) {
+	if ctx == nil {
+		return
+	}
+	enabled, _ := ctx.Value(ctxkey.UpstreamRetryGuardrailsEnabled).(bool)
+	if !enabled {
+		return
+	}
 	if state := requestobs.FromContext(ctx); state != nil {
+		attemptIndex = state.Snapshot().UpstreamAttempts
 		state.RecordFailoverDecision(requestobs.FailoverDecision{Action: action, Reason: reason, AccountID: accountID, AttemptIndex: attemptIndex, SwitchCount: switchCount})
 	}
 }
@@ -232,7 +241,6 @@ func (s *FailoverState) HandleFailoverError(
 	// 不应再被当成账号耗尽处理（误报 502）。
 	if ctx != nil && ctx.Err() != nil {
 		recordFailoverDecision(ctx, "canceled", "context_done", accountID, s.SameAccountRetryCount[accountID], s.SwitchCount)
-		recordFailoverDecision(ctx, "canceled", "retry_delay_interrupted", accountID, s.SameAccountRetryCount[accountID], s.SwitchCount)
 		return FailoverCanceled
 	}
 	s.LastFailoverErr = failoverErr
@@ -405,7 +413,8 @@ func sleepWithContext(ctx context.Context, d time.Duration) bool {
 	// Do not let a retry delay consume the whole parent budget and then
 	// start another attempt after its deadline. Unbounded contexts retain the
 	// existing behavior.
-	if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) < d {
+	enabled, _ := ctx.Value(ctxkey.UpstreamRetryGuardrailsEnabled).(bool)
+	if deadline, ok := ctx.Deadline(); enabled && ok && time.Until(deadline) < d {
 		return false
 	}
 	timer := time.NewTimer(d)
