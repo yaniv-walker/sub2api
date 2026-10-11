@@ -30,3 +30,9 @@ func observeRemediationProtocol(ctx context.Context, event string) {
 		state.MarkProtocolTerminal("missing_terminal", false)
 	}
 }
+
+// ObserveRemediationProtocol exposes the bounded terminal classifier to
+// protocol handlers that already normalize WebSocket terminal events.
+func ObserveRemediationProtocol(ctx context.Context, event string) {
+	observeRemediationProtocol(ctx, event)
+}
