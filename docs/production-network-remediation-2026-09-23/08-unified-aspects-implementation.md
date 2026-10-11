@@ -74,3 +74,6 @@ wrapper 不预读、不缓存、不替换返回错误、不主动关闭 body、�
 ## 后续进展
 
 前置阶段观测的下一批实现、字段边界、验证与发布门见 [09-pre-upstream-stages.md](09-pre-upstream-stages.md)。阶段 2 的超时预算与完整长尾覆盖仍未完成，不把观测子阶段当作全部治理完成。
+
+
+剩余开发项与待验证项的冻结清单见 [19-open-items-and-verification-status.md](19-open-items-and-verification-status.md)。
