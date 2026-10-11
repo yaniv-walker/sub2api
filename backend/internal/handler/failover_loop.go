@@ -376,13 +376,24 @@ func failoverClientGone(c *gin.Context) bool {
 
 // sleepWithContext 等待指定时长，返回 false 表示 context 已取消。
 func sleepWithContext(ctx context.Context, d time.Duration) bool {
-	if d <= 0 {
-		return true
+	if ctx == nil {
+		ctx = context.Background()
 	}
+	if d <= 0 {
+		return ctx.Err() == nil
+	}
+	// Do not let a retry delay consume the whole parent budget and then
+	// start another attempt after its deadline. Unbounded contexts retain the
+	// existing behavior.
+	if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) < d {
+		return false
+	}
+	timer := time.NewTimer(d)
+	defer timer.Stop()
 	select {
 	case <-ctx.Done():
 		return false
-	case <-time.After(d):
+	case <-timer.C:
 		return true
 	}
 }

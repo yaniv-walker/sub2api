@@ -1054,3 +1054,17 @@ func TestRemainingDeadlineMillisecondsIsBoundedAndOptional(t *testing.T) {
 	require.True(t, ok)
 	require.GreaterOrEqual(t, remaining, int64(0))
 }
+
+func TestSleepWithContextRejectsDelayExceedingRemainingDeadline(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	require.False(t, sleepWithContext(ctx, 200*time.Millisecond))
+	require.Less(t, time.Since(start), 150*time.Millisecond)
+}
+
+func TestSleepWithContextKeepsUnboundedContextBehavior(t *testing.T) {
+	start := time.Now()
+	require.True(t, sleepWithContext(context.Background(), 0))
+	require.Less(t, time.Since(start), 100*time.Millisecond)
+}
