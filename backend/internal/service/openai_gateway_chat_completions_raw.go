@@ -314,6 +314,13 @@ func (s *OpenAIGatewayService) streamRawChatCompletions(
 	pendingLines := make([]string, 0, 8)
 	refusalDetector := newOpenAIChatSilentRefusalDetector(requestBodyLen)
 	var terminal openAIRawStreamTerminalState
+	defer func() {
+		if terminal.Terminated() {
+			observeRemediationProtocol(c.Request.Context(), "[DONE]")
+		} else {
+			observeRemediationProtocol(c.Request.Context(), "")
+		}
+	}()
 
 	writeLine := func(line string) {
 		if clientDisconnected {

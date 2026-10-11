@@ -339,6 +339,13 @@ func (s *OpenAIGatewayService) handleNativeAnthropicStreamingResponse(
 	var firstTokenMs *int
 	clientDisconnected := false
 	sawTerminalEvent := false
+	defer func() {
+		if sawTerminalEvent {
+			observeRemediationProtocol(c.Request.Context(), "message_stop")
+		} else {
+			observeRemediationProtocol(c.Request.Context(), "")
+		}
+	}()
 
 	scanner := bufio.NewScanner(resp.Body)
 	maxLineSize := defaultMaxLineSize
