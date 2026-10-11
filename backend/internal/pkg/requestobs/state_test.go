@@ -60,9 +60,17 @@ func TestStateBoundsAndCopiesFailoverDecisions(t *testing.T) {
 }
 
 func TestProtocolTerminalIsExplicitAndConservative(t *testing.T) {
- s := New(time.Now())
- s.MarkProtocolTerminal("response.failed", false)
- snap := s.Snapshot()
- require.Equal(t, "response.failed", snap.ProtocolTerminal)
- require.False(t, snap.ProtocolComplete)
+	s := New(time.Now())
+	s.MarkProtocolTerminal("response.failed", false)
+	snap := s.Snapshot()
+	require.Equal(t, "response.failed", snap.ProtocolTerminal)
+	require.False(t, snap.ProtocolComplete)
+}
+
+func TestStateDrainUsageSummaryIsExplicit(t *testing.T) {
+	s := New(time.Now())
+	s.MarkDrainUsage(false)
+	snap := s.Snapshot()
+	require.True(t, snap.DrainObserved)
+	require.False(t, snap.DrainUsageComplete)
 }

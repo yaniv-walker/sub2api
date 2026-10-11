@@ -18,6 +18,7 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/apicompat"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/Wei-Shaw/sub2api/internal/util/responseheaders"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
@@ -1884,6 +1885,13 @@ func (s *OpenAIGatewayService) handleStreamingResponsePassthrough(
 	responseID := ""
 	ttftMode := s.openAITTFTMode(ctx)
 	clientDisconnected := false
+	defer func() {
+		if clientDisconnected {
+			if state := requestobs.FromContext(c.Request.Context()); state != nil {
+				state.MarkDrainUsage(openAIUsageHasTokens(usage))
+			}
+		}
+	}()
 	sawDone := false
 	sawTerminalEvent := false
 	sawFailedEvent := false

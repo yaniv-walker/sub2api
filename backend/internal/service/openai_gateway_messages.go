@@ -15,6 +15,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/apicompat"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/claude"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/Wei-Shaw/sub2api/internal/util/responseheaders"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
@@ -945,6 +946,13 @@ func (s *OpenAIGatewayService) handleAnthropicStreamingResponse(
 	var firstTokenMs *int
 	firstChunk := true
 	clientDisconnected := false
+	defer func() {
+		if clientDisconnected {
+			if state := requestobs.FromContext(c.Request.Context()); state != nil {
+				state.MarkDrainUsage(openAIUsageHasTokens(&usage))
+			}
+		}
+	}()
 	clientOutputStarted := false
 	var streamFailoverErr error
 	var streamNonFailoverErr error

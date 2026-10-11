@@ -22,6 +22,9 @@ func appendRequestObservabilityFields(fields []zap.Field, c *gin.Context, endTim
 	if state != nil {
 		snapshot := state.Snapshot()
 		snapshot.StatusCode = statusCode
+		if snapshot.DrainObserved {
+			fields = append(fields, zap.Bool("drain_observed", true), zap.Bool("drain_usage_complete", snapshot.DrainUsageComplete))
+		}
 		if snapshot.ProtocolTerminal != "" {
 			fields = append(fields, zap.String("protocol_terminal", snapshot.ProtocolTerminal), zap.Bool("protocol_complete", snapshot.ProtocolComplete))
 		}

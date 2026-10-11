@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/requestobs"
 	"github.com/gin-gonic/gin"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -338,6 +339,13 @@ func (s *OpenAIGatewayService) handleNativeAnthropicStreamingResponse(
 	usage := &ClaudeUsage{}
 	var firstTokenMs *int
 	clientDisconnected := false
+	defer func() {
+		if clientDisconnected {
+			if state := requestobs.FromContext(c.Request.Context()); state != nil {
+				state.MarkDrainUsage(true)
+			}
+		}
+	}()
 	sawTerminalEvent := false
 	defer func() {
 		if sawTerminalEvent {

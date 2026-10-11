@@ -65,6 +65,8 @@ type Snapshot struct {
 	FailoverDecisions     []FailoverDecision
 	ProtocolTerminal      string
 	ProtocolComplete      bool
+	DrainObserved         bool
+	DrainUsageComplete    bool
 }
 
 // State tracks only bounded numeric and enum data. It never stores request or
@@ -92,6 +94,8 @@ type State struct {
 	failoverDecisions     []FailoverDecision
 	protocolTerminal      string
 	protocolComplete      bool
+	drainObserved         bool
+	drainUsageComplete    bool
 }
 
 func New(startedAt time.Time) *State {
@@ -170,6 +174,16 @@ func (s *State) RecordUpstreamAttempt(attempt UpstreamAttempt) {
 	s.mu.Unlock()
 }
 
+func (s *State) MarkDrainUsage(complete bool) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.drainObserved = true
+	s.drainUsageComplete = complete
+	s.mu.Unlock()
+}
+
 func (s *State) MarkProtocolTerminal(event string, complete bool) {
 	if s == nil || event == "" {
 		return
@@ -223,6 +237,8 @@ func (s *State) Snapshot() Snapshot {
 		FailoverDecisions:     append([]FailoverDecision(nil), s.failoverDecisions...),
 		ProtocolTerminal:      s.protocolTerminal,
 		ProtocolComplete:      s.protocolComplete,
+		DrainObserved:         s.drainObserved,
+		DrainUsageComplete:    s.drainUsageComplete,
 	}
 }
 
