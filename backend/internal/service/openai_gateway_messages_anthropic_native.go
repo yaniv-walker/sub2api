@@ -342,7 +342,7 @@ func (s *OpenAIGatewayService) handleNativeAnthropicStreamingResponse(
 	defer func() {
 		if clientDisconnected {
 			if state := requestobs.FromContext(c.Request.Context()); state != nil {
-				state.MarkDrainUsage(true)
+				state.MarkDrainUsage(false)
 			}
 		}
 	}()

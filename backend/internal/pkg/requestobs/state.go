@@ -66,7 +66,7 @@ type Snapshot struct {
 	ProtocolTerminal      string
 	ProtocolComplete      bool
 	DrainObserved         bool
-	DrainUsageComplete    bool
+	DrainUsageObserved    bool
 }
 
 // State tracks only bounded numeric and enum data. It never stores request or
@@ -95,7 +95,7 @@ type State struct {
 	protocolTerminal      string
 	protocolComplete      bool
 	drainObserved         bool
-	drainUsageComplete    bool
+	drainUsageObserved    bool
 }
 
 func New(startedAt time.Time) *State {
@@ -180,7 +180,7 @@ func (s *State) MarkDrainUsage(complete bool) {
 	}
 	s.mu.Lock()
 	s.drainObserved = true
-	s.drainUsageComplete = complete
+	s.drainUsageObserved = complete
 	s.mu.Unlock()
 }
 
@@ -238,7 +238,7 @@ func (s *State) Snapshot() Snapshot {
 		ProtocolTerminal:      s.protocolTerminal,
 		ProtocolComplete:      s.protocolComplete,
 		DrainObserved:         s.drainObserved,
-		DrainUsageComplete:    s.drainUsageComplete,
+		DrainUsageObserved:    s.drainUsageObserved,
 	}
 }
 

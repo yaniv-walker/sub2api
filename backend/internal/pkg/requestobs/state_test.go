@@ -72,5 +72,5 @@ func TestStateDrainUsageSummaryIsExplicit(t *testing.T) {
 	s.MarkDrainUsage(false)
 	snap := s.Snapshot()
 	require.True(t, snap.DrainObserved)
-	require.False(t, snap.DrainUsageComplete)
+	require.False(t, snap.DrainUsageObserved)
 }
