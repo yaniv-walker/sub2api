@@ -200,3 +200,12 @@ func BenchmarkRequestObservabilityMiddleware(b *testing.B) {
 		})
 	}
 }
+
+func TestRequestTerminalReasonExplicitIncomplete(t *testing.T) {
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest("POST", "/v1/responses", nil)
+	require.Equal(t, requestobs.TerminalProtocolIncomplete, requestTerminalReason(c, requestobs.Snapshot{StatusCode: 200, ProtocolTerminal: "missing_terminal"}))
+	require.Equal(t, requestobs.TerminalProtocolIncomplete, requestTerminalReason(c, requestobs.Snapshot{StatusCode: 200, ProtocolTerminal: "response.incomplete"}))
+	require.Equal(t, requestobs.TerminalCompleted, requestTerminalReason(c, requestobs.Snapshot{StatusCode: 200, ProtocolTerminal: "response.completed", ProtocolComplete: true}))
+	require.Equal(t, requestobs.TerminalDownstreamWrite, requestTerminalReason(c, requestobs.Snapshot{StatusCode: 200, WriteFailed: true, ProtocolTerminal: "missing_terminal"}))
+}

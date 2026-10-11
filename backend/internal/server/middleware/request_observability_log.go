@@ -110,6 +110,9 @@ func requestTerminalReason(c *gin.Context, snapshot requestobs.Snapshot) request
 	if snapshot.StatusCode == 499 {
 		return requestobs.TerminalClientCancelled
 	}
+	if snapshot.ProtocolTerminal == "missing_terminal" || snapshot.ProtocolTerminal == "response.incomplete" {
+		return requestobs.TerminalProtocolIncomplete
+	}
 	if snapshot.UpstreamErrors > 0 && snapshot.StatusCode >= 500 {
 		return requestobs.TerminalUpstreamError
 	}
