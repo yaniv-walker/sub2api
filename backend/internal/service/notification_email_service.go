@@ -28,6 +28,7 @@ const (
 	NotificationEmailEventBalanceLow                  = "balance.low"
 	NotificationEmailEventBalanceRechargeSuccess      = "balance.recharge_success"
 	NotificationEmailEventAccountQuotaAlert           = "account.quota_alert"
+	NotificationEmailEventUpstreamBalanceLow          = "upstream.balance_low"
 	NotificationEmailEventContentModerationViolation  = "content_moderation.violation_notice"
 	NotificationEmailEventContentModerationDisabled   = "content_moderation.account_disabled"
 	NotificationEmailEventCyberPolicyNotice           = "content_moderation.cyber_policy_notice"
@@ -518,6 +519,13 @@ func (s *NotificationEmailService) sampleVariables(ctx context.Context, event, l
 		variables[key] = value
 	}
 	variables["site_name"] = s.siteName(ctx)
+	if event == NotificationEmailEventUpstreamBalanceLow {
+		variables["upstream_name"] = "Example upstream"
+		variables["upstream_url"] = "https://upstream.example.com"
+		variables["upstream_type"] = "sub2api"
+		variables["balance"] = "8.50"
+		variables["checked_at"] = "2026-10-12 09:30:00 +08:00"
+	}
 	if variables["unsubscribe_url"] == "" && info.Optional {
 		variables["unsubscribe_url"] = "https://example.com/unsubscribe"
 	}
@@ -1029,6 +1037,7 @@ var notificationEmailEventOrder = []string{
 	NotificationEmailEventBalanceLow,
 	NotificationEmailEventBalanceRechargeSuccess,
 	NotificationEmailEventAccountQuotaAlert,
+	NotificationEmailEventUpstreamBalanceLow,
 	NotificationEmailEventContentModerationViolation,
 	NotificationEmailEventContentModerationDisabled,
 	NotificationEmailEventCyberPolicyNotice,
@@ -1037,6 +1046,13 @@ var notificationEmailEventOrder = []string{
 }
 
 var notificationEmailEventDefinitions = map[string]NotificationEmailEventInfo{
+	NotificationEmailEventUpstreamBalanceLow: {
+		Event:       NotificationEmailEventUpstreamBalanceLow,
+		Label:       "Upstream low balance alert",
+		Description: "Sent when an upstream reaches its individually configured balance threshold.",
+		Category:    "admin", Optional: false,
+		Placeholders: append(append([]string{}, notificationEmailCommonPlaceholders...), "upstream_name", "upstream_url", "upstream_type", "balance", "threshold", "checked_at"),
+	},
 	NotificationEmailEventAuthVerifyCode: {
 		Event:        NotificationEmailEventAuthVerifyCode,
 		Label:        "Email verification code",
@@ -1155,6 +1171,22 @@ var notificationEmailEventDefinitions = map[string]NotificationEmailEventInfo{
 }
 
 var notificationEmailOfficialTemplates = map[string]map[string]notificationEmailOfficialTemplate{
+	NotificationEmailEventUpstreamBalanceLow: {
+		"zh": {
+			Subject: "【{{site_name}}】上游 {{upstream_name}} 余额预警",
+			HTML: notificationEmailCard("#0d9488", "上游余额预警", `<p>上游 <strong>{{upstream_name}}</strong> 的余额已到达预警线。</p>
+<p>当前余额：<strong>{{balance}}</strong></p><p>预警线：{{threshold}}</p>
+<p>上游地址：{{upstream_url}}</p><p>检查时间：{{checked_at}}</p>
+<p>请及时检查并充值，避免服务中断。</p><p><a href="{{upstream_url}}">访问上游</a></p>`),
+		},
+		"en": {
+			Subject: "[{{site_name}}] Low upstream balance - {{upstream_name}}",
+			HTML: notificationEmailCard("#0d9488", "Upstream balance alert", `<p>Upstream <strong>{{upstream_name}}</strong> has reached its alert threshold.</p>
+<p>Current balance: <strong>{{balance}}</strong></p><p>Threshold: {{threshold}}</p>
+<p>Upstream URL: {{upstream_url}}</p><p>Checked at: {{checked_at}}</p>
+<p>Please check and recharge the upstream.</p><p><a href="{{upstream_url}}">Visit upstream</a></p>`),
+		},
+	},
 	NotificationEmailEventAuthVerifyCode: {
 		notificationEmailDefaultLocale: {
 			Subject: "[{{site_name}}] Email verification code",

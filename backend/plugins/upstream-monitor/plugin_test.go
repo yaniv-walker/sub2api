@@ -48,6 +48,8 @@ func TestRunMigrationsCreatesAnalyticsTablesAndIndexes(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec(`(?s)CREATE INDEX IF NOT EXISTS upstreamerrorrecord_upstream_type_error_type_occurred_at`).
 		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec(`(?s)CREATE TABLE IF NOT EXISTS upstream_monitor_balance_alerts`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
 
 	err = (&Plugin{entClient: client}).runMigrations(context.Background())
 	require.NoError(t, err)

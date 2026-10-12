@@ -42,13 +42,14 @@ func NewUpstreamInfoFetcher(logger *slog.Logger) *UpstreamInfoFetcher {
 
 // UpstreamInfo contains information about an upstream account.
 type UpstreamInfo struct {
-	AccountID   int64   `json:"account_id"`
-	Name        string  `json:"name"`
-	Type        string  `json:"type"` // "sub2api" or "nexapi"
-	Balance     float64 `json:"balance"`
-	Concurrency int     `json:"concurrency"`
-	Status      string  `json:"status"`
-	ApiKey      string  `json:"-"` // Hidden from JSON
+	AccountID    int64   `json:"account_id"`
+	Name         string  `json:"name"`
+	Type         string  `json:"type"` // "sub2api" or "nexapi"
+	Balance      float64 `json:"balance"`
+	BalanceKnown bool    `json:"-"`
+	Concurrency  int     `json:"concurrency"`
+	Status       string  `json:"status"`
+	ApiKey       string  `json:"-"` // Hidden from JSON
 }
 
 // FetchInfo fetches upstream information for a given account.
@@ -57,12 +58,17 @@ func (f *UpstreamInfoFetcher) FetchInfo(accountID int64, upstreamType, baseURL, 
 }
 
 func (f *UpstreamInfoFetcher) FetchInfoWithBalanceDivider(accountID int64, upstreamType, baseURL, apiKey string, quotaDivider float64) (*UpstreamInfo, error) {
+	return f.FetchInfoContext(context.Background(), accountID, upstreamType, baseURL, apiKey, quotaDivider)
+}
+
+// FetchInfoContext allows the background checker to cancel outstanding requests.
+func (f *UpstreamInfoFetcher) FetchInfoContext(parent context.Context, accountID int64, upstreamType, baseURL, apiKey string, quotaDivider float64) (*UpstreamInfo, error) {
 	f.logger.Debug("Fetching upstream info",
 		"account_id", accountID,
 		"upstream_type", upstreamType,
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	ctx, cancel := context.WithTimeout(parent, 25*time.Second)
 	defer cancel()
 	rootURL, err := NormalizeUpstreamBaseURL(baseURL)
 	if err != nil {
@@ -107,7 +113,7 @@ type Sub2APIResponse struct {
 	Balance   *float64 `json:"balance"`
 	Remaining *float64 `json:"remaining"`
 	Quota     *struct {
-		Remaining float64 `json:"remaining"`
+		Remaining *float64 `json:"remaining"`
 	} `json:"quota"`
 }
 
@@ -150,13 +156,17 @@ func (f *UpstreamInfoFetcher) fetchSub2APIInfo(ctx context.Context, accountID in
 		return nil, fmt.Errorf("Sub2API reports API key as invalid")
 	}
 	balance := 0.0
+	known := false
 	switch {
 	case apiResp.Balance != nil:
 		balance = *apiResp.Balance
+		known = true
 	case apiResp.Remaining != nil:
 		balance = *apiResp.Remaining
-	case apiResp.Quota != nil:
-		balance = apiResp.Quota.Remaining
+		known = true
+	case apiResp.Quota != nil && apiResp.Quota.Remaining != nil:
+		balance = *apiResp.Quota.Remaining
+		known = true
 	}
 	status := apiResp.Status
 	if status == "" && apiResp.IsValid {
@@ -164,13 +174,14 @@ func (f *UpstreamInfoFetcher) fetchSub2APIInfo(ctx context.Context, accountID in
 	}
 
 	info := &UpstreamInfo{
-		AccountID:   accountID,
-		Name:        apiResp.PlanName,
-		Type:        "sub2api",
-		Balance:     balance,
-		Concurrency: 0,
-		Status:      status,
-		ApiKey:      apiKey,
+		AccountID:    accountID,
+		Name:         apiResp.PlanName,
+		Type:         "sub2api",
+		Balance:      balance,
+		BalanceKnown: known,
+		Concurrency:  0,
+		Status:       status,
+		ApiKey:       apiKey,
 	}
 
 	f.logger.Info("Sub2API info fetched successfully",
@@ -241,17 +252,27 @@ func (f *UpstreamInfoFetcher) fetchNexAPIInfo(ctx context.Context, accountID int
 	// Do not use balance, used_quota, or remaining_quota: deployments may expose
 	// those fields with different semantics or units.
 	balanceCNY := float64(apiResp.Data.Quota) / quotaDivider
+	// Missing quota is unknown, whereas an explicit quota of zero is valid.
+	var presence struct {
+		Data struct {
+			Quota *int64 `json:"quota"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &presence); err != nil {
+		return nil, fmt.Errorf("invalid quota: %w", err)
+	}
 
 	status := nexAPIStatus(apiResp.Data.Status)
 
 	info := &UpstreamInfo{
-		AccountID:   accountID,
-		Name:        apiResp.Data.Name,
-		Type:        "nexapi",
-		Balance:     balanceCNY,
-		Concurrency: 0, // NexAPI doesn't report concurrency limit
-		Status:      status,
-		ApiKey:      apiKey,
+		AccountID:    accountID,
+		Name:         apiResp.Data.Name,
+		Type:         "nexapi",
+		Balance:      balanceCNY,
+		BalanceKnown: presence.Data.Quota != nil,
+		Concurrency:  0, // NexAPI doesn't report concurrency limit
+		Status:       status,
+		ApiKey:       apiKey,
 	}
 
 	f.logger.Info("NexAPI info fetched successfully",

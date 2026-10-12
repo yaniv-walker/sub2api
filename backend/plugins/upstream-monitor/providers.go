@@ -17,6 +17,11 @@ var ProviderSet = wire.NewSet(
 	repository.NewUpstreamRepository,
 	repository.NewCredentialCipher,
 	repository.NewRepositories,
+	repository.NewBalanceAlertRepository,
+	wire.Bind(new(handler.BalanceAlertConfigStore), new(*repository.BalanceAlertRepository)),
+	wire.Bind(new(service.BalanceAlertStore), new(*repository.BalanceAlertRepository)),
+	wire.Bind(new(service.BalanceAlertReader), new(*handler.MonitorHandler)),
+	ProvideBalanceAlertSender,
 	wire.Bind(new(handler.UpstreamProvider), new(*repository.UpstreamRepository)),
 	wire.Bind(new(handler.CredentialCipher), new(*repository.CredentialCipher)),
 
@@ -29,11 +34,17 @@ var ProviderSet = wire.NewSet(
 	// Handler layer
 	ProvideAccountProvider,
 	handler.NewMonitorHandler,
+	handler.NewBalanceAlertHandler,
+	service.NewBalanceAlertChecker,
 
 	// Plugin
 	ProvidePluginConfig,
 	NewPluginWithHandler,
 )
+
+func ProvideBalanceAlertSender(emails *hostservice.NotificationEmailService) service.BalanceAlertSender {
+	return emails
+}
 
 // ProvideAccountProvider keeps the plugin dependent on the narrow handler
 // contract while sourcing accounts from the host database repository.

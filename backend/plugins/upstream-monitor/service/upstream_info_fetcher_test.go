@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAlertBalanceRequiresPresentAmount(t *testing.T) {
+	for _, payload := range []string{`{"isValid":true}`, `{"isValid":true,"quota":{}}`} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(payload)) }))
+		info, err := NewUpstreamInfoFetcher(nil).FetchInfoContext(context.Background(), 1, "sub2api", server.URL, "test", 1)
+		require.NoError(t, err)
+		require.False(t, info.BalanceKnown)
+		server.Close()
+	}
+}
 
 func TestNormalizeUpstreamBaseURL(t *testing.T) {
 	tests := map[string]string{

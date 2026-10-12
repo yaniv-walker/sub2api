@@ -15,6 +15,7 @@ import (
 	hostservice "github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/handler"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/repository"
+	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/service"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 )
@@ -30,6 +31,10 @@ type Plugin struct {
 	balanceSnapshots *repository.BalanceSnapshotRepository
 	settingService   *hostservice.SettingService
 	enabled          bool
+	alertHandler     *handler.BalanceAlertHandler
+	alertChecker     *service.BalanceAlertChecker
+	alertCancel      context.CancelFunc
+	alertDone        chan struct{}
 }
 
 // NewPluginWithHandler creates a new upstream monitor plugin instance with injected handler.
@@ -42,6 +47,8 @@ func NewPluginWithHandler(
 	errorRecords *repository.ErrorRecordRepository,
 	balanceSnapshots *repository.BalanceSnapshotRepository,
 	settingService *hostservice.SettingService,
+	alertHandler *handler.BalanceAlertHandler,
+	alertChecker *service.BalanceAlertChecker,
 ) *Plugin {
 	if logger == nil {
 		logger = slog.Default()
@@ -57,6 +64,8 @@ func NewPluginWithHandler(
 		balanceSnapshots: balanceSnapshots,
 		settingService:   settingService,
 		enabled:          cfg.Enabled,
+		alertHandler:     alertHandler,
+		alertChecker:     alertChecker,
 	}
 }
 
@@ -98,6 +107,12 @@ func (p *Plugin) Init(ctx context.Context) error {
 
 	// Register event hooks
 	p.registerHooks()
+	if p.alertChecker != nil && p.config.Features.BalanceMonitoring && p.alertCancel == nil {
+		checkerCtx, cancel := context.WithCancel(context.Background())
+		p.alertCancel = cancel
+		p.alertDone = make(chan struct{})
+		go func() { defer close(p.alertDone); p.alertChecker.Run(checkerCtx) }()
+	}
 
 	p.logger.Info("Upstream monitor plugin initialized successfully")
 	return nil
@@ -118,16 +133,29 @@ func (p *Plugin) RegisterRoutes(router *gin.RouterGroup) {
 		c.Next()
 	})
 	p.handler.RegisterRoutes(router)
+	if p.alertHandler != nil {
+		p.alertHandler.RegisterRoutes(router)
+	}
 }
 
 // Cleanup performs cleanup when the plugin is shut down.
 func (p *Plugin) Cleanup() error {
+	var shutdownErr error
+	if p.alertCancel != nil {
+		p.alertCancel()
+		select {
+		case <-p.alertDone:
+		case <-time.After(10 * time.Second):
+			shutdownErr = fmt.Errorf("upstream balance alert checker shutdown timed out")
+		}
+		p.alertCancel = nil
+	}
 	p.logger.Info("Cleaning up upstream monitor plugin")
 	hookManager := plugin.GetGlobalHookManager()
 	hookManager.Clear(plugin.HookAfterRequestCompleted)
 	hookManager.Clear(plugin.HookAfterRequestFailed)
 	hookManager.Clear(plugin.HookAfterAccountDeleted)
-	return nil
+	return shutdownErr
 }
 
 // registerHooks registers event hooks for the plugin.
@@ -301,6 +329,9 @@ ON upstream_error_records (upstream_type, account_id, occurred_at)`); err != nil
 CREATE INDEX IF NOT EXISTS upstreamerrorrecord_upstream_type_error_type_occurred_at
 ON upstream_error_records (upstream_type, error_type, occurred_at)`); err != nil {
 		return fmt.Errorf("create upstream error records type index: %w", err)
+	}
+	if _, err := p.entClient.ExecContext(ctx, repository.BalanceAlertSchema); err != nil {
+		return fmt.Errorf("create upstream balance alert table: %w", err)
 	}
 	return nil
 }

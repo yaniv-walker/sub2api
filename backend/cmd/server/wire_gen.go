@@ -354,7 +354,11 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	upstreamRepository := repository2.NewUpstreamRepository(client)
 	credentialCipher := repository2.NewCredentialCipher(client)
 	monitorHandler := handler2.NewMonitorHandler(upstreamInfoFetcher, balanceAggregator, errorAnalyzer, usagePredictor, accountProvider, upstreamRepository, credentialCipher, upstreamMonitorPluginConfig)
-	plugin := upstreammonitor.NewPluginWithHandler(upstreamMonitorPluginConfig, redisClient, client, logger, monitorHandler, errorRecordRepository, balanceSnapshotRepository, settingService)
+	balanceAlertRepository := repository2.NewBalanceAlertRepository(client)
+	balanceAlertHandler := handler2.NewBalanceAlertHandler(balanceAlertRepository, upstreamRepository)
+	balanceAlertSender := upstreammonitor.ProvideBalanceAlertSender(notificationEmailService)
+	balanceAlertChecker := service2.NewBalanceAlertChecker(balanceAlertRepository, monitorHandler, balanceAlertSender, settingService)
+	plugin := upstreammonitor.NewPluginWithHandler(upstreamMonitorPluginConfig, redisClient, client, logger, monitorHandler, errorRecordRepository, balanceSnapshotRepository, settingService, balanceAlertHandler, balanceAlertChecker)
 	manager, err := provideInternalPluginManager(logger, plugin)
 	if err != nil {
 		return nil, err
