@@ -340,6 +340,11 @@ function localText(zh: string, en: string): string {
 }
 
 const eventDisplayMeta: Record<string, EventDisplayMeta> = {
+  "upstream.balance_low": {
+    label: "上游余额预警",
+    timing: "后台每 5 分钟检查上游余额，到达各自预警线时发送。可通过 upstream_url 占位符加入上游访问链接。",
+    categoryLabel: "管理告警",
+  },
   "auth.verify_code": {
     label: "邮箱验证码",
     timing: "注册、绑定邮箱、OAuth 补全邮箱或 TOTP 邮箱校验时发送。",
@@ -403,6 +408,11 @@ const eventDisplayMeta: Record<string, EventDisplayMeta> = {
 };
 
 const eventDisplayMetaEn: Record<string, EventDisplayMeta> = {
+  "upstream.balance_low": {
+    label: "Upstream Balance Alert",
+    timing: "Sent when the background checker finds an upstream at or below its own balance threshold. Use upstream_url for a link to the upstream.",
+    categoryLabel: "Admin",
+  },
   "auth.verify_code": {
     label: "Email Verification Code",
     timing: "Sent for registration, email binding, OAuth pending email completion, or TOTP email verification.",
@@ -622,7 +632,8 @@ async function loadTemplateList() {
     localeOptions.value = response.locales;
     placeholders.value = response.placeholders || [];
     initializingSelection.value = true;
-    selectedEvent.value = eventOptions.value[0]?.value || "";
+    const requestedEvent = new URLSearchParams(window.location.search).get("email_event");
+    selectedEvent.value = eventOptions.value.find(option => option.value === requestedEvent)?.value || eventOptions.value[0]?.value || "";
     selectedLocale.value = selectInitialLocale(response.locales);
     await loadTemplate();
     initializingSelection.value = false;

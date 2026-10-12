@@ -101,6 +101,32 @@ export interface UpstreamPredictionAnalytics {
 // to that base so requests become `/api/v1/plugins/upstream-monitor/...`.
 const base = '/plugins/upstream-monitor'
 
+export interface BalanceAlertConfig {
+  enabled: boolean
+  threshold: string
+  recipients: string[]
+  repeat_interval_seconds: number
+  locale: 'zh' | 'en'
+}
+export interface BalanceAlertRule extends BalanceAlertConfig {
+  upstream_id: number
+  state: {
+    last_checked_at?: string
+    last_balance?: number
+    last_error?: string
+    episode_id?: string
+    deliveries?: Record<string, { sent_at?: string; failures: number }>
+  }
+}
+export async function getBalanceAlert(id: number): Promise<BalanceAlertRule> {
+  const { data } = await apiClient.get<BalanceAlertRule>(`${base}/upstreams/${id}/balance-alert`)
+  return data
+}
+export async function saveBalanceAlert(id: number, input: BalanceAlertConfig): Promise<BalanceAlertRule> {
+  const { data } = await apiClient.put<BalanceAlertRule>(`${base}/upstreams/${id}/balance-alert`, input)
+  return data
+}
+
 export async function getOverview() {
   const { data } = await apiClient.get<MonitorOverview>(`${base}/overview`)
   return data

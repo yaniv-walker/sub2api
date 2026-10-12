@@ -52,9 +52,13 @@
         </section>
       </div>
 
-      <div v-if="configuring" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" @click.self="configuring = null">
-        <form class="w-full max-w-lg space-y-4 rounded-lg bg-white p-5 shadow-xl dark:bg-dark-900" @submit.prevent="saveConfig">
-          <div class="flex items-start justify-between"><div><h2 class="text-lg font-semibold text-gray-900 dark:text-white">配置上游</h2><p class="mt-1 text-xs text-gray-500">{{ configuring.base_url }}</p></div><button type="button" class="text-gray-500" @click="configuring = null">×</button></div>
+      <div v-if="configuring" class="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" @click.self="closeConfig">
+        <form class="max-h-[90dvh] w-full max-w-lg space-y-4 overflow-y-auto rounded-lg bg-white p-5 shadow-xl dark:bg-dark-900" role="dialog" aria-modal="true" aria-label="配置上游" @submit.prevent="configTab === 'basic' && saveConfig()">
+          <div class="flex items-start justify-between"><div><h2 class="text-lg font-semibold text-gray-900 dark:text-white">配置上游</h2><p class="mt-1 text-xs text-gray-500">{{ configuring.base_url }}</p></div><button type="button" class="text-gray-500" aria-label="关闭配置" @click="closeConfig">×</button></div>
+          <div class="flex gap-5 border-b border-gray-200 dark:border-dark-700" role="tablist" aria-label="上游配置">
+            <button v-for="tab in configTabs" :id="`upstream-config-${tab.key}-tab`" :key="tab.key" type="button" role="tab" :aria-selected="configTab === tab.key" :aria-controls="`upstream-config-${tab.key}-panel`" class="border-b-2 py-2 text-sm" :class="configTab === tab.key ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-500'" @click="configTab = tab.key">{{ tab.label }}</button>
+          </div>
+          <div v-show="configTab === 'basic'" id="upstream-config-basic-panel" role="tabpanel" aria-labelledby="upstream-config-basic-tab" class="space-y-4">
           <div class="grid gap-3 sm:grid-cols-2"><label class="text-sm">名称<input v-model="configForm.name" class="input mt-1 w-full" /></label><label class="text-sm">类型<select v-model="configForm.type" class="input mt-1 w-full"><option value="sub2api">sub2api</option><option value="nexapi">nexapi</option></select></label></div>
           <label class="flex items-center gap-2 text-sm"><input v-model="configForm.enabled" type="checkbox" /> 启用余额监控</label>
           <label class="text-sm">余额换算系数<input v-model.number="configForm.quota_divider" type="number" min="0.000001" step="0.000001" class="input mt-1 w-full" /></label>
@@ -62,7 +66,12 @@
           <label class="text-sm">Personal Access Token<input v-model="configForm.personal_access_token" type="password" autocomplete="new-password" class="input mt-1 w-full" placeholder="仅在需要更新时填写" /></label>
           <label class="text-sm">Passkey<input v-model="configForm.passkey" type="password" autocomplete="new-password" class="input mt-1 w-full" placeholder="仅在需要更新时填写" /></label>
           <label class="text-sm">兼容旧 Access Token<input v-model="configForm.access_token" type="password" autocomplete="new-password" class="input mt-1 w-full" placeholder="仅在需要更新时填写" /></label>
-          <div v-if="configError" class="text-sm text-red-600">{{ configError }}</div><div class="flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="configuring = null">取消</button><button type="submit" class="btn btn-primary" :disabled="configSaving">{{ configSaving ? '保存中…' : '保存配置' }}</button></div>
+          <div v-if="configError" class="text-sm text-red-600">{{ configError }}</div><p v-if="configMessage" role="status" class="text-sm text-green-600">{{ configMessage }}</p><div class="flex justify-end gap-2"><button type="button" class="btn btn-secondary" @click="closeConfig">取消</button><button type="submit" class="btn btn-primary" :disabled="configSaving || alertSaving">{{ configSaving ? '保存中…' : '保存基本配置' }}</button></div>
+          </div>
+          <div v-show="configTab === 'alert'" id="upstream-config-alert-panel" role="tabpanel" aria-labelledby="upstream-config-alert-tab">
+            <UpstreamBalanceAlertForm v-if="configuring.id > 0" :key="configuring.id" :upstream-id="configuring.id" :balance="configuring.balance" @dirty="alertDirty = $event" @saving="alertSaving = $event" />
+            <p v-else class="text-sm text-amber-700">请先保存基本配置，再设置余额预警。</p>
+          </div>
         </form>
       </div>
 
@@ -97,6 +106,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
+import UpstreamBalanceAlertForm from '@/components/admin/UpstreamBalanceAlertForm.vue'
 import { adminAPI } from '@/api/admin'
 import type { MonitorAccount, UpstreamConfigInput, UpstreamSummary } from '@/api/admin/upstreamMonitor'
 
@@ -104,6 +114,15 @@ const loading = ref(true); const refreshing = ref(false); const error = ref('');
 const overview = ref<any>(null); const upstreams = ref<UpstreamSummary[]>([]); const accounts = ref<MonitorAccount[]>([])
 const selected = ref<(UpstreamSummary | MonitorAccount) | null>(null); const activeTab = ref('errors'); const analytics = ref<any>(null); const prediction = ref<any>(null); const analyticsLoading = ref(false); const analyticsError = ref(''); let analyticsRequest = 0
 const configuring = ref<UpstreamSummary | null>(null); const configSaving = ref(false); const configError = ref('')
+const configTab = ref<'basic' | 'alert'>('basic')
+const configTabs = [{ key: 'basic' as const, label: '基本配置' }, { key: 'alert' as const, label: '余额预警' }]
+const alertDirty = ref(false); const alertSaving = ref(false); const basicSaved = ref('')
+const configMessage = ref('')
+function closeConfig() {
+  if (configSaving.value || alertSaving.value) return
+  if ((alertDirty.value || JSON.stringify(configForm.value) !== basicSaved.value) && !window.confirm('有尚未保存的配置，确定关闭？')) return
+  configuring.value = null
+}
 const configForm = ref<UpstreamConfigInput>({ base_url: '', name: '', type: 'sub2api', enabled: true, quota_divider: 1, access_token: '', personal_access_token: '', passkey: '' })
 const tabs = [{ key: 'errors', label: '错误统计' }, { key: 'usage', label: '用量趋势' }, { key: 'prediction', label: '余额预测' }]
 const filteredAccounts = computed(() => accounts.value.filter(a => `${a.name} ${a.base_url} ${a.type}`.toLowerCase().includes(query.value.toLowerCase())))
@@ -121,8 +140,8 @@ async function load() { loading.value = true; error.value = ''; try { const [o, 
 async function refreshAllData() { refreshing.value = true; refreshMessage.value = ''; try { const result = await adminAPI.upstreamMonitor.refreshAll(); upstreams.value = mergeUpstreamBalances(upstreams.value, result.by_upstream); if (selected.value && isUpstream(selected.value)) { const current = upstreams.value.find(item => item.base_url.replace(/\/$/, '').toLowerCase() === selected.value?.base_url.replace(/\/$/, '').toLowerCase()); if (current) selected.value = current } refreshMessage.value = result.failed_count ? `已刷新 ${result.refreshed_count} 个账号，${result.failed_count} 个失败` : `已刷新 ${result.refreshed_count} 个账号`; await load() } catch (e: any) { refreshMessage.value = e?.response?.data?.error || e?.message || '刷新失败' } finally { refreshing.value = false } }
 async function openUpstream(item: UpstreamSummary) { selected.value = item; activeTab.value = 'errors' }
 async function openAccount(item: MonitorAccount) { selected.value = item; activeTab.value = 'errors' }
-function openConfig(item: UpstreamSummary) { const type = (item.upstream_type || item.type || 'sub2api') as 'sub2api' | 'nexapi'; configuring.value = item; configError.value = ''; configForm.value = { base_url: item.base_url, name: item.name || '', type, enabled: item.enabled !== false, quota_divider: item.quota_divider || (type === 'sub2api' ? 1 : 500000), access_token: '', personal_access_token: '', passkey: '' } }
-async function saveConfig() { if (!configuring.value) return; configSaving.value = true; configError.value = ''; try { const input = { ...configForm.value }; if (!input.access_token) delete input.access_token; if (!input.personal_access_token) delete input.personal_access_token; if (!input.passkey) delete input.passkey; await adminAPI.upstreamMonitor.configureUpstream(input); configuring.value = null; await load() } catch (e: any) { configError.value = e?.response?.data?.error || e?.message || '保存失败' } finally { configSaving.value = false } }
+function openConfig(item: UpstreamSummary) { const type = (item.upstream_type || item.type || 'sub2api') as 'sub2api' | 'nexapi'; configuring.value = item; configError.value = ''; configMessage.value = ''; configTab.value = 'basic'; alertDirty.value = false; alertSaving.value = false; configForm.value = { base_url: item.base_url, name: item.name || '', type, enabled: item.enabled !== false, quota_divider: item.quota_divider || (type === 'sub2api' ? 1 : 500000), access_token: '', personal_access_token: '', passkey: '' }; basicSaved.value = JSON.stringify(configForm.value) }
+async function saveConfig() { if (!configuring.value || configSaving.value || alertSaving.value) return; configSaving.value = true; configError.value = ''; configMessage.value = ''; try { const input = { ...configForm.value }; if (!input.access_token) delete input.access_token; if (!input.personal_access_token) delete input.personal_access_token; if (!input.passkey) delete input.passkey; const result = await adminAPI.upstreamMonitor.configureUpstream(input); configuring.value = { ...configuring.value, ...result }; configForm.value.access_token = ''; configForm.value.personal_access_token = ''; configForm.value.passkey = ''; basicSaved.value = JSON.stringify(configForm.value); configMessage.value = '基本配置已保存'; await load() } catch (e: any) { configError.value = e?.response?.data?.error || e?.message || '保存失败' } finally { configSaving.value = false } }
 async function loadAnalytics() { const request = ++analyticsRequest; if (!selected.value) return; analyticsLoading.value = true; analyticsError.value = ''; analytics.value = null; prediction.value = null; const id = selected.value.id; const upstream = isUpstream(selected.value); if (upstream && !id) { analyticsError.value = '请先配置该上游，才能查看历史分析'; analyticsLoading.value = false; return } try { let result; if (activeTab.value === 'errors') result = upstream ? await adminAPI.upstreamMonitor.getUpstreamErrors(id) : await adminAPI.upstreamMonitor.getAccountErrors(id); else if (activeTab.value === 'usage') result = upstream ? await adminAPI.upstreamMonitor.getUpstreamUsage(id) : await adminAPI.upstreamMonitor.getAccountUsage(id); else result = upstream ? await adminAPI.upstreamMonitor.getUpstreamPrediction(id) : await adminAPI.upstreamMonitor.getAccountPrediction(id); if (request === analyticsRequest) { if (activeTab.value === 'prediction') prediction.value = result; else analytics.value = result } } catch (e: any) { if (request === analyticsRequest) analyticsError.value = e?.response?.data?.error?.message || e?.response?.data?.error || e?.message || '分析数据加载失败' } finally { if (request === analyticsRequest) analyticsLoading.value = false } }
 watch([selected, activeTab], () => { void loadAnalytics() }); onMounted(() => { void load() })
 </script>
