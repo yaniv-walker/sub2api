@@ -328,6 +328,7 @@ type DefaultSubscriptionSetting struct {
 }
 
 type PublicSettings struct {
+	CheckinEnabled                      bool
 	RegistrationEnabled                 bool
 	EmailVerifyEnabled                  bool
 	ForceEmailOnThirdPartySignup        bool
