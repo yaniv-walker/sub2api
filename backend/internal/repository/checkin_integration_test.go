@@ -49,7 +49,8 @@ func checkinTestDB(t *testing.T) *sql.DB {
 		admin.Close()
 	})
 	_, err = db.Exec(`CREATE TABLE users(id BIGINT PRIMARY KEY,balance NUMERIC(20,8) NOT NULL DEFAULT 0,total_recharged NUMERIC(20,8) NOT NULL DEFAULT 0,status TEXT DEFAULT 'active',deleted_at TIMESTAMPTZ,updated_at TIMESTAMPTZ);
- CREATE TABLE payment_orders(id BIGINT PRIMARY KEY,user_id BIGINT,amount NUMERIC(20,2),bonus_amount NUMERIC(20,2),pay_amount NUMERIC(20,2),refund_amount NUMERIC(20,2),order_type TEXT,status TEXT,paid_at TIMESTAMPTZ,completed_at TIMESTAMPTZ);
+ CREATE TABLE payment_orders(id BIGINT PRIMARY KEY,user_id BIGINT,amount NUMERIC(20,2),bonus_amount NUMERIC(20,2),pay_amount NUMERIC(20,2),refund_amount NUMERIC(20,2),order_type TEXT,status TEXT,paid_at TIMESTAMPTZ,completed_at TIMESTAMPTZ,recharge_code TEXT NOT NULL DEFAULT '');
+ CREATE TABLE redeem_codes(id BIGSERIAL PRIMARY KEY,code TEXT UNIQUE,type TEXT,value NUMERIC(20,8),status TEXT,used_by BIGINT,used_at TIMESTAMPTZ);
  CREATE TABLE usage_logs(id BIGSERIAL PRIMARY KEY,user_id BIGINT,request_id TEXT,input_tokens INT DEFAULT 0,output_tokens INT DEFAULT 0,cache_creation_tokens INT DEFAULT 0,cache_read_tokens INT DEFAULT 0,image_input_tokens INT DEFAULT 0,image_output_tokens INT DEFAULT 0,image_count INT DEFAULT 0,actual_cost NUMERIC(20,10) DEFAULT 0,created_at TIMESTAMPTZ);
  CREATE TABLE api_keys(user_id BIGINT,key TEXT,deleted_at TIMESTAMPTZ);
  CREATE TABLE auth_cache_invalidation_outbox(id BIGSERIAL PRIMARY KEY,cache_key VARCHAR(64) NOT NULL,created_at TIMESTAMPTZ DEFAULT NOW());`)
@@ -60,6 +61,12 @@ func checkinTestDB(t *testing.T) *sql.DB {
 	require.NoError(t, err)
 	_, err = db.Exec(string(migration))
 	require.NoError(t, err, "new migration must be safely repeatable")
+	indexMigration, err := migrations.FS.ReadFile("244_checkin_recharge_code_lookup.sql")
+	require.NoError(t, err)
+	_, err = db.Exec(string(indexMigration))
+	require.NoError(t, err)
+	_, err = db.Exec(string(indexMigration))
+	require.NoError(t, err)
 	return db
 }
 func seedCheckinUser(t *testing.T, db *sql.DB, id int64) {
@@ -199,6 +206,53 @@ func TestCheckinPostgresConcurrencyBudgetAndLateUsage(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, retry.Created)
 }
+func TestCheckinPostgresManualAndRedeemCredits(t *testing.T) {
+	db := checkinTestDB(t)
+	ctx := context.Background()
+	r := NewCheckinRepository(db)
+	now := time.Now()
+	c := service.DefaultCheckinConfig()
+	c.Enabled = true
+	c.CycleEnabled = false
+	_, err := r.SaveConfig(ctx, c, 0, 1, now)
+	require.NoError(t, err)
+	_, err = db.Exec(`INSERT INTO users(id,balance) VALUES(1,30),(2,10);
+ INSERT INTO redeem_codes(code,type,value,status,used_by,used_at) VALUES
+ ('manual','admin_balance',6,'used',1,NOW()),
+ ('offline','balance',4,'used',1,NOW()),
+ ('unused','balance',100,'unused',1,NULL),
+ ('negative','balance',-10,'used',1,NOW()),
+ ('subscription','subscription',100,'used',1,NOW()),
+ ('other-user','balance',10,'used',2,NOW());`)
+	require.NoError(t, err)
+	state, err := r.GetUserState(ctx, 1, now, c)
+	require.NoError(t, err)
+	require.Equal(t, "10.00000000", state.PaidCreditUSD, "historical manual top-ups and used balance codes count")
+	// Online payment already has a redeem record, including its bonus. Count
+	// its paid contribution once and retain refund handling through the order.
+	_, err = db.Exec(`INSERT INTO payment_orders(id,user_id,amount,bonus_amount,pay_amount,refund_amount,order_type,status,paid_at,completed_at,recharge_code)
+ VALUES(1,1,12,2,72,0,'balance','COMPLETED',NOW(),NOW(),'online');
+ INSERT INTO redeem_codes(code,type,value,status,used_by,used_at) VALUES('online','balance',12,'used',1,NOW());`)
+	require.NoError(t, err)
+	state, err = r.GetUserState(ctx, 1, now, c)
+	require.NoError(t, err)
+	require.Equal(t, "20.00000000", state.PaidCreditUSD, "online code must not duplicate payment or count its bonus")
+	_, err = db.Exec(`UPDATE payment_orders SET status='REFUNDED',refund_amount=12 WHERE id=1;
+ INSERT INTO redeem_codes(code,type,value,status,used_by,used_at) VALUES('new-offline','balance',3,'used',1,NOW());`)
+	require.NoError(t, err)
+	state, err = r.GetUserState(ctx, 1, now, c)
+	require.NoError(t, err)
+	require.Equal(t, "13.00000000", state.PaidCreditUSD, "new credits are visible immediately, refunded orders stay excluded")
+	result, err := r.Claim(ctx, 1, now, func(service.CheckinConfig, service.CheckinInputs) (service.CheckinDraw, error) {
+		return service.CheckinDraw{Amount: "0.01", Weights: []int64{8500, 700, 400, 200, 150, 50}}, nil
+	})
+	require.NoError(t, err, "manual and code credits must also satisfy claim eligibility")
+	require.True(t, result.Created)
+	state, err = r.GetUserState(ctx, 1, now, c)
+	require.NoError(t, err)
+	require.Equal(t, "13.00000000", state.PaidCreditUSD, "checkin rewards never increase eligible credit")
+}
+
 func TestCheckinPostgresPaidCreditRefundCurrencyAndEligibility(t *testing.T) {
 	db := checkinTestDB(t)
 	seedCheckinUser(t, db, 1)

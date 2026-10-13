@@ -149,9 +149,18 @@ func checkinDaily(ctx context.Context, q checkinQuery, user int64, date string) 
 	return v, err
 }
 
-// completed_at proves actual fulfillment. Pending refunds conservatively suspend
-// the entire contribution; settled partial refunds revoke only their paid fraction.
-const checkinPaidSQL = `SELECT COALESCE(SUM(amount),0)::text FROM checkin_paid_contributions WHERE user_id=$1`
+// Online orders retain bonus/refund accounting in their contribution ledger.
+// Manual top-ups and redeemed balance codes use the existing balance history.
+// Payment fulfillment also redeems a code: exclude those codes regardless of
+// order status so bonuses and refunded amounts cannot re-enter eligibility.
+const checkinPaidSQL = `SELECT (
+ COALESCE((SELECT SUM(amount) FROM checkin_paid_contributions WHERE user_id=$1),0)
+ + COALESCE((SELECT SUM(r.value) FROM redeem_codes r
+   WHERE r.used_by=$1 AND r.status='used' AND r.used_at IS NOT NULL
+     AND r.type IN ('balance','admin_balance') AND r.value>0
+     AND NOT EXISTS (SELECT 1 FROM payment_orders p WHERE p.recharge_code=r.code)
+ ),0)
+)::numeric(20,8)::text`
 
 func checkinState(ctx context.Context, q checkinQuery, user int64, now time.Time, c service.CheckinConfig, lock bool) (*service.CheckinInputs, error) {
 	v := &service.CheckinInputs{UserID: user}
