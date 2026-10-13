@@ -34,6 +34,8 @@ export const useAppStore = defineStore('app', () => {
   const docUrl = ref<string>('')
   const cachedPublicSettings = ref<PublicSettings | null>(null)
   let publicSettingsRequest: Promise<PublicSettings | null> | null = null
+  let publicSettingsAppliedAt = 0
+  const publicSettingsCacheTTL = 60000
 
   // Version cache state
   const versionLoaded = ref<boolean>(false)
@@ -301,6 +303,7 @@ export const useAppStore = defineStore('app', () => {
     apiBaseUrl.value = config.api_base_url || ''
     docUrl.value = config.doc_url || ''
     publicSettingsLoaded.value = true
+    publicSettingsAppliedAt = Date.now()
   }
 
   /**
@@ -321,7 +324,7 @@ export const useAppStore = defineStore('app', () => {
     }
 
     // Return cached data if available and not forcing refresh
-    if (publicSettingsLoaded.value && !force) {
+    if (publicSettingsLoaded.value && !force && Date.now() - publicSettingsAppliedAt < publicSettingsCacheTTL) {
       if (cachedPublicSettings.value) {
         return Promise.resolve({ ...cachedPublicSettings.value })
       }

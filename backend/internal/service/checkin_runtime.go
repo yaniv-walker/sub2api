@@ -21,6 +21,9 @@ func (s *SettingService) CheckinEnabled(ctx context.Context) bool {
 	if s == nil || s.checkinRepo == nil {
 		return false
 	}
-	cfg, err := s.checkinRepo.GetConfig(ctx, time.Now(), false)
+	// This public flag controls discovery of the activity, not permission to
+	// claim. A published, scheduled activity has an entry before it opens;
+	// status and claim continue to use the effective rule at the server time.
+	cfg, err := s.checkinRepo.GetConfig(ctx, time.Now(), true)
 	return err == nil && cfg.Enabled
 }

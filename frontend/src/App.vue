@@ -61,6 +61,7 @@ watch(
 // Watch for authentication state and manage subscription data + announcements
 function onVisibilityChange() {
   if (document.visibilityState === 'visible' && authStore.isAuthenticated) {
+    void appStore.fetchPublicSettings(true)
     announcementStore.fetchAnnouncements()
   }
 }
@@ -93,6 +94,7 @@ watch(
   () => authStore.isAuthenticated,
   (isAuthenticated, oldValue) => {
     if (isAuthenticated) {
+      void appStore.fetchPublicSettings(true)
       if (authStore.isAdmin) {
         adminComplianceStore.fetchStatus().catch((error) => {
           console.error('Failed to fetch admin compliance status:', error)
@@ -134,7 +136,12 @@ router.afterEach(() => {
   }
 })
 
+let publicSettingsTimer: ReturnType<typeof setInterval> | undefined
+let appUnmounted = false
+
 onBeforeUnmount(() => {
+  appUnmounted = true
+  clearInterval(publicSettingsTimer)
   document.removeEventListener('visibilitychange', onVisibilityChange)
   window.removeEventListener('admin-compliance-required', onAdminComplianceRequired)
 })
@@ -155,6 +162,12 @@ onMounted(async () => {
 
   // Load public settings into appStore (will be cached for other components)
   await appStore.fetchPublicSettings()
+  if (appUnmounted) return
+  publicSettingsTimer = setInterval(() => {
+    if (document.visibilityState === 'visible' && authStore.isAuthenticated) {
+      void appStore.fetchPublicSettings()
+    }
+  }, 60000)
 
   // Re-resolve document title now that site settings are available
   updateDocumentTitle()
