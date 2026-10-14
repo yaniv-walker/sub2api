@@ -11,7 +11,7 @@
       </div>
       <div class="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <section class="card p-6 text-center"><p class="text-sm text-gray-500">{{ status.business_date }} · {{ status.timezone }} · v{{ status.rule_version }}</p>
-          <CheckinWheel :options="status.reward_options" :result="status.record" :checked-in="status.checked_in" />
+          <CheckinWheel :options="status.reward_options" :result="status.record" :checked-in="status.checked_in" :spinning="claiming" />
           <button data-testid="claim" class="btn btn-primary w-full py-3" :disabled="claiming || uncertain || !status.can_claim || !flagEnabled" @click="claim">{{ claiming ? t('checkin.claiming') : t(`checkin.states.${displayState}`) }}</button>
           <p v-if="!status.eligible" class="mt-3 text-sm text-amber-600">{{ t('checkin.minimum', { amount: status.minimum_paid_credit_usd }) }}</p>
           <p class="mt-3 text-xs text-gray-500">{{ t('checkin.reset') }} {{ formatCheckinTime(status.next_reset_at, locale) }}</p>
