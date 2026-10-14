@@ -11,8 +11,16 @@
       </div>
       <div class="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <section class="card p-6 text-center"><p class="text-sm text-gray-500">{{ status.business_date }} · {{ status.timezone }} · v{{ status.rule_version }}</p>
-          <CheckinWheel :options="status.reward_options" :result="status.record" :checked-in="status.checked_in" :spinning="claiming" />
-          <button data-testid="claim" class="btn btn-primary w-full py-3" :disabled="claiming || uncertain || !status.can_claim || !flagEnabled" @click="claim">{{ claiming ? t('checkin.claiming') : t(`checkin.states.${displayState}`) }}</button>
+          <CheckinWheel :options="status.reward_options" :result="adminTestMode ? testResult : status.record" :checked-in="!adminTestMode && status.checked_in" :spinning="claiming || testSpinning" :preview="adminTestMode" />
+          <div v-if="auth.isAdmin" class="mb-4 rounded-lg border border-gray-200 p-3 text-left dark:border-dark-700">
+            <label class="flex items-center gap-2 text-sm font-medium"><input v-model="testMode" data-testid="wheel-test-mode" type="checkbox" :disabled="claiming || testBusy" />{{ t('checkin.testMode') }}</label>
+            <p class="mt-1 text-xs text-gray-500">{{ t('checkin.testHint') }}</p>
+            <div v-if="adminTestMode" class="mt-3 flex flex-wrap items-center gap-2">
+              <select v-model="testAmount" data-testid="wheel-test-amount" class="input w-auto" :aria-label="t('checkin.testAmount')" :disabled="testBusy"><option v-for="option in status.reward_options" :key="option.amount" :value="option.amount">${{ Number(option.amount) }}</option></select>
+              <button data-testid="wheel-test-spin" class="btn btn-secondary" :disabled="testBusy || !status.reward_options.length" @click="testSpin">{{ t(testBusy ? 'checkin.testSpinning' : 'checkin.testSpin') }}</button>
+            </div>
+          </div>
+          <button data-testid="claim" class="btn btn-primary w-full py-3" :disabled="adminTestMode || claiming || uncertain || !status.can_claim || !flagEnabled" @click="claim">{{ claiming ? t('checkin.claiming') : t(`checkin.states.${displayState}`) }}</button>
           <p v-if="!status.eligible" class="mt-3 text-sm text-amber-600">{{ t('checkin.minimum', { amount: status.minimum_paid_credit_usd }) }}</p>
           <p class="mt-3 text-xs text-gray-500">{{ t('checkin.reset') }} {{ formatCheckinTime(status.next_reset_at, locale) }}</p>
         </section>
@@ -27,7 +35,7 @@
 </template>
 <script setup lang="ts">
 import { formatCheckinTime } from '@/components/user/checkin/time'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import RewardHistory from '@/components/user/checkin/RewardHistory.vue'
@@ -46,6 +54,27 @@ const history = ref<CheckinRecord[]>([]), nextCursor = ref(0), historyLoading = 
 const bonusKeys = ['recharge_bps', 'balance_bps', 'requests_bps'] as const
 const flagEnabled = computed(() => isFeatureFlagEnabled(FeatureFlags.checkin))
 const displayState = computed(() => !flagEnabled.value || !status.value?.enabled ? 'disabled' : status.value.checked_in ? 'checked_in' : status.value.state)
+const testMode = ref(false), testBusy = ref(false), testSpinning = ref(false), testAmount = ref('')
+const testResult = ref<Pick<CheckinRecord, 'id' | 'reward_amount'> | null>(null)
+const adminTestMode = computed(() => auth.isAdmin && testMode.value)
+let testTimer: ReturnType<typeof setTimeout> | undefined
+let testFinishTimer: ReturnType<typeof setTimeout> | undefined
+let testSequence = 0
+function resetTest() {
+  clearTimeout(testTimer); clearTimeout(testFinishTimer)
+  testBusy.value = false; testSpinning.value = false; testResult.value = null
+}
+watch(adminTestMode, () => { resetTest(); testAmount.value = status.value?.reward_options[0]?.amount ?? '' })
+function testSpin() {
+  if (!adminTestMode.value || testBusy.value || !status.value?.reward_options.some(option => option.amount === testAmount.value)) return
+  testBusy.value = true; testSpinning.value = true; testResult.value = null
+  const amount = testAmount.value
+  testTimer = setTimeout(() => {
+    testResult.value = { id: ++testSequence, reward_amount: amount }
+    testSpinning.value = false
+    testFinishTimer = setTimeout(() => { testBusy.value = false }, 3100)
+  }, 500)
+}
 let resetTimer: ReturnType<typeof setTimeout> | undefined
 let disposed = false
 function scheduleReset() {
@@ -56,7 +85,7 @@ function scheduleReset() {
 }
 let privacyTimer: ReturnType<typeof setTimeout> | undefined
 function reveal() { visible.value = true; clearTimeout(privacyTimer); privacyTimer = setTimeout(() => { visible.value = false }, 2000) }
-onUnmounted(() => { disposed = true; clearTimeout(privacyTimer); clearTimeout(resetTimer) })
+onUnmounted(() => { disposed = true; clearTimeout(privacyTimer); clearTimeout(resetTimer); resetTest() })
 async function loadHistory(append = false) {
   if (historyLoading.value) return
   historyLoading.value = true; historyError.value = ''
@@ -73,7 +102,7 @@ async function load() {
 }
 async function reconcile() { status.value = await checkinAPI.status(); scheduleReset(); return status.value.checked_in }
 async function claim() {
-  if (claiming.value || uncertain.value || !status.value?.can_claim || !flagEnabled.value) return
+  if (adminTestMode.value || claiming.value || uncertain.value || !status.value?.can_claim || !flagEnabled.value) return
   claiming.value = true; error.value = ''
   let credited = false
   try {

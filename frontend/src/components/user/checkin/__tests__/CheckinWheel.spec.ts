@@ -10,6 +10,13 @@ beforeEach(() => vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false }))))
 afterEach(() => vi.unstubAllGlobals())
 
 describe('CheckinWheel', () => {
+  it('trims redundant decimal zeros and distinguishes simulated rewards', () => {
+    const view = mount(CheckinWheel, { props: { options, result: { id: 2, reward_amount: '0.01000000' }, preview: true } })
+    expect(view.get('[data-testid="wheel-amount"]').text()).toBe('+$0.01')
+    expect(view.text()).toContain('checkin.testNotCredited')
+    expect(view.text()).not.toContain('checkin.credited')
+    view.unmount()
+  })
   it('spins while the request is pending, then stops at the server reward', async () => {
     let callback!: FrameRequestCallback
     vi.stubGlobal('requestAnimationFrame', vi.fn((fn: FrameRequestCallback) => { callback = fn; return 1 }))

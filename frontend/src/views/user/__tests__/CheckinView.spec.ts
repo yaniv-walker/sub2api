@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import CheckinView from '../CheckinView.vue'
-const mocks = vi.hoisted(() => ({ status: vi.fn(), claim: vi.fn(), history: vi.fn(), refreshUser: vi.fn(), showSuccess: vi.fn(), showWarning: vi.fn() }))
+const mocks = vi.hoisted(() => ({ isAdmin: false, status: vi.fn(), claim: vi.fn(), history: vi.fn(), refreshUser: vi.fn(), showSuccess: vi.fn(), showWarning: vi.fn() }))
 vi.mock('@/api/checkin', () => ({ checkinAPI: mocks }))
-vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ refreshUser: mocks.refreshUser }) }))
+vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ isAdmin: mocks.isAdmin, refreshUser: mocks.refreshUser }) }))
 vi.mock('@/stores/app', () => ({ useAppStore: () => ({ showSuccess: mocks.showSuccess, showWarning: mocks.showWarning }) }))
 vi.mock('@/utils/featureFlags', () => ({ FeatureFlags: { checkin: {} }, isFeatureFlagEnabled: () => true }))
 vi.mock('vue-i18n', async () => ({ ...await vi.importActual<typeof import('vue-i18n')>('vue-i18n'), useI18n: () => ({ locale: 'zh', t: (key: string) => key }) }))
@@ -11,7 +11,34 @@ const baseStatus = { can_claim: true, enabled: true, checked_in: false, eligible
 const record = { reward_amount: '0.15' }
 function render() { return mount(CheckinView, { global: { stubs: { AppLayout: { template: '<div><slot /></div>' }, RewardHistory: true, CheckinCycleCard: true } } }) }
 describe('Check-in claiming', () => {
-  beforeEach(() => { vi.clearAllMocks(); mocks.status.mockResolvedValue(baseStatus); mocks.history.mockResolvedValue({ items: [], next_cursor: 0 }); mocks.refreshUser.mockResolvedValue({}) })
+  it('does not expose test controls to ordinary users', async () => {
+    const view = render(); await flushPromises()
+    expect(view.find('[data-testid="wheel-test-mode"]').exists()).toBe(false)
+    view.unmount()
+  })
+  it('lets administrators repeat simulated spins without claiming or updating account data', async () => {
+    vi.useFakeTimers()
+    mocks.isAdmin = true
+    mocks.status.mockResolvedValue({ ...baseStatus, checked_in: true, can_claim: false, record, reward_options: [{ amount: '0.30', weight: 10000 }] })
+    const view = render(); await flushPromises()
+    await view.get('[data-testid="wheel-test-mode"]').setValue(true)
+    expect(view.get('[data-testid="claim"]').attributes('disabled')).toBeDefined()
+    for (let index = 0; index < 2; index++) {
+      await view.get('[data-testid="wheel-test-spin"]').trigger('click')
+      expect(view.get('[data-testid="wheel-test-spin"]').attributes('disabled')).toBeDefined()
+      vi.advanceTimersByTime(500); await view.vm.$nextTick()
+      expect(view.get('[data-testid="wheel-amount"]').text()).toBe('+$0.30')
+      expect(view.text()).toContain('checkin.testNotCredited')
+      vi.advanceTimersByTime(3100); await view.vm.$nextTick()
+      expect(view.get('[data-testid="wheel-test-spin"]').attributes('disabled')).toBeUndefined()
+    }
+    expect(mocks.claim).not.toHaveBeenCalled()
+    expect(mocks.refreshUser).not.toHaveBeenCalled()
+    await view.get('[data-testid="wheel-test-mode"]').setValue(false)
+    expect(view.get('[data-testid="wheel-amount"]').text()).toBe('+$0.15')
+    view.unmount(); expect(vi.getTimerCount()).toBe(0); vi.useRealTimers()
+  })
+  beforeEach(() => { mocks.isAdmin = false; vi.clearAllMocks(); mocks.status.mockResolvedValue(baseStatus); mocks.history.mockResolvedValue({ items: [], next_cursor: 0 }); mocks.refreshUser.mockResolvedValue({}) })
   it('reconciles a timed-out request that actually credited and refreshes balance', async () => {
     mocks.claim.mockRejectedValue(new Error('timeout'))
     const view = render(); await flushPromises()

@@ -1,5 +1,6 @@
 export default {
   checkin: {
+    testMode: '管理员转盘测试', testHint: '仅模拟旋转，可重复测试；不会增加余额、写入奖励流水或修改签到记录。', testAmount: '测试奖励金额', testSpin: '模拟旋转', testSpinning: '模拟旋转中…', testPreview: '测试预览', testNotCredited: '模拟 · 不入账',
     cycleTitle: '连续签到高级奖励', cycleTimeline: '本周期 {count} / {total} 天 · 距离奖励还有 {remaining} 天', requestCount: '{count} 次', notCheckedIn: '未签到', cycleDayDetails: '{checked} · 有效请求 {count} / {threshold} 次', cycleSettlement: '每天签到并达到 {requests} 次有效请求记为达标，连续第 {days} 天后于 {time}（北京时间）结算。',
     dateFrom: '开始业务日期（北京）', dateTo: '结束业务日期（北京）', allRewards: '全部奖励类型', actualBudget: '实际每日预算', actualBudgetHint: '展示所选日期范围内最近 30 个预算日。已支出包含预留转实付，周期预算归属原承诺日。', limit_usd: '预算上限', spent_usd: '已支出', reserved_usd: '已预留', remaining_usd: '可用余额', budgetFailed: '实际预算加载失败', invalidDates: '开始日期不能晚于结束日期',
     todayRequests: '今日有效请求', requestsHint: '按北京时间当日统计的活动有效请求', rewardCreditHint: '奖励独立入账余额，不计入有效付费额度。', cycleRule: '连续 {days} 天每日签到并完成 {requests} 次有效请求，可获得 ${reward}。', cycleDisabled: '连续活跃奖励未开启',
