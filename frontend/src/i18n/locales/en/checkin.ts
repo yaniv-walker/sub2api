@@ -1,5 +1,6 @@
 export default {
   checkin: {
+    wheelAnimation: 'Play wheel animation',
     testMode: 'Administrator wheel test', testHint: 'Repeat animation tests without changing balances, reward history or check-in records.', testAmount: 'Test reward amount', testSpin: 'Test spin', testSpinning: 'Testing…', testPreview: 'Test preview', testNotCredited: 'Simulation · no credit',
     cycleTitle: 'Advanced check-in streak reward', cycleTimeline: 'Day {count} / {total} · {remaining} days remaining', requestCount: '{count} requests', notCheckedIn: 'Not checked in', cycleDayDetails: '{checked} · {count} / {threshold} valid requests', cycleSettlement: 'Check in and complete {requests} valid requests each day. The {days}-day streak settles at {time} (Beijing time).',
     dateFrom: 'Business date from (Beijing)', dateTo: 'Business date to (Beijing)', allRewards: 'All rewards', actualBudget: 'Actual daily budget', actualBudgetHint: 'Latest 30 budget days within the selected dates. Spending includes settled reservations; cycle budgets belong to the original commitment date.', limit_usd: 'Budget', spent_usd: 'Spent', reserved_usd: 'Reserved', remaining_usd: 'Remaining', budgetFailed: 'Failed to load actual budgets', invalidDates: 'Start date must not be after end date',

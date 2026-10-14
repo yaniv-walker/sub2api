@@ -10,6 +10,15 @@ beforeEach(() => vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false }))))
 afterEach(() => vi.unstubAllGlobals())
 
 describe('CheckinWheel', () => {
+  it('plays an explicitly enabled draw even when the browser requests reduced motion', () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true })))
+    const raf = vi.fn(() => 1)
+    vi.stubGlobal('requestAnimationFrame', raf)
+    vi.stubGlobal('cancelAnimationFrame', vi.fn())
+    const view = mount(CheckinWheel, { props: { options, result: null, spinning: true, animate: true } })
+    expect(raf).toHaveBeenCalled()
+    view.unmount()
+  })
   it('trims redundant decimal zeros and distinguishes simulated rewards', () => {
     const view = mount(CheckinWheel, { props: { options, result: { id: 2, reward_amount: '0.01000000' }, preview: true } })
     expect(view.get('[data-testid="wheel-amount"]').text()).toBe('+$0.01')
@@ -30,8 +39,15 @@ describe('CheckinWheel', () => {
     await view.setProps({ result: record })
     expect(view.get('[data-testid=checkin-wheel]').attributes('style')).not.toContain('transform 3s')
     await view.setProps({ spinning: false })
+    expect(view.get('[data-testid=checkin-wheel]').attributes('data-spin-phase')).toBe('settling')
+    callback(300); callback(1800)
+    await view.vm.$nextTick()
+    expect(view.get('[data-testid=checkin-wheel]').attributes('style')).not.toContain('rotate(72deg)')
+    await view.setProps({ options: options.map(option => ({ ...option })) })
+    expect(view.get('[data-testid=checkin-wheel]').attributes('data-spin-phase')).toBe('settling')
+    callback(3300)
+    await view.vm.$nextTick()
     const style = view.get('[data-testid=checkin-wheel]').attributes('style')
-    expect(style).toContain('transform 3s')
     // Fourth sector centre is 210 degrees clockwise from the top.
     // Final rotation 1950 modulo 360 is 150: 210 + 150 = 360.
     expect(style).toContain('rotate(1950deg)')
@@ -55,11 +71,11 @@ describe('CheckinWheel', () => {
     view.unmount()
   })
 
-  it('respects reduced-motion preferences while still pointing to the reward', async () => {
+  it('allows the user to explicitly disable animation while still pointing to the reward', async () => {
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true })))
     const raf = vi.fn()
     vi.stubGlobal('requestAnimationFrame', raf)
-    const view = mount(CheckinWheel, { props: { options, result: null, spinning: true } })
+    const view = mount(CheckinWheel, { props: { options, result: null, spinning: true, animate: false } })
     await view.setProps({ spinning: false, result: record })
     expect(raf).not.toHaveBeenCalled()
     expect(view.get('[data-testid=checkin-wheel]').attributes('style')).toContain('rotate(150deg)')

@@ -11,7 +11,8 @@
       </div>
       <div class="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <section class="card p-6 text-center"><p class="text-sm text-gray-500">{{ status.business_date }} · {{ status.timezone }} · v{{ status.rule_version }}</p>
-          <CheckinWheel :options="status.reward_options" :result="adminTestMode ? testResult : status.record" :checked-in="!adminTestMode && status.checked_in" :spinning="claiming || testSpinning" :preview="adminTestMode" />
+          <CheckinWheel :options="status.reward_options" :result="adminTestMode ? testResult : status.record" :checked-in="!adminTestMode && status.checked_in" :spinning="claiming || testSpinning" :preview="adminTestMode" :animate="wheelAnimation" />
+          <label class="mb-4 flex items-center justify-center gap-2 text-sm text-gray-500"><input v-model="wheelAnimation" data-testid="wheel-animation" type="checkbox" />{{ t('checkin.wheelAnimation') }}</label>
           <div v-if="auth.isAdmin" class="mb-4 rounded-lg border border-gray-200 p-3 text-left dark:border-dark-700">
             <label class="flex items-center gap-2 text-sm font-medium"><input v-model="testMode" data-testid="wheel-test-mode" type="checkbox" :disabled="claiming || testBusy" />{{ t('checkin.testMode') }}</label>
             <p class="mt-1 text-xs text-gray-500">{{ t('checkin.testHint') }}</p>
@@ -55,6 +56,7 @@ const bonusKeys = ['recharge_bps', 'balance_bps', 'requests_bps'] as const
 const flagEnabled = computed(() => isFeatureFlagEnabled(FeatureFlags.checkin))
 const displayState = computed(() => !flagEnabled.value || !status.value?.enabled ? 'disabled' : status.value.checked_in ? 'checked_in' : status.value.state)
 const testMode = ref(false), testBusy = ref(false), testSpinning = ref(false), testAmount = ref('')
+const wheelAnimation = ref(true)
 const testResult = ref<Pick<CheckinRecord, 'id' | 'reward_amount'> | null>(null)
 const adminTestMode = computed(() => auth.isAdmin && testMode.value)
 let testTimer: ReturnType<typeof setTimeout> | undefined
