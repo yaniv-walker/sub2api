@@ -76,6 +76,18 @@ vi.mock('@/api/auth', () => ({
 }))
 
 describe('useAppStore', () => {
+  it('refreshes a stale activity switch instead of keeping a hidden menu forever', async () => {
+    const store = useAppStore()
+    vi.mocked(getPublicSettings)
+      .mockResolvedValueOnce(createPublicSettings({ checkin_enabled: false }))
+      .mockResolvedValueOnce(createPublicSettings({ checkin_enabled: true }))
+    await store.fetchPublicSettings()
+    expect(store.cachedPublicSettings?.checkin_enabled).toBe(false)
+    vi.advanceTimersByTime(61000)
+    await store.fetchPublicSettings()
+    expect(store.cachedPublicSettings?.checkin_enabled).toBe(true)
+    expect(getPublicSettings).toHaveBeenCalledTimes(2)
+  })
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.useFakeTimers()

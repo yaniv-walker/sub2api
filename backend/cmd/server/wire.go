@@ -104,6 +104,7 @@ func provideInternalPluginLogger() *slog.Logger {
 }
 
 func provideCleanup(
+	checkinService *service.CheckinService,
 	entClient *ent.Client,
 	rdb *redis.Client,
 	opsMetricsCollector *service.OpsMetricsCollector,
@@ -153,6 +154,9 @@ func provideCleanup(
 	internalPluginManager *plugin.Manager,
 ) func() {
 	return func() {
+		if checkinService != nil {
+			checkinService.Stop()
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 

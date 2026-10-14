@@ -31,6 +31,15 @@ func RegisterAdminRoutes(
 	admin.Use(gin.HandlerFunc(auditLog))
 	admin.Use(middleware.AdminComplianceGuard(settingService))
 	{
+		if h.Checkin != nil {
+			admin.GET("/settings/checkin", h.Checkin.AdminConfig)
+			admin.PUT("/settings/checkin", h.Checkin.AdminUpdateConfig)
+			admin.GET("/checkin/rewards", panelRateLimiter.Heavy(), h.Checkin.AdminHistory)
+			admin.GET("/checkin/budgets", h.Checkin.AdminBudgets)
+			admin.GET("/checkin/cycles", panelRateLimiter.Heavy(), h.Checkin.AdminCycles)
+			admin.POST("/checkin/settlements/:id/resolve", h.Checkin.AdminResolveCycle)
+		}
+
 		// 部署与运营合规确认
 		registerAdminComplianceRoutes(admin, h)
 

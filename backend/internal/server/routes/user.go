@@ -25,6 +25,14 @@ func RegisterUserRoutes(
 	// 用户管理面变更类操作入审计（含 TOTP 启用/禁用、step-up 验证、密码修改等安全事件）
 	authenticated.Use(gin.HandlerFunc(auditLog))
 	{
+		if h.Checkin != nil {
+			checkin := authenticated.Group("/checkin")
+			checkin.GET("/status", h.Checkin.Status)
+			checkin.GET("/history", h.Checkin.History)
+			checkin.GET("/cycle", h.Checkin.Cycle)
+			checkin.POST("/claim", panelRateLimiter.Heavy(), h.Checkin.Claim)
+		}
+
 		// 教程中心（登录用户只读）
 		authenticated.GET("/tutorials", h.Tutorial.List)
 		authenticated.GET("/tutorials/:slug", h.Tutorial.Get)

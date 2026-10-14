@@ -63,6 +63,8 @@ declare module 'vue-router' {
 
     /** Whether this route requires the tutorial and support feature switch. */
     requiresTutorial?: boolean
+    /** Load settings while retaining disabled activity history access. */
+    requiresCheckin?: boolean
 
     /**
      * i18n key for the page title
