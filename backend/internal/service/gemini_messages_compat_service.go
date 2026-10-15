@@ -1019,7 +1019,7 @@ func (s *GeminiMessagesCompatService) Forward(ctx context.Context, c *gin.Contex
 		firstTokenMs = streamRes.firstTokenMs
 	} else {
 		if useUpstreamStream {
-			collected, usageObj, err := collectGeminiSSE(resp.Body, true)
+			collected, usageObj, err := s.collectMessagesSSE(resp.Body)
 			if err != nil {
 				return nil, s.writeClaudeError(c, http.StatusBadGateway, "upstream_error", "Failed to read upstream stream")
 			}
@@ -1027,11 +1027,15 @@ func (s *GeminiMessagesCompatService) Forward(ctx context.Context, c *gin.Contex
 			upstreamResponseModelObserverFromContext(c).ObserveGemini(collectedBytes)
 			observeGeminiImageOutputs(c, collectedBytes)
 			claudeResp, usageObj2 := convertGeminiToClaudeMessage(collected, originalModel, collectedBytes, false)
-			c.JSON(http.StatusOK, claudeResp)
 			usage = usageObj2
 			if usageObj != nil && (usageObj.InputTokens > 0 || usageObj.OutputTokens > 0) {
 				usage = usageObj
 			}
+			if s.messagesUsageReconciliationEnabled() {
+				usage = usageObj
+				claudeResp["usage"] = geminiMessagesUsageMap(*usage)
+			}
+			c.JSON(http.StatusOK, claudeResp)
 		} else {
 			usage, err = s.handleNonStreamingResponse(c, resp, originalModel)
 			if err != nil {
@@ -2089,12 +2093,21 @@ func (s *GeminiMessagesCompatService) handleNonStreamingResponse(c *gin.Context,
 	}
 
 	claudeResp, usage := convertGeminiToClaudeMessage(geminiResp, originalModel, unwrappedBody, false)
+	if s.messagesUsageReconciliationEnabled() {
+		a := newGeminiMessagesUsageAccumulator()
+		a.observe(unwrappedBody)
+		u, _ := a.usage()
+		usage = &u
+		claudeResp["usage"] = geminiMessagesUsageMap(u)
+	}
 	c.JSON(http.StatusOK, claudeResp)
 
 	return usage, nil
 }
 
 func (s *GeminiMessagesCompatService) handleStreamingResponse(c *gin.Context, resp *http.Response, startTime time.Time, originalModel string) (*geminiStreamResult, error) {
+	reconcileUsage := s.messagesUsageReconciliationEnabled()
+	usageAccumulator := newGeminiMessagesUsageAccumulator()
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
@@ -2319,7 +2332,12 @@ func (s *GeminiMessagesCompatService) handleStreamingResponse(c *gin.Context, re
 			}
 		}
 
-		if u := extractGeminiUsage(unwrappedBytes); u != nil {
+		if reconcileUsage {
+			usageAccumulator.observe(unwrappedBytes)
+			if u, ok := usageAccumulator.usage(); ok {
+				usage = u
+			}
+		} else if u := extractGeminiUsage(unwrappedBytes); u != nil {
 			usage = *u
 		}
 
@@ -2352,6 +2370,9 @@ func (s *GeminiMessagesCompatService) handleStreamingResponse(c *gin.Context, re
 	}
 	if usage.InputTokens > 0 {
 		usageObj["input_tokens"] = usage.InputTokens
+	}
+	if reconcileUsage {
+		usageObj = geminiMessagesUsageMap(usage)
 	}
 	writeSSE(c.Writer, "message_delta", map[string]any{
 		"type": "message_delta",

@@ -2726,3 +2726,19 @@ func TestLoadSimpleModeAutoCreateDefaultGroups(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadGeminiMessagesUsageReconciliationFromEnv(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	t.Setenv("GATEWAY_GEMINI_MESSAGES_USAGE_RECONCILIATION_ENABLED", "true")
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.True(t, cfg.Gateway.GeminiMessagesUsageReconciliationEnabled)
+}
+
+func TestLoadGeminiMessagesUsageReconciliationDefaultOff(t *testing.T) {
+	resetViperWithJWTSecret(t)
+	t.Setenv("GATEWAY_GEMINI_MESSAGES_USAGE_RECONCILIATION_ENABLED", "false")
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.False(t, cfg.Gateway.GeminiMessagesUsageReconciliationEnabled)
+}

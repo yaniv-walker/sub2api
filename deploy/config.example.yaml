@@ -248,6 +248,9 @@ gateway:
   # Enable Gemini upstream response header debug logs (default: false)
   # 是否开启 Gemini 上游响应头调试日志（默认 false）
   gemini_debug_response_headers: false
+  # Preserve Gemini Messages cache usage across partial stream snapshots (default off).
+  # 在 Gemini Messages 流中合并分段 usage 并向客户端返回缓存 token（默认关闭）。
+  gemini_messages_usage_reconciliation_enabled: false
   # Maximum TTL (seconds) a Gemini explicit context cache may be created or extended to (default: 86400)
   # Gemini 显式上下文缓存单次可设置的最长有效期（秒，默认 86400）；存储费在创建/延长请求中一次性收取
   gemini_cached_content_max_ttl_seconds: 86400
