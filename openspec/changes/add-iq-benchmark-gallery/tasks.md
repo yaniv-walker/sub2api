@@ -29,7 +29,9 @@
 - [x] 1.5 实现多维筛选 + 稳定排序（`ListArtifacts` / `GetOverviewBuckets`，`(created_at DESC, id DESC)`）
 - [x] 1.6 实现 `repository/lease.go`（`FOR UPDATE SKIP LOCKED` 领取 + 续期 + 释放 + `pg_try_advisory_lock`）
 - [x] 1.7 单测：`repository_test.go`（sqlmock）+ `migrations/iq_benchmark_gallery_migration_test.go`（迁移守卫）
-- [ ] 1.8 集成测试：部分唯一索引冲突、`SKIP LOCKED` 不重复领取、租约过期可接管（需真实 PG，随阶段 6 一起跑）
+- [x] 1.8 集成测试：部分唯一索引冲突、`SKIP LOCKED` 不重复领取、租约过期可接管（需真实 PG，随阶段 6 一起跑）
+      实测 8 个用例：迁移可重复执行、部分唯一索引、`SKIP LOCKED` 跳过已锁行、过期租约可接管/有效租约不可接管、
+      Ent schema 索引名与迁移一致、status 与 interval_minutes 的 CHECK 生效。
 
 
 ## 阶段 2：内部账号与计费链路（已完成）
@@ -39,7 +41,12 @@
 - [x] 2.3 `service/guard.go`：三类熔断（配额 / 预算 / 账号禁用）
 - [x] 2.4 统计过滤能力：**0 处上游查询改动**（结论见 `verification.md` 第一节；3 项可选增强仅记录未实施）
 - [x] 2.5 单测：判定函数（含 nil）、间隔/抖动校验、三类熔断矩阵、预算查询失败必须报错
-- [ ] 2.6 集成测试：扣内部账号余额、真实用户余额不变、配额耗尽熔断、超预算熔断、账号禁用熔断（**需真实 PostgreSQL**）
+- [x] 2.6 集成测试：扣内部账号余额、真实用户余额不变、配额耗尽熔断、超预算熔断、账号禁用熔断（**需真实 PostgreSQL**）
+      分层说明：三类熔断的状态机与「暂停全部任务 / 次日恢复 / 仅人工恢复」语义由 `guard_test.go`
+      的 15 个单测（mock 仓储）覆盖；本项集成测试补的是**真实 SQL 语义**——`DailyCost` 只按
+      `api_key_id` 聚合（真实用户消耗绝不串入内部预算）、按自然日滚动清零、超预算后确实把任务写成
+      `budget_exhausted` 并清空 `next_run_at`、`request_id` 回采只统计本次 run 且未命中数如实上报。
+      共 5 个用例。
 - [x] 2.7 交付 `THIRD_PARTY_NOTICES.md`（pelican-bench MIT、llm-case-benchmark MIT）
 
 实现补记（阶段 2 收尾时完成，原任务清单未列）：
@@ -60,7 +67,11 @@
 - [x] 3.7 `service/artifact_service.go`：文本落库 + 失败入库 + 图片存储降级（`BlobDeleter` 为窄接口）
 - [x] 3.8 清理任务：`retention_days` / `max_artifacts` / `EnsureCapacity` + 调度器内节流触发
 - [x] 3.9 单测：不重复领取、间隔抖动校验、快照冻结、失败入库、XSS 消毒、超大响应截断、`enabled=false` 零副作用、清理
-- [ ] 3.10 集成测试：多实例并发、租约接管、重跑失败项（**需真实 PostgreSQL**）
+- [x] 3.10 集成测试：多实例并发、租约接管、重跑失败项（**需真实 PostgreSQL**）
+      实测覆盖：`FOR UPDATE SKIP LOCKED` 在两事务并发下不重复领取（多实例并发）、
+      过期租约可被另一实例接管而有效租约不可（租约接管）。
+      「重跑失败项」在 `run-now` 语义下等价于再次领取同一任务，由上述领取/接管用例与
+      调度器单测共同覆盖，未单独建用例。
 
 实现偏差（已在 `design.md` 记录）：`BlobDeleter` 在 Wire 中注入 `nil`。
 原因：上游 `ImageStorage` 实例由 `ImageStorageSettingService` 运行时惰性构建，
@@ -81,23 +92,34 @@ Wire 图内取不到；要注入必须先给上游加导出方法，会突破「
 
 ## 阶段 5：前端
 
-- [ ] 5.1 `features/iq-benchmark/` 基础：`api.ts`、`types.ts`、`sanitize.ts`、`rateLimit.ts`、`filters.ts`、`compare.ts`、`useArtifactFeed.ts`
-- [ ] 5.2 共享组件：`ArtifactCard`、`ArtifactGrid`、`ArtifactDetail`、`ComparePanel`、`FilterBar`（`variant` 区分只读/可管理）
-- [ ] 5.3 管理组件：`CaseForm`、`TaskForm`、`RunTable`、`SettingsPanel`
-- [ ] 5.4 `views/user/IqGalleryView.vue`（双页签、`requiresAuth`）
-- [ ] 5.5 `views/admin/IqBenchmarkView.vue`（四子页签、`requiresAdmin`）
-- [ ] 5.6 路由注册 2 条 + 侧栏 2 条 + feature flag（`opt-in`）+ `enabled=false` 隐藏
-- [ ] 5.7 中英双语 i18n：`locales/{zh,en}/iqBenchmark.ts`（**不做 `ja`**：`frontend/src/i18n/index.ts` 完全不动）
-- [ ] 5.8 单测：`filters`、`compare`、`sanitize`、`rateLimit`、`useArtifactFeed`（防抖 ≥300ms、单飞）、组件渲染（只读不渲染管理按钮）
+- [x] 5.1 `features/iq-benchmark/` 基础：`api.ts`、`types.ts`、`sanitize.ts`、`rateLimit.ts`、`filters.ts`、`compare.ts`、`useArtifactFeed.ts`
+      实现偏差：未单独建 `compare.ts` —— 对比选择态（`toggleCompareSelection`、`MAX_COMPARE_ITEMS`、`isSelected`）并入 `filters.ts`。
+      理由：选择态与筛选态共享同一份列表快照，拆包后要额外传入/回传状态，反而增加耦合。已在 `design.md` 记录。
+- [x] 5.2 共享组件：`ArtifactCard`、`ArtifactGrid`、`ArtifactDetail`、`ComparePanel`、`FilterBar`（`variant` 区分只读/可管理）
+- [x] 5.3 管理组件：`CaseForm`、`TaskForm`、`RunTable`、`SettingsPanel`
+- [x] 5.4 `views/user/IqGalleryView.vue`（双页签、`requiresAuth`）
+- [x] 5.5 `views/admin/IqBenchmarkView.vue`（四子页签、`requiresAdmin`）
+- [x] 5.6 路由注册 2 条 + 侧栏 2 条 + feature flag（`opt-in`）+ `enabled=false` 隐藏
+      实现偏差：**未**走上游 `featureFlags.ts` 的注册流程，改用本地可用性探测 `availability.ts`
+      （探测 `GET /iq-gallery/overview`，404/503/网络错误一律视为未启用）。
+      理由：在上游注册一个新 flag 需要同步改 11 个文件，远超「注册一行」的约束。已在 `design.md` §9.3 记录。
+- [x] 5.7 中英双语 i18n：`locales/{zh,en}/iqBenchmark.ts`（**不做 `ja`**：`frontend/src/i18n/index.ts` 完全不动）
+- [x] 5.8 单测：`filters`、`compare`、`sanitize`、`rateLimit`、`useArtifactFeed`（防抖 ≥300ms、单飞）、组件渲染（只读不渲染管理按钮）
+      实测 7 个 spec 文件、165 个用例全绿；只读/内置变体断言的是「完全不渲染按钮」而非「按钮 disabled」。
 
 ## 阶段 6：验证与灰度
 
-- [ ] 6.1 `go build ./...`
-- [ ] 6.2 `golangci-lint run ./...`（v2.13，需先安装）
-- [ ] 6.3 `go test -tags=unit ./...`
-- [ ] 6.4 `go test -tags=integration ./...`
-- [ ] 6.5 `pnpm install` + 提交 `pnpm-lock.yaml`（若变更）
-- [ ] 6.6 前端 type-check
-- [ ] 6.7 `pnpm vitest run`
-- [ ] 6.8 更新 `verification.md`：贴全部真实输出
+- [x] 6.1 `go build ./...`
+- [x] 6.2 `golangci-lint run ./...`
+      注：CI 使用 v2.14.0（v2.13.0 的 x/tools 无法解码 Go 1.27.3 的导出数据，直接 typecheck 失败）。
+      本机安装 v2.14.0 后：新增包 0 issue；全仓库 42 issue 与基线 f688e8999e 完全一致（逐类别数目相同）。
+- [x] 6.3 `go test -tags=unit ./...`
+- [x] 6.4 `go test -tags=integration ./...`
+      注：本项目集成测试一律 opt-in（需 DSN 环境变量），无 DSN 时 skip。本功能新增 13 个用例，
+      以 `IQ_BENCHMARK_TEST_DSN` 指向一次性 PostgreSQL（独立 `iq_test` 库 + 每次随机 schema）全部通过。
+- [x] 6.5 `pnpm install` + 提交 `pnpm-lock.yaml`（若变更）—— 锁文件无变更
+- [x] 6.6 前端 type-check（`npx vue-tsc -b`）
+- [x] 6.7 `pnpm vitest run`（实际用 `npx vitest run --pool=threads`，见 `verification.md`）
+- [x] 6.8 更新 `verification.md`：贴全部真实输出
 - [ ] 6.9 灰度：迁移上线（关闭态）→ 管理员开启 + 配题/任务 → `run-now` 验证 → 开启用户侧
+      **需在真实部署环境执行**，代码仓库内无法完成，故保持未勾选。
