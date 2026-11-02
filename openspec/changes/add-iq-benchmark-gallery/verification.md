@@ -326,8 +326,9 @@ $ git diff --stat main-self...HEAD -- backend/internal/service backend/internal/
 $ git diff --stat f688e8999e...HEAD -- backend/internal/service backend/internal/handler/dto
 (无输出 → 未改动)
 
-$ git diff --stat f688e8999e...HEAD -- <上游接触面 10 个文件>
- backend/cmd/server/wire.go                      | 10 ++++++++++
+$ git diff --stat f688e8999e...HEAD -- <上游接触面 11 个文件>
+ backend/cmd/server/main.go                      |  8 ++++++++
+ backend/cmd/server/wire.go                      | 12 +++++++++++-
  backend/internal/handler/handler.go             |  4 ++++
  backend/internal/handler/wire.go                |  3 +++
  backend/internal/repository/image_storage_s3.go | 21 +++++++++++++++++++++
@@ -337,24 +338,28 @@ $ git diff --stat f688e8999e...HEAD -- <上游接触面 10 个文件>
  frontend/src/i18n/locales/zh/index.ts           |  2 ++
  frontend/src/router/index.ts                    | 24 ++++++++++++++++++++++++
  frontend/src/views/admin/UsersView.vue          | 24 ++++++++++++++++++++++--
- 10 files changed, 99 insertions(+), 2 deletions(-)
+ 11 files changed, 108 insertions(+), 3 deletions(-)
 ```
 
-**关于 `2 deletions`**：全部来自 `UsersView.vue` 的 `sortedUsers` 计算属性——
-为了让过滤后的数组参与排序，把原有的
-`if (!s) return users.value` / `return [...users.value]` 两行改成引用新局部变量
-`visible`。逐行 diff 已确认**无任何既有行为被删除或改写**：
-`sortedUsers` 的排序语义（含稳定排序、等值按原 index 保序）完全不变，
-只在最前面多了一步「按偏好隐藏内部账号」。
+**关于 `3 deletions`**（逐行核对，无行为删除）：
+- `UsersView.vue`（2 行）：`sortedUsers` 里 `if (!s) return users.value` /
+  `return [...users.value]` 改为引用新局部变量 `visible`；排序语义
+  （含稳定排序、等值按原 index 保序）完全不变，只在最前面多一步
+  「按偏好隐藏内部账号」。
+- `wire.go`（1 行）：`provideCleanup` 的入参由 `iqScheduler *scheduler.Scheduler`
+  换成 `iqRuntime *iqmodule.Runtime`，停止动作改调 `Runtime.Shutdown`
+  （其内部仍调同一个 `Scheduler.Shutdown`，并额外保证顺序与幂等）。
+  这是本功能自己的接线，不属于上游语义。
 
 其余全部是纯追加。逐项说明：
 
 | 文件 | 改动性质 | 行数 |
 |------|---------|------|
+| `backend/cmd/server/main.go` | +1 段 `app.IQBenchmark.Start`（失败只 WARN） | +8 |
+| `backend/cmd/server/wire.go` | +imports +ProviderSet +1 Application 字段 +Cleanup 入参/步骤 | +12 −1 |
 | `backend/internal/handler/handler.go` | +1 import +1 结构体字段 | +4 |
 | `backend/internal/handler/wire.go` | +1 import +1 参数 +1 赋值 | +3 |
 | `backend/internal/server/router.go` | +1 import +1 调用 | +2 |
-| `backend/cmd/server/wire.go` | +imports +ProviderSet +1 参数 +2 Shutdown 步骤 | +10 |
 | `backend/internal/repository/image_storage_s3.go` | **追加** `Delete` 方法（不改 `ImageStorage` 接口签名） | +21 |
 | `frontend/src/router/index.ts` | +2 条路由 | +24 |
 | `frontend/src/components/layout/AppSidebar.vue` | +1 import +1 探测 +2 导航项 | +9 |

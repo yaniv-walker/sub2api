@@ -880,10 +880,11 @@ frontend/src/features/iq-benchmark/
 
 **每个文件的改动都是纯追加**（新增字段/入参/调用/方法），没有修改任何既有语句或既有方法体，因此**上游对这些文件的修改不会与本变更产生语义冲突**，最坏情况是行级 merge 冲突（可人工解决）。
 
-**实测 diff 佐证**（`git diff --stat f688e8999e...HEAD`，10 个上游文件）：
+**实测 diff 佐证**（`git diff --stat f688e8999e...HEAD`，11 个上游文件）：
 
 ```
- backend/cmd/server/wire.go                      | 10 ++++++++++
+ backend/cmd/server/main.go                      |  8 ++++++++
+ backend/cmd/server/wire.go                      | 12 +++++++++++-
  backend/internal/handler/handler.go             |  4 ++++
  backend/internal/handler/wire.go                |  3 +++
  backend/internal/repository/image_storage_s3.go | 21 +++++++++++++++++++++
@@ -893,12 +894,16 @@ frontend/src/features/iq-benchmark/
  frontend/src/i18n/locales/zh/index.ts           |  2 ++
  frontend/src/router/index.ts                    | 24 ++++++++++++++++++++++++
  frontend/src/views/admin/UsersView.vue          | 24 ++++++++++++++++++++++--
- 10 files changed, 99 insertions(+), 2 deletions(-)
+ 11 files changed, 108 insertions(+), 3 deletions(-)
 ```
 
-那 `2 deletions` 全部来自 `UsersView.vue` 的 `sortedUsers`
-（`if (!s) return users.value` / `return [...users.value]` 改为引用 `visible`），
-逐行 diff 已确认没有任何既有行为被删除或改写。
+那 `3 deletions` 来自两处，均已逐行核对，**没有任何既有行为被删除或改写**：
+- `UsersView.vue`（2 行）：`sortedUsers` 里 `if (!s) return users.value` /
+  `return [...users.value]` 改为引用新局部变量 `visible`，排序语义不变；
+- `wire.go`（1 行）：`provideCleanup` 的入参 `iqScheduler *scheduler.Scheduler`
+  换成 `iqRuntime *iqmodule.Runtime`，停止动作由直接调 `Scheduler.Shutdown`
+  改为调 `Runtime.Shutdown`（后者内部仍调同一个 `Scheduler.Shutdown`，
+  且额外负责顺序与幂等）。这是本功能自己的接线，不属于上游语义。
 
 **零改动的确认**：不给 `users` 加列、不给 `usage_logs` 加列、不扩 `users_signup_source_check`、不加 role 枚举、不改内容审核/渠道监控/批量生图/账务配额语义、不改既有路由路径、不改 `config.yaml` 与 `config.Config` 结构体、不改任何既有统计查询。
 
@@ -968,8 +973,9 @@ frontend/src/features/iq-benchmark/
 | 新增 | `openspec/changes/add-iq-benchmark-gallery/**`（含 `research.md`）、`backend/internal/iqbenchmark/THIRD_PARTY_NOTICES.md` | 新文件 |
 
 **总计：后端 6 个既有文件（5 个注册级 + 1 个纯新增方法）、前端 4 个既有文件（均为注册级）。**
-实测 diff：`10 files changed, 99 insertions(+), 2 deletions(-)`
-（那 2 行删除是 `UsersView.vue` 里 `sortedUsers` 的缩进调整，无行为删除）。
+实测 diff：`11 files changed, 108 insertions(+), 3 deletions(-)`
+（3 行删除：`UsersView.vue` 2 行缩进调整 + `wire.go` 1 行把 `Scheduler` 换成 `Runtime`，
+均无行为语义改动）。
 
 不涉及的既有文件：`frontend/src/i18n/index.ts`（不做 `ja`）、
 `backend/internal/service/image_storage.go`（接口不变）、
