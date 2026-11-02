@@ -172,6 +172,14 @@ func runMainServer() {
 			log.Printf("Prompt Audit started in degraded state: %v", err)
 		}
 	}
+	if app.IQBenchmark != nil {
+		// 模型智商检测作品展：enabled=false 时 Start 内部直接返回，
+		// 不创建内部账号、不启动调度器、不产生任何出站请求。
+		// 任何失败都只降级该功能本身，绝不阻塞主 API 启动。
+		if err := app.IQBenchmark.Start(context.Background()); err != nil {
+			log.Printf("IQ Benchmark started in degraded state: %v", err)
+		}
+	}
 
 	// 启动服务器
 	go func() {

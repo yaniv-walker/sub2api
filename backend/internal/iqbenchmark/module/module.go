@@ -50,6 +50,8 @@ var ProviderSet = wire.NewSet(
 	iqbenchmark.NewAgentKeyStore,
 	wire.Bind(new(iqbenchmark.InternalAgentKeyStore), new(*iqbenchmark.AgentKeyStore)),
 	iqbenchmark.NewAgentLocker,
+	// 内部账号初始化用 pg_try_advisory_lock 串行化，避免多实例并发重复建号。
+	wire.Bind(new(iqbenchmark.AdvisoryLocker), new(*repository.Repository)),
 
 	// 配置
 	ProvideSettingsStore,
@@ -73,6 +75,9 @@ var ProviderSet = wire.NewSet(
 
 	// 调度
 	ProvideScheduler,
+
+	// 运行期生命周期（启动调度器 + 初始化内部账号），构造期无副作用
+	ProvideRuntime,
 
 	// HTTP
 	handler.NewAdminHandler,

@@ -17,7 +17,6 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/module"
 	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/ratelimit"
 	repository2 "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository"
-	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/scheduler"
 	service2 "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	"github.com/Wei-Shaw/sub2api/internal/plugin"
@@ -399,6 +398,14 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	}
 	engine := server.ProvideRouter(configConfig, handlerHandlers, jwtAuthMiddleware, optionalJWTAuthMiddleware, adminAuthMiddleware, apiKeyAuthMiddleware, auditLogMiddleware, stepUpAuthMiddleware, apiKeyService, subscriptionService, opsService, settingService, compositeRouteResolver, redisClient, manager)
 	httpServer := server.ProvideHTTPServer(configConfig, engine)
+	scheduler := module.ProvideScheduler(repositoryRepository, runService, guard, settingsProvider, activeDirectory, artifactService, logger)
+	agentUserStore := iqbenchmark.NewAgentUserStore(userRepository)
+	agentKeyStore := iqbenchmark.NewAgentKeyStore(apiKeyRepository)
+	lockAcquirer, err := iqbenchmark.NewAgentLocker(repositoryRepository)
+	if err != nil {
+		return nil, err
+	}
+	runtime := module.ProvideRuntime(scheduler, settingsProvider, activeDirectory, agentUserStore, agentKeyStore, lockAcquirer, logger)
 	opsMetricsCollector := service.ProvideOpsMetricsCollector(opsRepository, settingRepository, accountRepository, concurrencyService, db, redisClient, configConfig)
 	opsAggregationService := service.ProvideOpsAggregationService(opsRepository, settingRepository, db, redisClient, configConfig)
 	opsAlertEvaluatorService := service.ProvideOpsAlertEvaluatorService(opsService, opsRepository, emailService, redisClient, configConfig, proxyRepository)
@@ -418,13 +425,13 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	channelMonitorRunner := service.ProvideChannelMonitorRunner(channelMonitorService, settingService, channelMonitorQuotaFetcher)
 	channelMonitorV2Aggregator := service.ProvideChannelMonitorV2Aggregator(channelMonitorV2Repository, db, settingService)
 	userPlatformQuotaUsageFlusher := service.ProvideUserPlatformQuotaUsageFlusher(configConfig, billingCache, serviceUserPlatformQuotaRepository, timingWheelService)
-	scheduler := module.ProvideScheduler(repositoryRepository, runService, guard, settingsProvider, activeDirectory, artifactService, logger)
-	v := provideCleanup(checkinService, client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, opsService, opsIngressRejectAggregator, apiKeyService, authCacheInvalidationWorker, schedulerSnapshotService, tokenRefreshService, accountExpiryService, cnProviderBalanceCheckService, openAICodexVersionSyncService, claudeCodeVersionSyncService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, geminiCachedContentService, batchImageCleanupService, batchImageWorkerRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, subscriptionService, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, grokOAuthService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, channelMonitorV2Aggregator, userPlatformQuotaUsageFlusher, upstreamBillingProbeService, ollamaCloudUsageService, openCodeGoUsageService, auditLogService, openAIQuotaAutoResetService, promptService, pluginManager, manager, scheduler)
+	v := provideCleanup(checkinService, client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, opsService, opsIngressRejectAggregator, apiKeyService, authCacheInvalidationWorker, schedulerSnapshotService, tokenRefreshService, accountExpiryService, cnProviderBalanceCheckService, openAICodexVersionSyncService, claudeCodeVersionSyncService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, geminiCachedContentService, batchImageCleanupService, batchImageWorkerRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, subscriptionService, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, grokOAuthService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, channelMonitorV2Aggregator, userPlatformQuotaUsageFlusher, upstreamBillingProbeService, ollamaCloudUsageService, openCodeGoUsageService, auditLogService, openAIQuotaAutoResetService, promptService, pluginManager, manager, runtime)
 	application := &Application{
 		Server:                httpServer,
 		PromptAudit:           promptService,
 		PluginManager:         pluginManager,
 		InternalPluginManager: manager,
+		IQBenchmark:           runtime,
 		Cleanup:               v,
 	}
 	return application, nil
@@ -437,6 +444,7 @@ type Application struct {
 	PromptAudit           *securityaudit.PromptService
 	PluginManager         *service.PluginManager
 	InternalPluginManager *plugin.Manager
+	IQBenchmark           *module.Runtime
 	Cleanup               func()
 }
 
@@ -523,7 +531,7 @@ func provideCleanup(
 	promptAudit *securityaudit.PromptService,
 	pluginManager *service.PluginManager,
 	internalPluginManager *plugin.Manager,
-	iqScheduler *scheduler.Scheduler,
+	iqRuntime *module.Runtime,
 ) func() {
 	return func() {
 		if checkinService != nil {
@@ -586,9 +594,9 @@ func provideCleanup(
 				}
 				return nil
 			}},
-			{"IQBenchmarkScheduler", func() error {
-				if iqScheduler != nil {
-					return iqScheduler.Shutdown(ctx)
+			{"IQBenchmarkRuntime", func() error {
+				if iqRuntime != nil {
+					return iqRuntime.Shutdown(ctx)
 				}
 				return nil
 			}},

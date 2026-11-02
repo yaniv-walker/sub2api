@@ -399,7 +399,26 @@ EnsureInternalAgent(ctx) (*service.User, *service.APIKey, error)
 | 前端 | `public settings` 注入 `iq_benchmark_enabled` → 导航隐藏；路由守卫直接跳「未启用」视图 |
 | 限流 | 不参与（路由不可达，中间件不挂载） |
 
-**落地方式**：新增 `settings` key `iq_benchmark_settings`（JSON），结构见 §3.11。`enabled` 变更立即生效：设置服务写库后调用 `SettingsCache.Invalidate()`，调度器每轮读取 60s 缓存；同时 `PUT /settings` 处理器显式调用 `scheduler.Reconcile(ctx)`（启→停/停→启）；`public settings` 同步暴露布尔位（沿用 `featureFlags.ts` 的 `opt-in` 模式）。
+**落地方式**：新增 `settings` key `iq_benchmark_settings`（JSON），结构见 §3.11。`enabled` 变更立即生效：设置服务写库后调用 `SettingsCache.Invalidate()`，调度器每轮读取 60s 缓存；同时 `PUT /settings` 处理器显式调用 `scheduler.Reconcile(ctx)`（启→停/停→启）；`public settings` 同步暴露布尔位。
+
+**前端如何隐藏入口（与原设计不同，已改为本地探测）**：
+
+原计划「沿用 `featureFlags.ts` 的 `opt-in` 模式」，实施时**放弃**该做法。
+原因是成本与约束直接冲突：在上游注册一个新 flag 需要同步修改
+`frontend/src/utils/featureFlags.ts` 及与之联动的 11 个上游文件
+（flag 注册表、`public settings` 类型、设置项 UI、i18n、若干消费点），
+远超「注册一行」的边界，且全部落在上游高频变更文件上。
+
+改用**本地可用性探测**，实现于 `frontend/src/features/iq-benchmark/availability.ts`：
+
+- `probeIqGalleryAvailability()` 调用 `GET /api/v1/iq-gallery/overview`；
+- `404`（用户侧路由未注册）、`503`（`IQ_BENCHMARK_DISABLED`）、网络错误一律判为**未启用**；
+- 判为未启用时，侧栏的「作品展」入口不渲染，用户直接访问 `/iq-gallery` 也只会看到一个
+  中性的空状态，不会暴露半成品界面；
+- 探测结果按会话缓存，`resetIqGalleryAvailability()` 供登出/切换账号时清理。
+
+代价（已在 `verification.md` §四 记录）：进入应用时会多一次轻量 `GET` 请求；
+该请求失败不影响任何其他页面。收益是**上游接触面归零**，与本变更的核心约束一致。
 
 ### 3.11 配置结构
 
@@ -560,15 +579,18 @@ frontend/src/features/iq-benchmark/
 
 ### 3.16 上游核心文件接触面清单
 
-**后端共 5 个文件，全部为「注册一行」级别新增，无签名改动、无行为语义改动。**
-（第 5 个文件 `image_storage_s3.go` 是**纯新增一个方法**，见下方说明与 §8 第 4 项确认结论。）
+**后端共 6 个文件**：5 个是「注册一行」级别的新增，第 6 个
+（`main.go`）同样是纯追加的一小段启动调用，**均无签名改动、无行为语义改动**。
+（第 5 个文件 `image_storage_s3.go` 是**纯新增一个方法**，见下方说明与 §8 第 4 项确认结论；
+第 6 个文件 `main.go` 是阶段 6 验收时发现的必要补充，见下表第 6 行。）
 
 | # | 文件 | 改动 | 为什么不可避免 |
 |---|---|---|---|
 | 1 | `backend/internal/handler/handler.go` | `Handlers` struct 增 1 个字段 `IQBenchmark *iqbenchmark.Handlers` | 现有路由注册函数（`routes/*.go`）统一通过 `*handler.Handlers` 取处理器；不接入则该字段无处可取。**仅加字段**，不触碰任何现有字段。 |
 | 2 | `backend/internal/handler/wire.go` | `ProvideHandlers` 增 1 个入参 + `Handlers{}` 字面量增 1 个赋值；`ProviderSet` 增 1 项 `iqbenchmark.ProvideHandlers` | Wire 的构造器签名必须与新字段一致，否则 `wire_gen.go` 编译失败。**纯追加**。 |
-| 3 | `backend/internal/server/router.go` | `registerRoutes` 内增 1 行 `routes.RegisterIQBenchmarkRoutes(v1, h, jwtAuth, adminAuth, auditLog, settingService, redisClient)` | 路由必须挂到 `/api/v1` 之上；`registerRoutes` 是唯一的挂载点。**纯追加一行**。 |
-| 4 | `backend/cmd/server/wire.go` | `wire.Build` 增 1 个 ProviderSet `iqbenchmark.ProviderSet`；`provideCleanup` 增 1 个入参 `iqScheduler *iqbenchmark.Scheduler` 与 1 个 cleanup 步骤 | 调度器必须有 `Shutdown` 的有界停止入口（硬性要求，禁止构造函数起 goroutine 后无人停止）；`provideCleanup` 是唯一统一停止点。 |
+| 3 | `backend/internal/server/router.go` | `registerRoutes` 内增 1 行 `routes.RegisterIQBenchmarkRoutes(v1, h.IQBenchmark, adminAuth, jwtAuth, auditLog)` | 路由必须挂到 `/api/v1` 之上；`registerRoutes` 是唯一的挂载点。**纯追加一行**（+2：1 行注释 + 1 行调用）。 |
+| 4 | `backend/cmd/server/wire.go` | `wire.Build` 增 1 个 ProviderSet `iqbenchmark.ProviderSet`；`Application` 增 1 个字段 `IQBenchmark *iqmodule.Runtime`；`provideCleanup` 增 1 个入参 `iqRuntime *iqmodule.Runtime` 与 1 个 cleanup 步骤 | 调度器必须有 `Shutdown` 的有界停止入口（硬性要求，禁止构造函数起 goroutine 后无人停止）；`provideCleanup` 是唯一统一停止点。 |
+| 6 | `backend/cmd/server/main.go` | `app.PromptAudit.Start` 之后追加 1 段 `app.IQBenchmark.Start`（失败只 WARN） | **阶段 6 发现的必要项**：`Runtime` 必须在 HTTP 就绪后启动。初版遗漏了这一步，导致功能启用后调度器仍不运行（详见 `verification.md` §3.8）。`main.go` 是唯一的启动序列所在。 |
 | 5 | `backend/internal/repository/image_storage_s3.go` | `S3ImageStorage` **新增方法** `Delete(ctx, key) error`（约 15 行，不改 `Save`、不改类型字段、不加接口方法） | 清理过期产出必须能删对象存储里的文件，否则「保留 30 天」只在数据库生效、存储成本无界增长。**纯新增方法**：`ImageStorage` 接口签名保持只有 `Save`，因此既有两个实现（`S3ImageStorage` 与测试 fake）与全部调用点零改动。 |
 
 **第 5 项的实现约束（已确认：允许加 delete，但必须纯增量）**：
@@ -577,21 +599,55 @@ frontend/src/features/iq-benchmark/
 - 本模块在自己的包里定义窄接口 `type BlobDeleter interface { Delete(ctx context.Context, key string) error }`，对注入的 `service.ImageStorage` 值做类型断言；断言失败即降级为「只软删数据库行 + WARN 日志」，行为与「没有这项能力」等价。
 - 因此上游唯一改动就是 `S3ImageStorage` 上多一个方法，**任何既有调用路径的行为不变**。
 
-**新增（非接触面）**：
-- `backend/internal/server/routes/iq_benchmark.go`（新文件，注册函数本体）
-- `backend/internal/iqbenchmark/**`（新目录）
+**新增（非接触面，即本功能自己的文件，不触碰上游）**：
+
+后端：
 - `backend/migrations/249_iq_benchmark_gallery.sql`（新文件）
 - `backend/ent/schema/iq_benchmark_{case,task,run,artifact}.go`（新文件）+ `ent/` 重新生成产物
-- `frontend/src/features/iq-benchmark/**`、`frontend/src/views/{user,admin}/Iq*View.vue`
+  （`ent/iqbenchmark{case,task,run,artifact}(_update|_query|_create|_delete)?.go`、
+  `ent/iqbenchmark{case,task,run,artifact}/**`、`ent/migrate/schema.go`、`ent/runtime/runtime.go`）
+- `backend/internal/iqbenchmark/**`（新目录，完整清单见下）
+- `backend/internal/server/routes/iq_benchmark.go`（新文件，注册函数本体）
+- `backend/migrations/iq_benchmark_gallery_migration_test.go`（新文件，迁移守卫单测）
+
+`backend/internal/iqbenchmark/` 实际文件清单：
+
+| 路径 | 职责 |
+|---|---|
+| `types.go` | 常量、哨兵错误、领域结构体 |
+| `internal_agent.go` | 内部账号判定与幂等初始化（advisory lock） |
+| `agent_store.go` | 用上游 `service.UserRepository` / `service.APIKeyRepository` 实现窄接口 |
+| `agent_locker.go` | 把 `repository.TryAdvisoryLock` 适配为 `LockAcquirer` |
+| `settings.go` | `iq_benchmark_settings` JSON 配置 + 60s 缓存 + `Normalize()` 夹紧 |
+| `sanitize/svg.go`、`sanitize/classify.go` | SVG/HTML 消毒与产出类型判定 |
+| `repository/repository.go`、`repository/lease.go` | Ent + 原生 SQL 数据访问、租约与 advisory lock |
+| `service/service.go`、`guard.go`、`invoke.go`、`artifact_service.go`、`run_service.go`、`gallery_service.go` | 熔断、网关调用、产出落库、run 编排、管理侧编排 |
+| `scheduler/scheduler.go` | 定时扫描、领取、续期、清理节流 |
+| `handler/{handlers,dto,handlerfunc,admin_handler,user_handler}.go` | 路由处理器与公开白名单 DTO |
+| `ratelimit/{rate_limiter,redis_counter}.go` | 两档限流 + 并发上限 |
+| `module/module.go` | 独立的 `wire.ProviderSet` 与各适配器（避免 `iqbenchmark`↔`handler` 循环依赖） |
+
+前端（新文件）：
+- `frontend/src/features/iq-benchmark/**`
+  （`types.ts`、`api.ts`、`sanitize.ts`、`filters.ts`、`rateLimit.ts`、`useArtifactFeed.ts`、
+  `availability.ts`、`userFilter.ts`，9 个 `.vue` 组件，7 个 `__tests__/*.spec.ts`）
+- `frontend/src/views/user/IqGalleryView.vue`
+- `frontend/src/views/admin/IqBenchmarkView.vue`
 - `frontend/src/i18n/locales/{zh,en}/iqBenchmark.ts`
 
-**前端接触面（3 处，注册级别）**：
+**前端接触面（4 处，注册级别）**：
 
-| 文件 | 改动 |
-|---|---|
-| `frontend/src/router/index.ts` | 增 2 条路由记录（懒加载 + `meta.requiresAuth` / `meta.requiresAdmin` / `titleKey`） |
-| `frontend/src/components/layout/AppSidebar.vue` | 用户侧导航数组增 1 项、管理员侧导航数组增 1 项 |
-| `frontend/src/i18n/locales/{zh,en}/index.ts` | 各增 1 行 import + 1 行展开 |
+| # | 文件 | 改动 | 为什么不可避免 |
+|---|---|---|---|
+| 1 | `frontend/src/router/index.ts` | 增 2 条路由记录（懒加载 + `meta.requiresAuth` / `meta.requiresAdmin` / `titleKey`），+24 行 | 路由表是唯一挂载点 |
+| 2 | `frontend/src/components/layout/AppSidebar.vue` | 用户侧导航数组增 1 项、管理员侧导航数组增 1 项、增 1 个可用性探测，+9 行 | 侧栏是唯一导航入口；`enabled=false` 时靠探测隐藏 |
+| 3 | `frontend/src/i18n/locales/{zh,en}/index.ts` | 各增 1 行 import + 1 行展开，各 +2 行 | 各语言模块的汇总点 |
+| 4 | `frontend/src/views/admin/UsersView.vue` | 增 import、1 个 `useHideInternalAccounts()`、1 个「隐藏内部账号」开关按钮、`sortedUsers` 前置过滤 1 行（另 2 行缩进调整），+24 −2 | **确认项 4 的落点**：要求「前端加开关、默认开启、不改上游查询」。开关必须挂在用户列表页，这是唯一位置 |
+
+> 第 4 项是开工前确认项 4 的直接产物，原设计只列了前 3 项。
+> 它的 `−2` 行是 `sortedUsers` 里 `if (!s) return users.value` /
+> `return [...users.value]` 改成引用新局部变量 `visible` 造成的缩进调整，
+> **不是删除行为**：排序语义（含稳定排序）完全不变。
 
 **i18n 范围（已确认）**：只做 `zh` + `en` **两语**，不新增 `ja`。因此 `frontend/src/i18n/index.ts`（`LocaleCode` 联合类型与 `localeLoaders`）**完全不动**，不构成接触面。原任务书的「三语」要求在本次实现中按该确认收窄。
 
@@ -804,7 +860,16 @@ frontend/src/features/iq-benchmark/
 | `frontend/src/i18n/index.ts` | **完全不动**：i18n 只做 `zh` + `en`，不新增 `ja`，故 `LocaleCode` 联合类型与 `localeLoaders` 均无需修改。 |
 | `backend/internal/service/image_storage.go` | **完全不动**：`ImageStorage` 接口保持只有 `Save`；删除能力由 `S3ImageStorage` 的额外方法 + 本模块窄接口类型断言提供。 |
 
-**结论**：后端 5 个、前端 3 个（见 §3.16 / §10）。≤3 的红线被突破 2 个，理由见下。
+**结论**：后端 **6** 个、前端 **4** 个（见 §3.16 / §10）。≤3 的红线被突破 4 个，理由见下。
+
+> **对原设计的两处更正**（均为实施/验收阶段的实测发现，非范围扩张）：
+> 1. 前端接触面原列 3 处，实际 4 处 —— 第 4 处是
+>    `frontend/src/views/admin/UsersView.vue`（确认项 4「隐藏内部账号」开关的落点）。
+>    该项在设计阶段被记在「确认项」里，未同步计入接触面清单。
+> 2. 后端接触面原列 5 处，实际 6 处 —— 第 6 处是 `backend/cmd/server/main.go`
+>    里的一段 `app.IQBenchmark.Start`。初版只做了「构造 + 停止」，
+>    漏了「启动」，导致 `enabled=true` 后调度器与内部账号都不会运行（功能静默失效）。
+>    详见 `verification.md` §3.8。这一处是修复真实缺陷所必需的最小改动。
 
 **为什么需要 5 个而不是 ≤3**：将这些改动合并到 3 处在技术上不可行 ——
 - #1 与 #2 是同一个 Wire 依赖图的构造器签名与结构体字段，二者必须同时改（否则编译失败），但它们分属**两个文件**（`handler.go` 定义结构体、`wire.go` 定义构造器）。
@@ -814,6 +879,26 @@ frontend/src/features/iq-benchmark/
 - 若强行合并（例如让 `iqbenchmark` 自己在 `init()` 里注册路由），会违反本项目「显式 DI、无隐式全局副作用」的既有约定，且使 `Shutdown` 失去统一控制点 —— 代价远大于多改 1 个文件。
 
 **每个文件的改动都是纯追加**（新增字段/入参/调用/方法），没有修改任何既有语句或既有方法体，因此**上游对这些文件的修改不会与本变更产生语义冲突**，最坏情况是行级 merge 冲突（可人工解决）。
+
+**实测 diff 佐证**（`git diff --stat f688e8999e...HEAD`，10 个上游文件）：
+
+```
+ backend/cmd/server/wire.go                      | 10 ++++++++++
+ backend/internal/handler/handler.go             |  4 ++++
+ backend/internal/handler/wire.go                |  3 +++
+ backend/internal/repository/image_storage_s3.go | 21 +++++++++++++++++++++
+ backend/internal/server/router.go               |  2 ++
+ frontend/src/components/layout/AppSidebar.vue   |  9 +++++++++
+ frontend/src/i18n/locales/en/index.ts           |  2 ++
+ frontend/src/i18n/locales/zh/index.ts           |  2 ++
+ frontend/src/router/index.ts                    | 24 ++++++++++++++++++++++++
+ frontend/src/views/admin/UsersView.vue          | 24 ++++++++++++++++++++++--
+ 10 files changed, 99 insertions(+), 2 deletions(-)
+```
+
+那 `2 deletions` 全部来自 `UsersView.vue` 的 `sortedUsers`
+（`if (!s) return users.value` / `return [...users.value]` 改为引用 `visible`），
+逐行 diff 已确认没有任何既有行为被删除或改写。
 
 **零改动的确认**：不给 `users` 加列、不给 `usage_logs` 加列、不扩 `users_signup_source_check`、不加 role 枚举、不改内容审核/渠道监控/批量生图/账务配额语义、不改既有路由路径、不改 `config.yaml` 与 `config.Config` 结构体、不改任何既有统计查询。
 
@@ -830,7 +915,7 @@ frontend/src/features/iq-benchmark/
 | 复用既有能力 | 直接可用 `abortPanelRateLimited`（私有，不可跨包） | 调用**已导出**的 `middleware.AbortWithError` + `middleware.NewRateLimiter`，429 体与面板完全一致 |
 | 维护预期 | 后续维护者倾向在同目录继续加逻辑 → 冲突概率随上游演进上升 | 完全隔离，长期 merge 成本恒定 |
 
-**实际差异（对 `upstream/main` 合并的影响）**：放入 `internal/server/middleware/` 会在**每次上游改动该目录或其 `wire.go` 时**产生潜在冲突点，且新增的 `middleware/wire.go` 一行属于上游高频变更文件；放入新模块后，`upstream/main` 合并时本功能**只在 §9.3 的 5 个后端文件 + §3.16 的 3 个前端文件上可能产生行级冲突**，其余全部为新目录，冲突面与上游演进无关。
+**实际差异（对 `upstream/main` 合并的影响）**：放入 `internal/server/middleware/` 会在**每次上游改动该目录或其 `wire.go` 时**产生潜在冲突点，且新增的 `middleware/wire.go` 一行属于上游高频变更文件；放入新模块后，`upstream/main` 合并时本功能**只在 §9.3 的 6 个后端文件 + §3.16 的 4 个前端文件上可能产生行级冲突**，其余全部为新目录，冲突面与上游演进无关。
 
 **关键实现细节**：底层的 `middleware.NewRateLimiter(redisClient)`（`internal/middleware/rate_limiter.go`）与 `middleware.AbortWithError(c, status, code, message)`（`internal/server/middleware/middleware.go:78`）**都是导出符号**，因此新模块可直接复用而无需修改这两处文件。429 响应体与 `abortPanelRateLimited`（`panel_rate_limit.go:174`，私有）**逐字节一致**：`Retry-After` 头 + `{"code":"RATE_LIMITED","message":"Too many requests, please slow down and try again later"}`，只是由本模块自己组装（3 行），不复用那个私有函数。
 
@@ -866,11 +951,13 @@ frontend/src/features/iq-benchmark/
 | 改（追加 1 字段） | `backend/internal/handler/handler.go` | 注册一行 |
 | 改（追加 1 入参 + 1 赋值 + 1 ProviderSet 项） | `backend/internal/handler/wire.go` | 注册一行 |
 | 改（追加 1 行调用） | `backend/internal/server/router.go` | 注册一行 |
-| 改（追加 1 ProviderSet + 1 Cleanup 入参/步骤） | `backend/cmd/server/wire.go` | 注册一行 |
+| 改（追加 1 ProviderSet + 1 Application 字段 + 1 Cleanup 入参/步骤） | `backend/cmd/server/wire.go` | 注册一行 |
 | 改（**纯新增一个方法** `Delete`，不改接口与 `Save`） | `backend/internal/repository/image_storage_s3.go` | 新增方法（无行为语义改动） |
+| 改（追加 1 段启动调用） | `backend/cmd/server/main.go` | 注册一行（阶段 6 发现，见 `verification.md` §3.8） |
 | 改（追加 2 条路由） | `frontend/src/router/index.ts` | 注册一行 |
-| 改（追加 2 条导航项） | `frontend/src/components/layout/AppSidebar.vue` | 注册一行 |
+| 改（追加 2 条导航项 + 1 个可用性探测） | `frontend/src/components/layout/AppSidebar.vue` | 注册一行 |
 | 改（各追加 1 import + 1 展开） | `frontend/src/i18n/locales/{zh,en}/index.ts` | 注册一行 |
+| 改（追加 1 import + 1 开关 + 1 过滤行） | `frontend/src/views/admin/UsersView.vue` | 注册一行（确认项 4 落点） |
 | 新增 | `backend/internal/iqbenchmark/**` | 新目录 |
 | 新增 | `backend/internal/server/routes/iq_benchmark.go` | 新文件 |
 | 新增 | `backend/migrations/249_iq_benchmark_gallery.sql` | 新文件 |
@@ -880,5 +967,12 @@ frontend/src/features/iq-benchmark/
 | 新增 | `frontend/src/i18n/locales/{zh,en}/iqBenchmark.ts` | 新文件 |
 | 新增 | `openspec/changes/add-iq-benchmark-gallery/**`（含 `research.md`）、`backend/internal/iqbenchmark/THIRD_PARTY_NOTICES.md` | 新文件 |
 
-**总计：后端 5 个既有文件（4 个注册级 + 1 个纯新增方法）、前端 3 个既有文件（均为注册级）。** 不涉及的既有文件：`frontend/src/i18n/index.ts`（不做 `ja`）、`backend/internal/service/image_storage.go`（接口不变）、以及全部统计/计费/用户查询文件。
+**总计：后端 6 个既有文件（5 个注册级 + 1 个纯新增方法）、前端 4 个既有文件（均为注册级）。**
+实测 diff：`10 files changed, 99 insertions(+), 2 deletions(-)`
+（那 2 行删除是 `UsersView.vue` 里 `sortedUsers` 的缩进调整，无行为删除）。
+
+不涉及的既有文件：`frontend/src/i18n/index.ts`（不做 `ja`）、
+`backend/internal/service/image_storage.go`（接口不变）、
+`frontend/src/utils/featureFlags.ts`（改用本地可用性探测）、
+以及全部统计/计费/用户查询文件。
 

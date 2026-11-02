@@ -15,7 +15,6 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	iqmodule "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/module"
-	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/scheduler"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	"github.com/Wei-Shaw/sub2api/internal/plugin"
 	"github.com/Wei-Shaw/sub2api/internal/repository"
@@ -34,6 +33,7 @@ type Application struct {
 	PromptAudit           *securityaudit.PromptService
 	PluginManager         *service.PluginManager
 	InternalPluginManager *plugin.Manager
+	IQBenchmark           *iqmodule.Runtime
 	Cleanup               func()
 }
 
@@ -70,7 +70,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		provideCleanup,
 
 		// Application struct
-		wire.Struct(new(Application), "Server", "PromptAudit", "PluginManager", "InternalPluginManager", "Cleanup"),
+		wire.Struct(new(Application), "Server", "PromptAudit", "PluginManager", "InternalPluginManager", "IQBenchmark", "Cleanup"),
 	)
 	return nil, nil
 }
@@ -158,7 +158,7 @@ func provideCleanup(
 	promptAudit *securityaudit.PromptService,
 	pluginManager *service.PluginManager,
 	internalPluginManager *plugin.Manager,
-	iqScheduler *scheduler.Scheduler,
+	iqRuntime *iqmodule.Runtime,
 ) func() {
 	return func() {
 		if checkinService != nil {
@@ -222,9 +222,9 @@ func provideCleanup(
 				}
 				return nil
 			}},
-			{"IQBenchmarkScheduler", func() error {
-				if iqScheduler != nil {
-					return iqScheduler.Shutdown(ctx)
+			{"IQBenchmarkRuntime", func() error {
+				if iqRuntime != nil {
+					return iqRuntime.Shutdown(ctx)
 				}
 				return nil
 			}},

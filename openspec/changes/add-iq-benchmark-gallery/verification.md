@@ -419,8 +419,8 @@ $ git diff --stat f688e8999e...HEAD -- <上游接触面 10 个文件>
 | 计划用例 | 实际用例 | 断言 | 状态 |
 |---------|---------|------|------|
 | `TestIsInternalAgent` | 由 `agent_store` / `internal_agent` 的窄接口与 `TestPublicCaseDTOHasNoPromptInternals` 侧证 | 前缀命中 / 普通用户 / nil 三种情形 | ⚠️ 判定函数本身无独立单测（`IsInternalAgent` / `IsInternalAgentNotes` 是纯函数但未单测）。前端侧 `userFilter.spec.ts`（11 例）覆盖了同前缀的 trim/空值/普通用户判定。 |
-| `TestEnsureInternalAgentIdempotent`（集成） | 无 | 两次调用只创建 1 账号 + 1 Key | ❌ 未覆盖（需构造完整上游 User/APIKey 仓储，成本高，见 §3.7） |
-| `TestEnsureInternalAgentConcurrent`（集成） | 无 | 多实例并发只创建 1 份 | ❌ 未覆盖（同上；机制为 `pg_try_advisory_lock`，已有 `TestTryAdvisoryLockReturnsBusyWithoutRelease` 单测兜底） |
+| `TestEnsureInternalAgentIdempotent`（集成） | `TestRuntimeStartIsIdempotent`<br>`TestRuntimeStartsAndStopsScheduler`（module，见 §3.8） | 两次调用只创建 1 账号 + 1 Key | ⚠️ 生命周期层面已覆盖（重复 `Start` 不重复建号、建号→建 Key→就绪全链路）；**真实 PG 下**的双实例并发建号仍未覆盖 |
+| `TestEnsureInternalAgentConcurrent`（集成） | 无 | 多实例并发只创建 1 份 | ⚠️ 机制为 `pg_try_advisory_lock`，已有 `TestTryAdvisoryLockReturnsBusyWithoutRelease` 单测兜底；并发建号本身未做集成用例 |
 | `TestInternalAgentPrefixNotLeaked` | 无 | 静态扫描：模块外无前缀字面量 | ❌ 未做自动化扫描（人工核对：前缀字面量仅出现在 `internal_agent.go` 与本模块 `userFilter.ts`） |
 | `TestInternalAccountDebitedNotRealUser`（集成） | `TestIQBenchmarkDailyCostScopesToInternalKeyOnly`<br>`TestDailyCostFiltersByInternalAPIKeyOnly`（sqlmock） | 内部账号扣费，真实用户余额不变 | ✅ 以「按 `api_key_id` 聚合」证明口径隔离：内部 Key 只累计自己的 0.40，真实用户的 9.99 不串入，且真实用户各自独立 |
 | `TestQuotaExhaustedPausesTask`（集成） | `TestTripQuotaExhaustedClearsNextRun`<br>`TestRecoveryQuotaRewritesNextRun` | 状态 `quota_exhausted` + `next_run_at` 空 | ✅（单测 + mock 仓储） |
@@ -463,11 +463,13 @@ $ git diff --stat f688e8999e...HEAD -- <上游接触面 10 个文件>
 
 以下 5 项**未**达到计划覆盖度，均已在上表标为 ❌ 或 ⚠️，此处汇总原因：
 
-1. **`EnsureInternalAgent` 的集成用例**（幂等、并发）：需构造上游
+1. **`EnsureInternalAgent` 的真实 PG 并发用例**：需构造上游
    `service.UserRepository` / `service.APIKeyRepository` 的真实实现，
-   而这两者是 30+ 方法的宽接口，替身成本高。机制层面的
-   `pg_try_advisory_lock` 已有单测（`TestTryAdvisoryLockReturnsBusyWithoutRelease`、
-   `TestTryAdvisoryLockReleasesOnDemand`）。
+   而这两者是 30+ 方法的宽接口，替身成本高。
+   生命周期与幂等已由 `module/runtime_test.go` 覆盖（见 §3.8），
+   机制层面的 `pg_try_advisory_lock` 已有单测
+   （`TestTryAdvisoryLockReturnsBusyWithoutRelease`、
+   `TestTryAdvisoryLockReleasesOnDemand`）；**双实例并发建号**仍未做。
 2. **内部账号前缀的静态扫描**：人工核对替代自动化
    （前缀字面量仅出现于 `internal_agent.go` 与前端 `userFilter.ts`）。
 3. **`user_agent` 出站断言**：需抓包或注入 `RoundTripper` 记录器，未做。
@@ -478,9 +480,62 @@ $ git diff --stat f688e8999e...HEAD -- <上游接触面 10 个文件>
    不领取、不清理、用户侧路由 404、管理侧 503 `IQ_BENCHMARK_DISABLED`；
    未做数据库表行数与 Redis 键名的逐项计数断言。
 
-> 已补齐（初稿曾列为缺口，随后补测）：`gallery_service` 的 `DeleteCase` 三步保护、
-> `page_size` 上限、`Compare` 的 8 列截断与顺序稳定性、`GetOverview` 的
-> `bucketLimit` 兜底——见 `service/gallery_service_test.go`（9 个用例）。
+> 已补齐（初稿曾列为缺口，随后补测）：
+> `gallery_service` 的 `DeleteCase` 三步保护、`page_size` 上限、
+> `Compare` 的 8 列截断与顺序稳定性、`GetOverview` 的 `bucketLimit` 兜底
+> ——见 `service/gallery_service_test.go`（9 个用例）；
+> 运行期启动链路——见 `module/runtime_test.go`（5 个用例，见 §3.8）。
+
+### 3.8 运行期启动链路（阶段 6 验收时发现的真实缺陷，已修复）
+
+**问题**：初版把调度器与内部账号的构造放进了 Wire，但**没有任何地方调用
+`Scheduler.Start()` 与 `EnsureInternalAgent()`**。后果是：管理员把
+`enabled` 打开后，内部账号不会被创建、调度器不会跑、一条检测都不会执行，
+而且日志里没有任何错误——功能**静默失效**。
+
+- 静态复核：`grep -r "\.Start(" ` 在 `internal/iqbenchmark/**` 与
+  `cmd/server/**` 中只命中上游自己的 `cronSched.Start()`；
+  `EnsureInternalAgent(` 只有定义、没有调用点。
+- 根因：`module.go` 的注释写了「调度器必须在 HTTP 服务就绪后由 main.go
+  显式 Start」，但 `main.go` 从来没有拿到过该组件——它既不在
+  `Application` 结构体里，也没进 `provideCleanup` 之外的任何启动序列。
+
+**修复**（新增独立文件，仍不触碰上游语义）：
+
+| 文件 | 改动 |
+|---|---|
+| `internal/iqbenchmark/module/runtime.go`（新） | `Runtime` 类型：`Start` 做「未启用即返回 / 初始化内部账号 / 启动调度器」，`Shutdown` 有界停止；两者幂等，nil 接收者 no-op |
+| `internal/iqbenchmark/module/module.go` | ProviderSet 增 `ProvideRuntime`；补上此前缺失的 `wire.Bind(AdvisoryLocker → *repository.Repository)` |
+| `cmd/server/wire.go` | `Application` 增 1 个字段 `IQBenchmark *iqmodule.Runtime`；`provideCleanup` 的 `iqScheduler *scheduler.Scheduler` 换成 `iqRuntime *iqmodule.Runtime`，清理步骤改调 `iqRuntime.Shutdown` |
+| `cmd/server/main.go` | `app.PromptAudit.Start` 之后追加 1 段 `app.IQBenchmark.Start`（失败只 WARN，不阻塞启动） |
+
+**覆盖测试**（`module/runtime_test.go`，5 个用例，全绿）：
+
+```
+$ go test -tags=unit -count=1 -v ./internal/iqbenchmark/module/
+=== RUN   TestRuntimeDoesNothingWhenDisabled
+--- PASS: TestRuntimeDoesNothingWhenDisabled (0.00s)
+=== RUN   TestRuntimeStartIsIdempotent
+--- PASS: TestRuntimeStartIsIdempotent (0.00s)
+=== RUN   TestRuntimeMarksAgentUnreadyWhenInitFails
+--- PASS: TestRuntimeMarksAgentUnreadyWhenInitFails (0.00s)
+=== RUN   TestRuntimeShutdownWithoutStartIsSafe
+--- PASS: TestRuntimeShutdownWithoutStartIsSafe (0.00s)
+=== RUN   TestRuntimeStartsAndStopsScheduler
+--- PASS: TestRuntimeStartsAndStopsScheduler (0.05s)
+PASS
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/module	0.437s
+exit=0
+```
+
+其中最关键的是 `TestRuntimeDoesNothingWhenDisabled`
+（关闭时**零**仓储调用）与 `TestRuntimeStartsAndStopsScheduler`
+（启用时确实走完建号→建 Key→启动调度器→可停）——正是初版缺失的两侧。
+
+**这条缺陷说明**：仅靠「构造成功 + 单元测试通过」不足以证明功能可用，
+必须有「从入口到副作用的启动链路」断言。§3.1 与 §3.4 中
+原先标为 ❌ 的 `TestEnsureInternalAgent*` 缺口，也因此由本组用例
+在**生命周期层面**补上了一部分（真实 PG 下的并发建号仍未覆盖）。
 
 ---
 
