@@ -464,6 +464,7 @@ type CaseRequest struct {
 	Scoring         string         `json:"scoring"`
 	LLMJudgeEnabled bool           `json:"llm_judge_enabled"`
 	Enabled         bool           `json:"enabled"`
+	AllowUserTest   bool           `json:"allow_user_test"`
 	SortOrder       int            `json:"sort_order"`
 }
 
@@ -479,6 +480,7 @@ func (r CaseRequest) toCreateInput() service.CaseCreateInput {
 		Scoring:         r.Scoring,
 		LLMJudgeEnabled: r.LLMJudgeEnabled,
 		Enabled:         r.Enabled,
+		AllowUserTest:   r.AllowUserTest,
 		SortOrder:       r.SortOrder,
 	}
 }
@@ -495,6 +497,7 @@ func (r CaseRequest) toUpdateInput() service.CaseUpdateInput {
 		Scoring:         r.Scoring,
 		LLMJudgeEnabled: r.LLMJudgeEnabled,
 		Enabled:         r.Enabled,
+		AllowUserTest:   r.AllowUserTest,
 		SortOrder:       r.SortOrder,
 	}
 }
@@ -593,6 +596,16 @@ func currentUserID(c *gin.Context) int64 {
 // 映射表刻意显式：每个错误码都对应一个确定的状态码，
 // 避免 fallthrough 把「题目不存在」写成 500。
 func writeError(c *gin.Context, err error) {
+	// 自测相关的哨兵先交给专门的映射（它有自己的状态码语义：
+	// 402 额度、429 配额、403 开关/状态、404 不泄露存在性）。
+	if status, reason, ok := statusOfUserTestError(err); ok {
+		c.AbortWithStatusJSON(status, response.Response{
+			Code:    status,
+			Message: err.Error(),
+			Reason:  reason,
+		})
+		return
+	}
 	switch {
 	case err == nil:
 		return

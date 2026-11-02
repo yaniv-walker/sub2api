@@ -71,10 +71,17 @@ var ProviderSet = wire.NewSet(
 	service.NewArtifactService,
 	service.NewGuard,
 	ProvideGatewayClient,
+	service.NewExecutor,
 	service.NewRunService,
 
 	// 目标解析（分组 + 模型级联下拉 / 任务二次校验）
 	ProvideTargetsService,
+
+	// 用户自测
+	ProvideKeyResolver,
+	ProvideUserTestLimiter,
+	ProvideUserTestService,
+	ProvideUserTestHandler,
 
 	// 调度
 	ProvideScheduler,
@@ -242,15 +249,74 @@ func ProvideAdminHandler(
 func ProvideHandlers(
 	admin *handler.AdminHandler,
 	user *handler.UserHandler,
+	userTest *handler.UserTestHandler,
 	limiter *ratelimit.GalleryRateLimiter,
 	settings *iqbenchmark.SettingsProvider,
 ) *handler.Handlers {
 	return &handler.Handlers{
-		Admin:   admin,
-		User:    user,
-		Limiter: limiter,
+		Admin:    admin,
+		User:     user,
+		UserTest: userTest,
+		Limiter:  limiter,
 		IsEnabled: func() bool {
 			return settings != nil && settings.IsEnabled(context.Background())
 		},
+		IsUserTestEnabled: func() bool {
+			if settings == nil {
+				return false
+			}
+			resolved := settings.Get(context.Background())
+			return resolved.Enabled && resolved.UserTestEnabled
+		},
 	}
+}
+
+// ProvideKeyResolver 把上游 *service.APIKeyService 收窄为本模块的 KeyResolver。
+//
+// 与 ProvideTargetsService 同样的理由：不用 wire.Bind（那要求具体类型
+// 也由本 ProviderSet 提供），而是在函数签名里收窄成本模块的三个方法。
+// 上游因此不需要任何改动，本模块也只依赖这三个已导出的能力。
+func ProvideKeyResolver(apiKeys *upstreamsvc.APIKeyService) service.KeyResolver {
+	if apiKeys == nil {
+		return nil
+	}
+	return apiKeys
+}
+
+// ProvideUserTestLimiter 把限流器收窄为自测所需的能力。
+func ProvideUserTestLimiter(limiter *ratelimit.GalleryRateLimiter) service.UserTestLimiter {
+	if limiter == nil {
+		return nil
+	}
+	return limiter
+}
+
+// ProvideUserTestService 构造自测服务。
+//
+// executor 由 Wire 注入与 RunService 共享的同一实例 —— 两条链路
+// 复用同一份执行代码正是本设计要保证的事。
+func ProvideUserTestService(
+	store service.Store,
+	executor *service.Executor,
+	keys service.KeyResolver,
+	targets *service.TargetsService,
+	settings *iqbenchmark.SettingsProvider,
+	limiter service.UserTestLimiter,
+	logger *slog.Logger,
+) *service.UserTestService {
+	return service.NewUserTestService(store, executor, keys, targets, settings, limiter, logger)
+}
+
+// ProvideUserTestHandler 构造自测 handler。
+//
+// Audit 刻意留空（nil）：上游的审核入口 checkSecurityAuditBeforeSubmit 是
+// 上游 handler 包内的方法，依赖上游中间件写入的 gin.Context 状态。
+// 在本模块内无法安全地伪造那套上下文，因此这里**显式不启用审核**，
+// 并在 design/verification 中记为已知限制（自测题目的 prompt 由管理员录入，
+// 已经过一次人工审核，这是当前的兜底理由）。
+func ProvideUserTestHandler(
+	tests *service.UserTestService,
+	settings *iqbenchmark.SettingsProvider,
+) *handler.UserTestHandler {
+	return &handler.UserTestHandler{Tests: tests, Settings: settings}
 }

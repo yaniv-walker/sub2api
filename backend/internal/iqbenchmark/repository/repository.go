@@ -83,6 +83,7 @@ func (r *Repository) CreateCase(ctx context.Context, in CaseCreateInput) (*iqben
 		SetLlmJudgeEnabled(in.LLMJudgeEnabled).
 		SetBuiltin(in.Builtin).
 		SetEnabled(in.Enabled).
+		SetAllowUserTest(in.AllowUserTest).
 		SetSortOrder(in.SortOrder)
 	if strings.TrimSpace(in.SystemPrompt) != "" {
 		builder = builder.SetSystemPrompt(in.SystemPrompt)
@@ -109,6 +110,7 @@ func (r *Repository) UpdateCase(ctx context.Context, id int64, in CaseUpdateInpu
 		SetScoring(defaultString(in.Scoring, iqbenchmark.ScoringManual)).
 		SetLlmJudgeEnabled(in.LLMJudgeEnabled).
 		SetEnabled(in.Enabled).
+		SetAllowUserTest(in.AllowUserTest).
 		SetSortOrder(in.SortOrder)
 	if strings.TrimSpace(in.SystemPrompt) == "" {
 		builder = builder.ClearSystemPrompt()
@@ -972,6 +974,7 @@ func caseFromEntity(e *dbent.IQBenchmarkCase) *iqbenchmark.Case {
 		LLMJudgeEnabled: e.LlmJudgeEnabled,
 		Builtin:         e.Builtin,
 		Enabled:         e.Enabled,
+		AllowUserTest:   e.AllowUserTest,
 		SortOrder:       e.SortOrder,
 		CreatedAt:       e.CreatedAt,
 		UpdatedAt:       e.UpdatedAt,
@@ -1108,14 +1111,6 @@ func derefInt64(p *int64) int64 {
 		return 0
 	}
 	return *p
-}
-
-// ptrInt64OrNil 把 0 折叠回 NULL：写入时用 0 表示「该列应为空」。
-func ptrInt64OrNil(v int64) *int64 {
-	if v <= 0 {
-		return nil
-	}
-	return &v
 }
 
 func defaultString(value, fallback string) string {

@@ -17,6 +17,7 @@ type CaseCreateInput struct {
 	LLMJudgeEnabled bool
 	Builtin         bool
 	Enabled         bool
+	AllowUserTest   bool
 	SortOrder       int
 }
 
@@ -31,6 +32,7 @@ type CaseUpdateInput struct {
 	Scoring         string
 	LLMJudgeEnabled bool
 	Enabled         bool
+	AllowUserTest   bool
 	SortOrder       int
 }
 

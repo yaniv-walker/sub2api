@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark"
@@ -35,10 +34,6 @@ type RunService struct {
 
 	// Concurrency 是跨任务并发的信号量（nil 表示不限制，仅测试用）。
 	Concurrency chan struct{}
-
-	// errMu 保护 lastErrQuota（并发执行时多任务共享同一 RunService）。
-	errMu        sync.Mutex
-	lastErrQuota bool
 }
 
 // NewRunService 构造执行服务。
@@ -262,30 +257,6 @@ func defaultTrigger(trigger string) string {
 	default:
 		return iqbenchmark.RunTriggerSchedule
 	}
-}
-
-// ------- 配额耗尽的中途传播 -------
-
-// lastErrorWasQuotaExhausted 判断最近一次题目失败是否因配额耗尽。
-//
-// 保留这两个方法是为了兼容既有单测；主流程已改用 ExecuteResult.QuotaExhausted()，
-// 那里不受并发任务互相覆盖的影响。
-func (s *RunService) lastErrorWasQuotaExhausted() bool {
-	if s == nil {
-		return false
-	}
-	s.errMu.Lock()
-	defer s.errMu.Unlock()
-	return s.lastErrQuota
-}
-
-func (s *RunService) setLastError(code string) {
-	if s == nil {
-		return
-	}
-	s.errMu.Lock()
-	defer s.errMu.Unlock()
-	s.lastErrQuota = code == iqbenchmark.ErrCodeInsufficientBalance || code == iqbenchmark.ErrCodeRateLimited
 }
 
 // ------- 并发控制 -------

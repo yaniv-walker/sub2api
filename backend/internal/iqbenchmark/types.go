@@ -250,6 +250,44 @@ var (
 	ErrAccountDisabled = errors.New("iqbenchmark: internal agent is disabled")
 	// ErrBudgetExhausted 当日成本预算已用尽。
 	ErrBudgetExhausted = errors.New("iqbenchmark: daily cost budget exhausted")
+
+	// ErrGatewayKeyMissing 执行身份缺少调用网关所需的 Key。
+	//
+	// 刻意与 ErrInternalAgentMissing 分开：那个错误表达的是「内部账号没初始化」，
+	// 属于调度链路的装配问题；这个表达的是「这次执行没拿到凭据」，
+	// 两条链路都可能遇到。执行器只会返回后者 —— 它不认识「内部账号」这个概念。
+	ErrGatewayKeyMissing = errors.New("iqbenchmark: gateway key is missing for this execution")
+
+	// ---- 用户自测 ----
+
+	// ErrUserTestDisabled 自测开关未开启（与功能总开关分开，便于分别提示）。
+	ErrUserTestDisabled = errors.New("iqbenchmark: user self-test is not enabled")
+	// ErrCaseNotOpenForUserTest 该题目未开放自测。
+	ErrCaseNotOpenForUserTest = errors.New("iqbenchmark: this case is not open for user self-test")
+	// ErrUserNotActive 用户状态不是 active。
+	ErrUserNotActive = errors.New("iqbenchmark: user is not active")
+	// ErrAPIKeyNotOwned Key 不存在或不属于当前用户。
+	//
+	// 刻意不区分「不存在」与「不属于你」：区分会泄露他人 Key 的存在性。
+	ErrAPIKeyNotOwned = errors.New("iqbenchmark: api key not found")
+	// ErrAPIKeyInactive Key 已被禁用。
+	ErrAPIKeyInactive = errors.New("iqbenchmark: api key is inactive")
+	// ErrAPIKeyExpired Key 已过期。
+	ErrAPIKeyExpired = errors.New("iqbenchmark: api key has expired")
+	// ErrAPIKeyQuotaExhausted Key 自身额度已用尽。
+	ErrAPIKeyQuotaExhausted = errors.New("iqbenchmark: api key quota is exhausted")
+	// ErrGroupImageGenerationDisabled 该分组未开放图片生成，无法跑图片题。
+	ErrGroupImageGenerationDisabled = errors.New("iqbenchmark: image generation is not allowed for this group")
+	// ErrUserTestDailyLimit 当日自测次数已达上限。
+	ErrUserTestDailyLimit = errors.New("iqbenchmark: daily self-test limit reached")
+	// ErrUserTestConcurrent 在途自测数量已达上限。
+	ErrUserTestConcurrent = errors.New("iqbenchmark: too many self-tests in flight")
+	// ErrUserTestDuplicate 去重窗口内已有完全相同的请求。
+	ErrUserTestDuplicate = errors.New("iqbenchmark: an identical self-test was submitted recently")
+	// ErrUserTestBudgetExceeded 当日自测成本预算已用尽。
+	ErrUserTestBudgetExceeded = errors.New("iqbenchmark: daily self-test cost budget exhausted")
+	// ErrUserTestNotFound 自测记录不存在或不属于当前用户。
+	ErrUserTestNotFound = errors.New("iqbenchmark: self-test not found")
 )
 
 // UsageSnapshotByRequestIDs 是按 request_id 汇总的用量快照。
@@ -273,9 +311,14 @@ type Case struct {
 	LLMJudgeEnabled bool           `json:"llm_judge_enabled"`
 	Builtin         bool           `json:"builtin"`
 	Enabled         bool           `json:"enabled"`
-	SortOrder       int            `json:"sort_order"`
-	CreatedAt       time.Time      `json:"created_at"`
-	UpdatedAt       time.Time      `json:"updated_at"`
+	// AllowUserTest 决定该题是否开放给用户自测。
+	//
+	// 默认 false：开放是逐个题目的显式决定，因为自测消耗的是**用户自己的额度**，
+	// 而图片题这类昂贵题目的单次成本远高于文本题。
+	AllowUserTest bool      `json:"allow_user_test"`
+	SortOrder     int       `json:"sort_order"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // Task 是按「分组 × 模型」定期执行的检测任务。
@@ -362,13 +405,13 @@ type Artifact struct {
 
 // ArtifactListFilter 是作品列表的筛选条件。
 type ArtifactListFilter struct {
-	GroupID  *int64
-	Model    string
-	CaseID   *int64
-	Status   string
-	Kind     string
-	Since    *time.Time
-	Until    *time.Time
+	GroupID *int64
+	Model   string
+	CaseID  *int64
+	Status  string
+	Kind    string
+	Since   *time.Time
+	Until   *time.Time
 	// Source 为空表示不过滤（对应查询参数 source=all）。
 	Source string
 	// ModerationStatus 为空表示不过滤；公开侧传 approved。

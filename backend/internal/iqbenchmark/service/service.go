@@ -99,6 +99,18 @@ type Store interface {
 	// 否则漏一处就会让「按来源统计」静默失真。
 	GetOverviewCounts(ctx context.Context, source string) (OverviewCounts, error)
 	GetOverviewBuckets(ctx context.Context, limit int, source string) ([]OverviewBucketRow, error)
+
+	// UserTest
+	// 用户自测的请求侧状态机（产出仍写 artifacts）。
+	CreateUserTest(ctx context.Context, in iqbenchmark.UserTestCreateInput) (*iqbenchmark.UserTest, error)
+	GetUserTest(ctx context.Context, id int64) (*iqbenchmark.UserTest, error)
+	ListUserTestsByUser(ctx context.Context, userID int64, page, pageSize int) ([]iqbenchmark.UserTest, int64, error)
+	// FinishUserTest 落终态；artifactID 为 0 表示本次没有产出。
+	FinishUserTest(ctx context.Context, id int64, status, errorCode, errorSummary string, artifactID int64, actualCost float64) error
+	// UserTestQuota 一次返回当日次数/在途数/当日成本，用于发起前预检。
+	UserTestQuota(ctx context.Context, userID int64, since time.Time) (iqbenchmark.UserTestQuotaSnapshot, error)
+	// CountUserTestDedupe 统计去重窗口内的相同请求数。
+	CountUserTestDedupe(ctx context.Context, dedupeKey string, since time.Time) (int, error)
 }
 
 // CaseCreateInput、TaskCreateInput 等直接复用主包的入参类型，

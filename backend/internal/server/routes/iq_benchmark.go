@@ -98,4 +98,28 @@ func RegisterIQBenchmarkRoutes(
 			artifacts.GET("/:id", handlers.User.GetArtifact)
 		}
 	}
+
+	// ---- 用户自测（写入，双重开关）----
+	//
+	// 单独判断 UserTestEnabled：自测关闭时路由**不注册**，
+	// 因此路径完全不存在（404）而不是 403 —— 与功能总开关的处理保持一致。
+	if handlers.UserTest == nil || !handlers.UserTestEnabled() {
+		return
+	}
+
+	userTests := v1.Group("/iq-gallery/user-tests")
+	userTests.Use(gin.HandlerFunc(jwtAuth))
+	{
+		userTests.GET("", handlers.UserTest.List)
+		userTests.GET("/:id", handlers.UserTest.Get)
+
+		// 提交接口是重操作：一次提交会触发真实的模型调用并产生费用。
+		// 限流中间件在装配层一定存在；这里用条件注册而不是把它变成必需依赖，
+		// 是为了让「未接限流」的部署仍然可用（宁可少一层保护，也不要 404）。
+		if handlers.Limiter != nil {
+			userTests.POST("", handlers.Limiter.HeavyMiddleware(), handlers.UserTest.Submit)
+		} else {
+			userTests.POST("", handlers.UserTest.Submit)
+		}
+	}
 }

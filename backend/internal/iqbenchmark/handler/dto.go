@@ -31,6 +31,7 @@ type AdminCaseDTO struct {
 	LLMJudgeEnabled bool           `json:"llm_judge_enabled"`
 	Builtin         bool           `json:"builtin"`
 	Enabled         bool           `json:"enabled"`
+	AllowUserTest   bool           `json:"allow_user_test"`
 	SortOrder       int            `json:"sort_order"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
@@ -142,11 +143,17 @@ type PublicArtifactDTO struct {
 	Truncated  bool   `json:"truncated"`
 	Status     string `json:"status"`
 	// ErrorSummary 是脱敏后的失败描述（绝不回显内部错误码）。
-	ErrorSummary string    `json:"error_summary,omitempty"`
-	Score        *float64  `json:"score,omitempty"`
-	DurationMS   int       `json:"duration_ms"`
-	IsUnsafe     bool      `json:"is_unsafe"`
-	CreatedAt    time.Time `json:"created_at"`
+	ErrorSummary string   `json:"error_summary,omitempty"`
+	Score        *float64 `json:"score,omitempty"`
+	DurationMS   int      `json:"duration_ms"`
+	IsUnsafe     bool     `json:"is_unsafe"`
+	// Source 是产出属主口径：scheduled（定时检测）或 user_test（用户自测）。
+	//
+	// 公开侧下发它是为了让前端能打「用户自测」角标 —— 用户有权知道
+	// 这条作品是官方定期检测的结果，还是另一个用户自己花钱测的。
+	// 注意：只下发来源，**绝不下发触发者 user_id**（那是隐私）。
+	Source    string    `json:"source"`
+	CreatedAt time.Time `json:"created_at"`
 	// 以下三个字段按配置开关决定是否填充。
 	Cost         *float64 `json:"cost,omitempty"`
 	InputTokens  *int     `json:"input_tokens,omitempty"`
@@ -205,6 +212,7 @@ func toAdminCase(c *iqbenchmark.Case) AdminCaseDTO {
 		LLMJudgeEnabled: c.LLMJudgeEnabled,
 		Builtin:         c.Builtin,
 		Enabled:         c.Enabled,
+		AllowUserTest:   c.AllowUserTest,
 		SortOrder:       c.SortOrder,
 		CreatedAt:       c.CreatedAt,
 		UpdatedAt:       c.UpdatedAt,
@@ -376,6 +384,7 @@ func toPublicArtifact(a *iqbenchmark.Artifact, opts PublicArtifactOptions) Publi
 		Status:       a.Status,
 		DurationMS:   a.DurationMS,
 		IsUnsafe:     a.Status == iqbenchmark.ArtifactStatusBlocked,
+		Source:       publicArtifactSource(a.Source),
 		CreatedAt:    a.CreatedAt,
 		ErrorSummary: publicErrorSummary(a),
 	}
@@ -403,6 +412,18 @@ func toPublicArtifact(a *iqbenchmark.Artifact, opts PublicArtifactOptions) Publi
 		dto.OutputTokens = &out
 	}
 	return dto
+}
+
+// publicArtifactSource 归一化公开侧的来源字段。
+//
+// 空值兜底为 scheduled：历史行（迁移 251 之前写入的产出）已被回填为
+// scheduled，但万一有遗漏，也不能给前端一个空字符串去渲染角标 ——
+// 那会让「官方检测」的作品看起来像来源不明。
+func publicArtifactSource(source string) string {
+	if iqbenchmark.ValidStoredSource(source) {
+		return source
+	}
+	return iqbenchmark.SourceScheduled
 }
 
 // toPublicArtifacts 批量映射公开侧产出。

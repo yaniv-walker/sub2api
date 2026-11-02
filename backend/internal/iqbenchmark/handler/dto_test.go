@@ -66,12 +66,43 @@ func TestPublicArtifactDTOWhitelistIsExact(t *testing.T) {
 	allowed := []string{
 		"id", "case_id", "case_name", "case_kind", "model", "render_kind",
 		"image_url", "content", "truncated", "status", "error_summary",
-		"score", "duration_ms", "is_unsafe", "created_at",
+		"score", "duration_ms", "is_unsafe", "source", "created_at",
 		"cost", "input_tokens", "output_tokens",
 	}
 	actual := jsonFieldNames(reflect.TypeOf(PublicArtifactDTO{}))
 	require.ElementsMatch(t, allowed, actual,
 		"公开作品字段集合被固定；如需新增，请先更新 design.md 第 9.2 节与本断言")
+}
+
+// TestPublicArtifactDTONeverExposesTriggerUser 断言自测产出不泄露触发者身份。
+//
+// source 是「这条作品是怎么来的」（可以公开，用于渲染「用户自测」角标）；
+// triggered_by_user_id 是「谁测的」（属于隐私，一旦下发就能把作品与具体用户关联）。
+// 两者只差一个字段名，最容易在加 source 时顺手把 user_id 也带出去。
+func TestPublicArtifactDTONeverExposesTriggerUser(t *testing.T) {
+	names := jsonFieldNames(reflect.TypeOf(PublicArtifactDTO{}))
+	require.Contains(t, names, "source", "source 是公开的（用于角标）")
+
+	for _, forbidden := range []string{
+		"triggered_by_user_id", "user_id", "triggered_by",
+		"moderation_status", "api_key_id",
+	} {
+		require.NotContains(t, names, forbidden,
+			"自测产出的 %q 属于内部/隐私字段，绝不可公开下发", forbidden)
+	}
+}
+
+// TestPublicArtifactSourceFallsBackToScheduled 断言未知来源兜底为 scheduled。
+//
+// 兜底方向必须是 scheduled 而不是 user_test：把官方检测误标成「用户自测」
+// 会削弱可信度；反过来标错只是少了一个角标。
+func TestPublicArtifactSourceFallsBackToScheduled(t *testing.T) {
+	require.Equal(t, iqbenchmark.SourceScheduled, publicArtifactSource(""))
+	require.Equal(t, iqbenchmark.SourceScheduled, publicArtifactSource("bogus"))
+	// all 是查询专用值，落库状态不合法，公开侧同样兜底。
+	require.Equal(t, iqbenchmark.SourceScheduled, publicArtifactSource(iqbenchmark.SourceAll))
+	require.Equal(t, iqbenchmark.SourceScheduled, publicArtifactSource(iqbenchmark.SourceScheduled))
+	require.Equal(t, iqbenchmark.SourceUserTest, publicArtifactSource(iqbenchmark.SourceUserTest))
 }
 
 // TestPublicCaseDTOHasNoPromptInternals 断言公开题目 DTO 只有 5 个字段。

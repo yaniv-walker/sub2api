@@ -33,9 +33,12 @@ type ExecutionIdentity struct {
 }
 
 // Valid 校验身份是否自洽：Key 必须有值，来源必须是合法的存储值。
+//
+// 所有失败都用本模块的通用哨兵（ErrGatewayKeyMissing 等），
+// 刻意不用 ErrInternalAgentMissing —— 执行器不知道也不该知道「内部账号」的概念。
 func (e ExecutionIdentity) Valid() error {
 	if strings.TrimSpace(e.GatewayKey) == "" {
-		return iqbenchmark.ErrInternalAgentMissing
+		return iqbenchmark.ErrGatewayKeyMissing
 	}
 	if !iqbenchmark.ValidStoredSource(e.Source) {
 		return fmt.Errorf("iqbenchmark: invalid execution source %q", e.Source)
@@ -87,6 +90,9 @@ type ExecuteResult struct {
 	// 任务 A 刚判定「配额耗尽」，任务 B 的一次成功就能把它覆盖成 false，
 	// 于是 A 的剩余题目继续跑、继续扣失败次数。
 	ErrorCode string
+	// ArtifactID 是本次写入的产出 ID（0 表示没有产出）。
+	// 自测链路需要它把 user_tests.artifact_id 回填。
+	ArtifactID int64
 }
 
 // QuotaExhausted 判断本次执行是否因配额/限流而失败（需要中止整轮）。
@@ -200,7 +206,8 @@ func (e *Executor) executeTextCase(ctx context.Context, identity ExecutionIdenti
 			"run_id", base.RunID, "case_id", base.CaseID, "error", saveErr)
 		return ExecuteResult{Status: iqbenchmark.ArtifactStatusFailed, DurationMS: duration, RequestID: resp.RequestID}
 	}
-	return ExecuteResult{Status: artifact.Status, DurationMS: duration, RequestID: resp.RequestID}
+	return ExecuteResult{Status: artifact.Status, DurationMS: duration, RequestID: resp.RequestID,
+		ArtifactID: artifact.ID}
 }
 
 // executeImageCase 执行图片类题目。
@@ -240,11 +247,13 @@ func (e *Executor) executeImageCase(ctx context.Context, identity ExecutionIdent
 
 	// 首版只用 URL 直链（b64 需经 ImageResultUploader 转存，见 known limitations）。
 	if len(resp.URLs) > 0 {
-		if _, saveErr := e.Artifacts.SaveImageArtifact(ctx, base, resp.URLs[0], ""); saveErr != nil {
+		saved, saveErr := e.Artifacts.SaveImageArtifact(ctx, base, resp.URLs[0], "")
+		if saveErr != nil {
 			e.Logger.Error("iqbenchmark: persist image artifact failed", "run_id", base.RunID, "error", saveErr)
 			return ExecuteResult{Status: iqbenchmark.ArtifactStatusFailed, DurationMS: duration, RequestID: resp.RequestID}
 		}
-		return ExecuteResult{Status: iqbenchmark.ArtifactStatusSuccess, DurationMS: duration, RequestID: resp.RequestID}
+		return ExecuteResult{Status: iqbenchmark.ArtifactStatusSuccess, DurationMS: duration,
+			RequestID: resp.RequestID, ArtifactID: saved.ID}
 	}
 
 	// 只有 b64：无对象存储时降级为 storage_disabled。
