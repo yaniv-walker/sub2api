@@ -286,3 +286,40 @@ func TestListArtifactsSourceAndModerationFilter(t *testing.T) {
 	require.Equal(t, iqbenchmark.ModerationApproved, store.lastListFilter.ModerationStatus,
 		"public path must only expose approved artifacts")
 }
+
+// TestListArtifactsAdminModerationQueue 覆盖审核队列入口。
+//
+// 这是一条真实缺口：require_review 打开后产出写成 pending，公开侧只给
+// approved，所以**必须**有管理侧按状态读取的路径，否则待审产出无处可见。
+func TestListArtifactsAdminModerationQueue(t *testing.T) {
+	store := &galleryStore{}
+	svc := NewGalleryService(store, nil)
+
+	_, err := svc.ListArtifacts(context.Background(), ArtifactListQuery{
+		ModerationStatus: iqbenchmark.ModerationPending,
+		Page:             1,
+		PageSize:         10,
+	})
+	require.NoError(t, err)
+	require.Equal(t, iqbenchmark.ModerationPending, store.lastListFilter.ModerationStatus,
+		"admin moderation filter must reach the repository")
+}
+
+// TestListArtifactsModeratedOnlyWinsOverAdminFilter 锁死两个字段的优先级。
+//
+// 合并成一个字段会出现「管理侧设了 pending 却被公开口径强制改成 approved」
+// 的静默失效；这条断言保证两者同时出现时公开侧的收紧优先。
+func TestListArtifactsModeratedOnlyWinsOverAdminFilter(t *testing.T) {
+	store := &galleryStore{}
+	svc := NewGalleryService(store, nil)
+
+	_, err := svc.ListArtifacts(context.Background(), ArtifactListQuery{
+		ModeratedOnly:    true,
+		ModerationStatus: iqbenchmark.ModerationPending,
+		Page:             1,
+		PageSize:         10,
+	})
+	require.NoError(t, err)
+	require.Equal(t, iqbenchmark.ModerationApproved, store.lastListFilter.ModerationStatus,
+		"the public-path restriction must win over an admin status filter")
+}

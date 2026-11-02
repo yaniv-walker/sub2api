@@ -59,6 +59,9 @@ function toParams(filters: IQArtifactFilters): Record<string, string | number> {
   // source 是唯一「空字符串也有含义」的字段（省略 = 各侧自己的默认口径），
   // 因此只在非空时下发，让后端的默认值生效。
   if (filters.source) params.source = filters.source
+  // moderation 只在管理侧生效；公开侧恒为 approved，多传也无害，
+  // 因为那条路径由 ModeratedOnly 分支先行接管。
+  if (filters.moderation) params.moderation = filters.moderation
   if (filters.since) params.since = filters.since
   if (filters.until) params.until = filters.until
   if (filters.page) params.page = filters.page

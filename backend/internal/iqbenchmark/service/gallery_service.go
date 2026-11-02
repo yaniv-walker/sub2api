@@ -317,16 +317,24 @@ func (s *GalleryService) ListRuns(ctx context.Context, taskID int64, page, pageS
 // ModeratedOnly 决定是否只返回审核通过的作品：公开侧为 true，
 // 管理侧为 false（管理员要能看到待审的）。
 type ArtifactListQuery struct {
-	Model         string
-	CaseID        *int64
-	Status        string
-	Kind          string
-	Source        string
-	Since         *time.Time
-	Until         *time.Time
+	Model  string
+	CaseID *int64
+	Status string
+	Kind   string
+	Source string
+	Since  *time.Time
+	Until  *time.Time
+	// ModeratedOnly 是**公开侧**口径：只展示审核通过的作品。
 	ModeratedOnly bool
-	Page          int
-	PageSize      int
+	// ModerationStatus 是**管理侧**口径：按审核状态筛选（如 pending = 审核队列）。
+	//
+	// 两个字段分开而不是复用一个，是因为语义不同：公开侧是「无论如何只给
+	// 通过的」，管理侧是「我要看某个状态的」。合并会出现「管理侧设了
+	// ModerationStatus=pending 却被 ModeratedOnly 强制改成 approved」
+	// 这种静默失效。
+	ModerationStatus string
+	Page             int
+	PageSize         int
 }
 
 // ListArtifacts 列出作品。
@@ -351,6 +359,10 @@ func (s *GalleryService) ListArtifacts(ctx context.Context, q ArtifactListQuery)
 	}
 	if q.ModeratedOnly {
 		filter.ModerationStatus = iqbenchmark.ModerationApproved
+	} else if st := trimSpace(q.ModerationStatus); st != "" {
+		// 管理侧的显式筛选。不校验取值合法性：非法值查不到任何行，
+		// 这比返回 400 更符合「筛选器」的直觉，也不会泄露合法取值集合。
+		filter.ModerationStatus = st
 	}
 	return s.Store.ListArtifacts(ctx, filter)
 }

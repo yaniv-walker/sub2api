@@ -225,6 +225,19 @@
             <option value="timeout">{{ t('iqBenchmark.status.timeout') }}</option>
             <option value="blocked">{{ t('iqBenchmark.status.blocked') }}</option>
           </select>
+          <!-- 来源：缺了它就无法把官方检测与用户自测分开审阅 -->
+          <select v-model="artifactFilters.source" class="input h-9 py-0 text-xs" @change="reloadAdminArtifacts">
+            <option value="">{{ t('iqBenchmark.admin.artifacts.sourceAll') }}</option>
+            <option value="scheduled">{{ t('iqBenchmark.source.scheduled') }}</option>
+            <option value="user_test">{{ t('iqBenchmark.source.user_test') }}</option>
+          </select>
+          <!-- 审核状态：pending 即审核队列。require_review 打开后唯一的入口 -->
+          <select v-model="artifactFilters.moderation" class="input h-9 py-0 text-xs" @change="reloadAdminArtifacts">
+            <option value="">{{ t('iqBenchmark.admin.artifacts.moderation.all') }}</option>
+            <option value="pending">{{ t('iqBenchmark.admin.artifacts.moderation.pending') }}</option>
+            <option value="approved">{{ t('iqBenchmark.admin.artifacts.moderation.approved') }}</option>
+            <option value="rejected">{{ t('iqBenchmark.admin.artifacts.moderation.rejected') }}</option>
+          </select>
         </div>
 
         <div class="card overflow-x-auto">
@@ -234,6 +247,8 @@
                 <th class="p-2">ID</th>
                 <th class="p-2">{{ t('iqBenchmark.admin.artifacts.case') }}</th>
                 <th class="p-2">{{ t('iqBenchmark.admin.artifacts.model') }}</th>
+                <th class="p-2">{{ t('iqBenchmark.admin.artifacts.source') }}</th>
+                <th class="p-2">{{ t('iqBenchmark.admin.artifacts.moderation.label') }}</th>
                 <th class="p-2">{{ t('iqBenchmark.admin.artifacts.status') }}</th>
                 <th class="p-2">{{ t('iqBenchmark.admin.artifacts.unsafeFlags') }}</th>
                 <th class="p-2">{{ t('iqBenchmark.admin.artifacts.cost') }}</th>
@@ -250,6 +265,27 @@
                 <td class="p-2 tabular-nums">{{ item.id }}</td>
                 <td class="p-2 max-w-[14rem] truncate">{{ caseName(item) }}</td>
                 <td class="p-2">{{ item.model }}</td>
+                <td class="p-2">
+                  <span
+                    :class="
+                      item.source === 'user_test'
+                        ? 'rounded bg-sky-100 px-1 text-[10px] text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'
+                        : 'text-gray-400'
+                    "
+                  >{{ t(`iqBenchmark.source.${item.source ?? 'scheduled'}`) }}</span>
+                  <div v-if="item.triggered_by_user_id" class="text-[10px] text-gray-400">
+                    {{ t('iqBenchmark.admin.artifacts.triggeredBy') }} #{{ item.triggered_by_user_id }}
+                  </div>
+                </td>
+                <td class="p-2">
+                  <span
+                    :class="{
+                      'text-amber-600 dark:text-amber-400': item.moderation_status === 'pending',
+                      'text-red-600 dark:text-red-400': item.moderation_status === 'rejected',
+                      'text-gray-400': !item.moderation_status || item.moderation_status === 'approved',
+                    }"
+                  >{{ t(`iqBenchmark.admin.artifacts.moderation.${item.moderation_status ?? 'approved'}`) }}</span>
+                </td>
                 <td class="p-2">
                   {{ t(`iqBenchmark.status.${item.status}`) }}
                   <div v-if="item.error_code" class="text-[10px] text-red-500">{{ item.error_code }}</div>
@@ -276,7 +312,7 @@
                 </td>
               </tr>
               <tr v-if="adminArtifacts.length === 0">
-                <td colspan="8" class="p-6 text-center text-gray-400">{{ t('iqBenchmark.empty.artifacts') }}</td>
+                <td colspan="10" class="p-6 text-center text-gray-400">{{ t('iqBenchmark.empty.artifacts') }}</td>
               </tr>
             </tbody>
           </table>
@@ -402,7 +438,16 @@ const runs = ref<IQAdminRun[]>([])
 const runsTaskId = ref<number | null>(null)
 const settings = ref<IQBenchmarkSettings | null>(null)
 
-const artifactFilters = ref<IQArtifactFilters>({ model: '', status: '', page: 1, page_size: 50 })
+const artifactFilters = ref<IQArtifactFilters>({
+  model: '',
+  status: '',
+  // 管理侧默认看全部来源：审核者需要同时看到官方检测与用户自测。
+  source: '',
+  // 审核状态默认不筛（看全部）。
+  moderation: '',
+  page: 1,
+  page_size: 50,
+})
 
 const taskFormOpen = ref(false)
 const taskEditing = ref<IQAdminTask | null>(null)

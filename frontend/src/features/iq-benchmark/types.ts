@@ -34,6 +34,9 @@ export type IQArtifactSource = 'scheduled' | 'user_test'
  */
 export type IQArtifactSourceFilter = IQArtifactSource | 'all'
 
+/** 产出审核状态（仅管理侧可见；公开侧恒定 approved）。 */
+export type IQModerationStatus = 'approved' | 'pending' | 'rejected'
+
 /** 自测记录状态。 */
 export type IQUserTestStatus =
   | 'pending'
@@ -254,7 +257,7 @@ export interface IQAdminArtifact {
   /** 自测产出的触发者（仅管理侧下发；公开侧绝不下发）。 */
   triggered_by_user_id?: number | null
   /** 审核状态（仅管理侧下发）。 */
-  moderation_status?: 'approved' | 'pending' | 'rejected'
+  moderation_status?: IQModerationStatus
   created_at: string
 }
 
@@ -319,6 +322,13 @@ export interface IQArtifactFilters {
    * 管理侧：省略 = all（管理要看全量），便于排查自测产出。
    */
   source?: IQArtifactSourceFilter | ''
+  /**
+   * 审核状态（**仅管理侧**）。
+   *
+   * 公开侧不看这个参数：那里恒定只返回 approved。管理侧传 `pending`
+   * 即「审核队列」—— require_review 打开后待审产出的唯一入口。
+   */
+  moderation?: IQModerationStatus | ''
   since?: string
   until?: string
   page?: number

@@ -954,14 +954,12 @@ $ git diff --numstat f688e8999e -- backend/internal/service backend/internal/han
 
 ### 7.9 已知缺口（阶段 8）
 
-1. **`moderation_status='pending'` 的产出当前不可达，也还没排进审核队列。**
-   `user_test_require_review=true` 时产出会写成 `pending`，但既没有管理员
-   审核列表读取它、也没有任何接口能把它改成 `approved`。默认配置下
-   `user_test_require_review` 为 `true`（与后端 `DefaultSettings()` 一致），
-   所以**这是一个会影响真实使用的缺口**：开启自测并保持默认配置时，
-   用户测完的作品不会出现在作品展里。
-   当前判断：先如实记录，不擅自扩大改动面（审核队列是独立的一块功能）。
-   上线前必须二选一：要么先做审核读取路径，要么把该默认值改为 `false`。
+1. **`moderation_status='pending'` 的产出目前无法改成 `approved`（审核动作缺失）。**
+   `user_test_require_review=true` 时产出会写成 `pending`。读取路径这一轮已补上
+   （见 7.10），但**没有任何接口能把它改成 `approved`**，所以待审产出虽然
+   「看得见」，仍进不了公开作品展。默认配置下 `user_test_require_review`
+   为 `true`（与后端 `DefaultSettings()` 一致），上线前必须二选一：
+   补上审核动作接口，或把该默认值改为 `false`。
 2. **`ratelimit.AcquireUserTestSlot` 的 fail-closed 分支没有单测。**
    目前只通过 service 层的假替身覆盖了「拿到/没拿到槽位」两种结果，
    Redis 报错时的真实降级路径（返回 `(nil, false)`）未被直接验证。
@@ -969,3 +967,50 @@ $ git diff --numstat f688e8999e -- backend/internal/service backend/internal/han
    没有为 user-test 单独补 handler 级的 404 断言（其余接口有此断言）。
 4. `user_test_daily_cost_budget` 的预检用的是题目维度的**估算**成本
    （`EstimatedCost`），不是实际结算值。预算只能拦住量级，不能精确到分。
+### 7.10 审核队列的读取路径（本轮补上）
+
+复核 §7.9 第 1 条时发现缺口比原先记录的更严重：`adminListQuery` 完全
+不解析 `source` 与 `moderation`，也就是说——**管理员连自测产出都看不到**，
+更看不到待审的。这不只是「审核动作缺失」，而是读取路径也不存在。
+
+已修：
+
+- `service.ArtifactListQuery` 增 `ModerationStatus`（与公开侧的 `ModeratedOnly`
+  **分开两个字段**）。合并成一个字段会出现「管理侧设了 pending 却被公开口径
+  强制改成 approved」的静默失效。
+- `GalleryService.ListArtifacts` 里 `ModeratedOnly` 优先于管理侧筛选，
+  公开侧的收紧规则不会被绕过。
+- `adminListQuery` 增 `source` / `since` / `until` / `moderation` 四个参数；
+  时间口径沿用公开侧既有的 unix 秒，避免同一模块出现两种格式。
+- 管理页作品表格增「来源」「审核」两列与对应筛选下拉，`?moderation=pending`
+  即审核队列。
+
+新增用例：
+
+```
+$ go test -tags=unit -count=1 -run 'TestListArtifacts' -v ./internal/iqbenchmark/service/
+--- PASS: TestListArtifactsRejectsOversizedPage (0.00s)
+--- PASS: TestListArtifactsSourceAndModerationFilter (0.00s)
+--- PASS: TestListArtifactsAdminModerationQueue (0.00s)
+--- PASS: TestListArtifactsModeratedOnlyWinsOverAdminFilter (0.00s)
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service	0.395s
+```
+
+变异测试实证（把 `filter.ModerationStatus = st` 改成 `_ = st`）：
+
+```
+--- FAIL: TestListArtifactsAdminModerationQueue (0.00s)
+FAIL	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service	0.402s
+```
+
+前端对应断言：
+
+```
+$ npx vitest run src/features/iq-benchmark/__tests__/api.spec.ts --pool=threads
+ ✓ src/features/iq-benchmark/__tests__/api.spec.ts (23 tests) 12ms
+      Tests  23 passed (23)
+```
+
+> 这一条是**复核自己上一轮的文档时发现的**：上一轮我把缺口写成「待审产出
+> 不可达」，实际比那更糟——`source` 也没接，自测产出在管理侧同样不可见。
+> 已按实修正。

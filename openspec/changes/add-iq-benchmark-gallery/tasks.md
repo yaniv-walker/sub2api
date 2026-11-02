@@ -229,8 +229,7 @@ Wire 图内取不到；要注入必须先给上游加导出方法，会突破「
 ### 8.5 验证
 
 - [x] 8.5.1 后端单测：`internal/iqbenchmark/...` + `cmd/server` + `internal/server/routes`
-      共 9 个包全部 `ok`；`golangci-lint run ./internal/iqbenchmark/...` 0 issues。
-- [x] 8.5.2 集成测试（真实 PostgreSQL 18）：迁移 251 + 自测租约/计费隔离，
+      共 9 个包全部 `ok`；`golangci-lint run ./internal/iqbenchmark/...` 0 issues。- [x] 8.5.2 集成测试（真实 PostgreSQL 18）：迁移 251 + 自测租约/计费隔离，
       `internal/iqbenchmark/repository` `ok`。
 - [x] 8.5.3 前端：`npx vue-tsc -b` 无错误；`npx vitest run` 394 文件 / 3257 用例全通过。
 - [x] 8.5.4 变异测试实证关键断言有效：后端「忽略 Key 绑定分组」→
@@ -241,4 +240,24 @@ Wire 图内取不到；要注入必须先给上游加导出方法，会突破「
       单点变异是等价变异、测试无法区分。真正防线在后端的
       `TestUserTestGroupBoundToKeyWins`。已在测试文件内注明，不假装有覆盖。
 - [ ] 8.5.6 `tasks.md` 6.9 的灰度仍需要在真实部署环境执行（与本阶段同因，保持未勾选）。
+
+### 8.6 审核队列的读取路径（复核时发现并补上）
+
+- [x] 8.6.1 复核 §8.5 的「已知缺口」时发现实际比记录更糟：`adminListQuery`
+      **完全不解析 `source` 与 `moderation`**，管理员既看不到自测产出、也看不到
+      待审产出。`ArtifactListQuery` 也缺 `ModerationStatus` 字段。
+- [x] 8.6.2 `ArtifactListQuery` 增 `ModerationStatus`，与公开侧的 `ModeratedOnly`
+      保持**两个独立字段**：合并会出现「管理侧设了 pending 却被公开口径强制
+      改成 approved」的静默失效。
+- [x] 8.6.3 `ListArtifacts` 里 `ModeratedOnly` 优先于管理侧筛选，公开侧的收紧
+      规则不可被绕过（`TestListArtifactsModeratedOnlyWinsOverAdminFilter`）。
+- [x] 8.6.4 `adminListQuery` 增 `source` / `since` / `until` / `moderation`；
+      时间口径沿用公开侧既有的 unix 秒，避免同一模块出现两种格式。
+- [x] 8.6.5 管理页作品表格增「来源」「审核」两列与两个筛选下拉，
+      `?moderation=pending` 即审核队列。
+- [x] 8.6.6 变异测试实证：`filter.ModerationStatus = st` 改成 `_ = st` →
+      `TestListArtifactsAdminModerationQueue` 翻红。
+- [ ] 8.6.7 **审核动作仍缺**：没有任何接口能把 `pending` 改成 `approved`，
+      所以待审产出「看得见但进不了公开页」。上线前必须二选一：
+      补审核动作接口，或把 `user_test_require_review` 默认值改为 `false`。
 

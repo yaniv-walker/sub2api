@@ -94,6 +94,15 @@ describe('IQ benchmark API — route namespaces', () => {
     await fetchAdminArtifacts({ page: 1, page_size: 50 })
     expect(client.get).toHaveBeenCalledWith('/admin/iq-benchmark/artifacts', { params: { page: 1, page_size: 50 } })
   })
+
+  it('passes the moderation filter through so the review queue is reachable', async () => {
+    client.get.mockResolvedValue(envelope({ items: [], total: 0, page: 1, page_size: 50, pages: 0 }))
+    await fetchAdminArtifacts({ page: 1, page_size: 50, moderation: 'pending', source: 'user_test' })
+    // 缺了 moderation，require_review 打开后待审产出没有任何入口能看到。
+    expect(client.get).toHaveBeenCalledWith('/admin/iq-benchmark/artifacts', {
+      params: { page: 1, page_size: 50, moderation: 'pending', source: 'user_test' },
+    })
+  })
 })
 
 describe('IQ benchmark API — request shapes', () => {

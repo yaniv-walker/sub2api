@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -546,13 +547,33 @@ func adminListQuery(c *gin.Context) service.ArtifactListQuery {
 	if pageSize > 100 {
 		pageSize = 100
 	}
+	// 与公开侧同一套时间参数口径（unix 秒），避免同一个模块出现两种格式。
+	var since, until *time.Time
+	if v := parseOptionalInt64(c.Query("since")); v != nil {
+		t := time.Unix(*v, 0)
+		since = &t
+	}
+	if v := parseOptionalInt64(c.Query("until")); v != nil {
+		t := time.Unix(*v, 0)
+		until = &t
+	}
 	return service.ArtifactListQuery{
 		Model:    c.Query("model"),
 		CaseID:   parseOptionalInt64(c.Query("case_id")),
 		Status:   c.Query("status"),
 		Kind:     c.Query("kind"),
+		Source:   strings.TrimSpace(c.Query("source")),
+		Since:    since,
+		Until:    until,
 		Page:     page,
 		PageSize: pageSize,
+		// 审核队列：?moderation=pending 列出待审产出。
+		//
+		// 管理侧**不**用 ModeratedOnly（那是公开侧的口径），而是把
+		// moderation_status 当成一个可选筛选维度：不传则看全部，
+		// 传 pending 就是审核队列。缺了这条，require_review 打开后
+		// 待审产出既不出现在公开页、也没有任何入口能看到，等于黑洞。
+		ModerationStatus: strings.TrimSpace(c.Query("moderation")),
 	}
 }
 
