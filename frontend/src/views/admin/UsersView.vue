@@ -188,6 +188,21 @@
                       :stroke-width="2"
                     />
                   </button>
+                  <!-- 内部账号开关：作品展的检测账号默认隐藏，避免干扰日常管理 -->
+                  <div class="my-1 border-t border-gray-100 dark:border-dark-700"></div>
+                  <button
+                    @click="hideInternalAccounts = !hideInternalAccounts"
+                    class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                  >
+                    <span>{{ t('iqBenchmark.admin.users.hideInternal') }}</span>
+                    <Icon
+                      v-if="hideInternalAccounts"
+                      name="check"
+                      size="sm"
+                      class="text-primary-500"
+                      :stroke-width="2"
+                    />
+                  </button>
                 </div>
               </div>
               <!-- Column Settings Dropdown -->
@@ -830,6 +845,7 @@ import UserAllowedGroupsModal from '@/components/admin/user/UserAllowedGroupsMod
 import UserBalanceModal from '@/components/admin/user/UserBalanceModal.vue'
 import UserBalanceHistoryModal from '@/components/admin/user/UserBalanceHistoryModal.vue'
 import GroupReplaceModal from '@/components/admin/user/GroupReplaceModal.vue'
+import { filterInternalAccounts, useHideInternalAccounts } from '@/features/iq-benchmark/userFilter'
 
 const appStore = useAppStore()
 
@@ -1040,6 +1056,8 @@ const columns = computed<Column[]>(() =>
 )
 
 const users = ref<AdminUser[]>([])
+// 作品展内部检测账号：默认隐藏（偏好持久化在 localStorage，见 features/iq-benchmark/userFilter）。
+const hideInternalAccounts = useHideInternalAccounts()
 const loading = ref(false)
 const searchQuery = ref('')
 const USER_SORT_STORAGE_KEY = 'admin-users-table-sort'
@@ -1297,10 +1315,12 @@ const getUsageValue = (userId: number, key: string, metric: UsageMetric): number
 
 // 在 server-side 排序结果之上叠加用量列的本地排序；无 usageSort 时直接透传原数组。
 // 稳定排序：等值按原 index 保序，避免拉取新用量数据时表行抖动。
+// 内部账号（作品展的检测账号）在此处过滤：默认隐藏，不改上游查询逻辑。
 const sortedUsers = computed(() => {
+  const visible = filterInternalAccounts(users.value, hideInternalAccounts.value)
   const s = usageSort.value
-  if (!s) return users.value
-  return [...users.value]
+  if (!s) return visible
+  return [...visible]
     .map((row, index) => ({ row, index }))
     .sort((a, b) => {
       const av = getUsageValue(a.row.id, s.key, s.metric)

@@ -281,6 +281,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/iq-gallery',
+    name: 'UserIqGallery',
+    component: () => import('@/views/user/IqGalleryView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'IQ Benchmark Gallery',
+      titleKey: 'iqBenchmark.title',
+      descriptionKey: 'iqBenchmark.subtitle'
+    }
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/user/ProfileView.vue'),
@@ -563,6 +575,18 @@ const routes: RouteRecordRaw[] = [
     name: 'AdminTutorials',
     component: () => import('@/views/admin/TutorialsView.vue'),
     meta: { requiresAuth: true, requiresAdmin: true, title: 'Tutorial Management' }
+  },
+  {
+    path: '/admin/iq-benchmark',
+    name: 'AdminIqBenchmark',
+    component: () => import('@/views/admin/IqBenchmarkView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'IQ Benchmark Gallery Admin',
+      titleKey: 'iqBenchmark.admin.title',
+      descriptionKey: 'iqBenchmark.subtitle'
+    }
   },
   {
     path: '/admin/upstream-monitor',

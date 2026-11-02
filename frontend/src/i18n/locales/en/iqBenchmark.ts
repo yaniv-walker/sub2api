@@ -1,0 +1,253 @@
+/**
+ * IQ benchmark gallery English copy.
+ *
+ * Keys must stay identical to `zh/iqBenchmark.ts`:
+ * `localeKeyCompleteness.spec.ts` asserts both sides expose the same key set.
+ */
+export default {
+  iqBenchmark: {
+    title: 'Model IQ Benchmark Gallery',
+    subtitle: 'Compare real model output on an identical set of prompts',
+    navGallery: 'Benchmark Gallery',
+    navAdmin: 'Benchmark Gallery Admin',
+
+    tab: {
+      gallery: 'Gallery',
+      overview: 'Model comparison',
+    },
+
+    filter: {
+      model: 'Model',
+      modelAll: 'All models',
+      case: 'Prompt',
+      caseAll: 'All prompts',
+      status: 'Status',
+      statusAll: 'All statuses',
+      kind: 'Type',
+      kindAll: 'All types',
+      since: 'Time range',
+      sinceAll: 'Any time',
+      sinceDays: 'Last {n} days',
+      reset: 'Clear filters',
+      refresh: 'Refresh',
+      search: 'Search models…',
+    },
+
+    kind: {
+      image: 'Image generation',
+      text: 'Text generation',
+      code: 'Code generation',
+      image_url: 'Image',
+      svg: 'SVG graphic',
+      markdown: 'Markdown',
+    },
+
+    status: {
+      success: 'Success',
+      failed: 'Failed',
+      timeout: 'Timed out',
+      blocked: 'Blocked',
+      running: 'Running',
+      partial: 'Partially succeeded',
+      idle: 'Idle',
+      quota_exhausted: 'Upstream quota exhausted',
+      budget_exhausted: 'Daily budget exceeded',
+      account_disabled: 'Internal account unavailable',
+      paused_by_admin: 'Paused by admin',
+    },
+
+    trigger: {
+      schedule: 'Scheduled',
+      manual: 'Manual',
+      retry: 'Retry',
+    },
+
+    /** Generic enable-state labels (the common namespace has no such key). */
+    state: {
+      on: 'Enabled',
+      off: 'Disabled',
+    },
+
+    card: {
+      contentTruncated: 'Content truncated',
+      unsafe: 'Content was blocked by the safety policy',
+      noPreview: 'No content',
+      viewDetail: 'View details',
+      compare: 'Add to comparison',
+      compared: 'Added to comparison',
+      score: 'Score',
+      duration: 'Duration',
+      cost: 'Cost',
+      tokens: 'Tokens',
+      inputTokens: 'Input',
+      outputTokens: 'Output',
+      createdAt: 'Generated at',
+    },
+
+    detail: {
+      title: 'Artifact details',
+      prompt: 'Prompt',
+      content: 'Model output',
+      rawUnavailable: 'This output was blocked by the safety policy and is not shown.',
+      metadata: 'Metadata',
+      close: 'Close',
+    },
+
+    compare: {
+      title: 'Compare artifacts',
+      selected: '{n} selected',
+      limit: 'You can compare up to {n} artifacts at a time',
+      clear: 'Clear selection',
+      start: 'Compare',
+      empty: 'Pick at least 2 artifacts from the gallery to compare',
+      remove: 'Remove from comparison',
+      maxReached: 'Comparison limit reached',
+    },
+
+    overview: {
+      totalArtifacts: 'Total artifacts',
+      imageArtifacts: 'Image artifacts',
+      textArtifacts: 'Text artifacts',
+      caseCount: 'Prompts',
+      modelBreakdown: 'Per-model results',
+      model: 'Model',
+      total: 'Total',
+      successRate: 'Success rate',
+      avgDuration: 'Avg duration',
+      lastRunAt: 'Last generated',
+      empty: 'No statistics yet',
+    },
+
+    empty: {
+      artifacts: 'No artifacts yet — waiting for the first run',
+      filtered: 'No artifacts match the current filters',
+      cases: 'No prompts yet',
+      tasks: 'No tasks yet',
+      runs: 'No runs yet',
+    },
+
+    error: {
+      loadFailed: 'Failed to load, please try again later',
+      rateLimited: 'Too many requests, please retry in {n} seconds',
+      rateLimitedShort: 'Too many requests',
+      disabled: 'This feature is currently disabled',
+      cooldown: 'Cooling down, retry in {n} seconds',
+      retry: 'Retry',
+    },
+
+    admin: {
+      title: 'Model IQ Benchmark Gallery Admin',
+      /** Admin user-list "hide internal accounts" toggle label. */
+      users: {
+        hideInternal: 'Hide internal accounts',
+      },
+      tab: {
+        tasks: 'Tasks',
+        cases: 'Prompts',
+        artifacts: 'Artifacts',
+        settings: 'Settings',
+      },
+      disabledNotice: 'Feature disabled: the gallery page and the detection scheduler are inactive.',
+      enableHint: 'Enable it under Settings to make the user-facing gallery appear.',
+
+      settings: {
+        enabled: 'Enable feature',
+        enabledHint: 'When off, the user page is unreachable and the scheduler stops.',
+        defaultGroupId: 'Default group ID',
+        defaultGroupIdHint: 'Target group bound to the internal account; empty uses the first available group.',
+        gatewayBaseUrl: 'Gateway base URL',
+        gatewayBaseUrlHint: 'Empty falls back to the local loopback address http://127.0.0.1:<port>.',
+        modelTimeout: 'Per-call timeout (seconds)',
+        maxArtifactBytes: 'Max artifact size (bytes)',
+        maxArtifactsPerRun: 'Max artifacts per run',
+        maxTaskConcurrency: 'Max concurrent tasks',
+        dailyCostBudget: 'Daily cost budget',
+        dailyCostBudgetHint: 'Exceeding it trips every task; recovery is automatic the next day.',
+        minBalanceFloor: 'Minimum balance floor',
+        scoringEnabled: 'Enable scoring',
+        exposeCost: 'Show cost to users',
+        exposeTokens: 'Show tokens to users',
+        retentionDays: 'Artifact retention (days)',
+        maxArtifacts: 'Max artifacts in total',
+        cleanupInterval: 'Cleanup interval (minutes)',
+        readLimit: 'Browse rate limit (req/min)',
+        heavyLimit: 'Compare rate limit (req/min)',
+        maxConcurrent: 'Per-user concurrency cap',
+        save: 'Save settings',
+        saved: 'Settings saved',
+        readonly: 'Only admins can change settings',
+      },
+
+      tasks: {
+        create: 'New task',
+        edit: 'Edit task',
+        name: 'Task name',
+        group: 'Group',
+        model: 'Model',
+        cases: 'Prompts',
+        casesSelected: '{n} prompts selected',
+        interval: 'Interval (minutes)',
+        jitter: 'Jitter (seconds)',
+        enabled: 'Enabled',
+        status: 'Status',
+        nextRun: 'Next run',
+        lastRun: 'Last run',
+        runNow: 'Run now',
+        runStarted: 'Run triggered',
+        delete: 'Delete',
+        deleteConfirm: 'Delete this task? Run history is kept.',
+        intervalHint: 'Must be between {min} and {max} minutes.',
+        jitterHint: 'Each run starts 0 - {n} seconds earlier than the interval.',
+        enableToRecover: 'Enabling clears the tripped state',
+        duplicate: 'A task for this group and model is already enabled',
+      },
+
+      cases: {
+        create: 'New prompt',
+        edit: 'Edit prompt',
+        name: 'Prompt name',
+        kind: 'Prompt type',
+        prompt: 'Prompt text',
+        systemPrompt: 'System prompt',
+        expectKind: 'Expected output',
+        scoring: 'Scoring',
+        enabled: 'Enabled',
+        sortOrder: 'Sort order',
+        builtin: 'Built-in',
+        delete: 'Delete',
+        deleteConfirm: 'Delete this prompt?',
+        builtinUndeletable: 'Built-in prompts cannot be deleted',
+        inUse: 'This prompt is used by an enabled task and cannot be deleted',
+        paramsHint: 'Optional extra request parameters as JSON.',
+      },
+
+      artifacts: {
+        filters: 'Filters',
+        run: 'Run',
+        case: 'Prompt',
+        model: 'Model',
+        status: 'Status',
+        errorCode: 'Error code',
+        errorSummary: 'Error summary',
+        unsafeFlags: 'Unsafe constructs',
+        blobKey: 'Storage key',
+        cost: 'Cost',
+        delete: 'Delete',
+        deleteConfirm: 'Delete this artifact?',
+        score: 'Score',
+        scorePrompt: 'Enter a score between 0 and 100',
+        scoreSaved: 'Score saved',
+      },
+
+      runs: {
+        title: 'Run history',
+        trigger: 'Trigger',
+        startedAt: 'Started',
+        finishedAt: 'Finished',
+        counts: 'Success/Failed/Timeout/Blocked',
+        cost: 'Cost',
+        status: 'Status',
+      },
+    },
+  },
+}

@@ -1,0 +1,253 @@
+/**
+ * 作品展中文文案。
+ *
+ * 与 `en/iqBenchmark.ts` 的键必须完全一致：
+ * `localeKeyCompleteness.spec.ts` 会校验两侧键集相同。
+ */
+export default {
+  iqBenchmark: {
+    title: '模型智商检测作品展',
+    subtitle: '用同一批题目横向对比各模型的真实产出能力',
+    navGallery: '检测作品展',
+    navAdmin: '检测作品展管理',
+
+    tab: {
+      gallery: '作品展',
+      overview: '模型对比',
+    },
+
+    filter: {
+      model: '模型',
+      modelAll: '全部模型',
+      case: '题目',
+      caseAll: '全部题目',
+      status: '状态',
+      statusAll: '全部状态',
+      kind: '类型',
+      kindAll: '全部类型',
+      since: '时间范围',
+      sinceAll: '不限时间',
+      sinceDays: '最近 {n} 天',
+      reset: '清除筛选',
+      refresh: '刷新',
+      search: '搜索模型…',
+    },
+
+    kind: {
+      image: '图片生成',
+      text: '文本生成',
+      code: '代码生成',
+      image_url: '图片',
+      svg: 'SVG 图形',
+      markdown: 'Markdown',
+    },
+
+    status: {
+      success: '成功',
+      failed: '失败',
+      timeout: '超时',
+      blocked: '已拦截',
+      running: '执行中',
+      partial: '部分成功',
+      idle: '待执行',
+      quota_exhausted: '上游配额耗尽',
+      budget_exhausted: '超出每日预算',
+      account_disabled: '内部账号不可用',
+      paused_by_admin: '管理员已暂停',
+    },
+
+    trigger: {
+      schedule: '定时',
+      manual: '手动',
+      retry: '重试',
+    },
+
+    /** 启用状态通用标签（避免依赖 common 命名空间里不存在的键）。 */
+    state: {
+      on: '已启用',
+      off: '已停用',
+    },
+
+    card: {
+      contentTruncated: '内容已截断',
+      unsafe: '内容已被安全策略拦截',
+      noPreview: '暂无内容',
+      viewDetail: '查看详情',
+      compare: '加入对比',
+      compared: '已加入对比',
+      score: '评分',
+      duration: '耗时',
+      cost: '成本',
+      tokens: 'Token',
+      inputTokens: '输入',
+      outputTokens: '输出',
+      createdAt: '生成于',
+    },
+
+    detail: {
+      title: '作品详情',
+      prompt: '题目要求',
+      content: '模型产出',
+      rawUnavailable: '该产出被安全策略拦截，正文不予展示。',
+      metadata: '元信息',
+      close: '关闭',
+    },
+
+    compare: {
+      title: '作品对比',
+      selected: '已选 {n} 件',
+      limit: '最多可同时对比 {n} 件',
+      clear: '清空选择',
+      start: '开始对比',
+      empty: '从作品展中挑选 2 件以上作品进行对比',
+      remove: '移出对比',
+      maxReached: '已达到对比上限',
+    },
+
+    overview: {
+      totalArtifacts: '作品总数',
+      imageArtifacts: '图片作品',
+      textArtifacts: '文本作品',
+      caseCount: '题目数',
+      modelBreakdown: '模型表现',
+      model: '模型',
+      total: '总数',
+      successRate: '成功率',
+      avgDuration: '平均耗时',
+      lastRunAt: '最近生成',
+      empty: '暂无统计数据',
+    },
+
+    empty: {
+      artifacts: '暂无作品，等待首次检测完成',
+      filtered: '当前筛选条件下没有作品',
+      cases: '暂无题目',
+      tasks: '暂无任务',
+      runs: '暂无执行记录',
+    },
+
+    error: {
+      loadFailed: '加载失败，请稍后重试',
+      rateLimited: '请求过于频繁，请 {n} 秒后重试',
+      rateLimitedShort: '请求过于频繁',
+      disabled: '该功能当前未开启',
+      cooldown: '冷却中，请 {n} 秒后再试',
+      retry: '重试',
+    },
+
+    admin: {
+      title: '模型智商检测作品展管理',
+      /** 管理端用户列表的「隐藏内部账号」开关文案。 */
+      users: {
+        hideInternal: '隐藏内部账号',
+      },
+      tab: {
+        tasks: '检测任务',
+        cases: '题目',
+        artifacts: '作品',
+        settings: '设置',
+      },
+      disabledNotice: '功能未启用：作品展页面与检测调度都不会运行。',
+      enableHint: '在「设置」中开启后，用户侧作品展才会出现。',
+
+      settings: {
+        enabled: '启用功能',
+        enabledHint: '关闭后用户侧页面不可访问，调度器停止执行。',
+        defaultGroupId: '默认分组 ID',
+        defaultGroupIdHint: '内部账号绑定的目标分组；留空则使用第一个可用分组。',
+        gatewayBaseUrl: '网关地址',
+        gatewayBaseUrlHint: '留空则使用本机回环地址 http://127.0.0.1:<端口>。',
+        modelTimeout: '单次调用超时（秒）',
+        maxArtifactBytes: '单件产出上限（字节）',
+        maxArtifactsPerRun: '单次执行最多作品数',
+        maxTaskConcurrency: '并发任务上限',
+        dailyCostBudget: '每日成本预算（元）',
+        dailyCostBudgetHint: '超出后所有任务熔断，次日自动恢复。',
+        minBalanceFloor: '最低余额阈值',
+        scoringEnabled: '启用评分',
+        exposeCost: '向用户展示成本',
+        exposeTokens: '向用户展示 Token',
+        retentionDays: '作品保留天数',
+        maxArtifacts: '作品总量上限',
+        cleanupInterval: '清理间隔（分钟）',
+        readLimit: '浏览接口限流（次/分）',
+        heavyLimit: '对比接口限流（次/分）',
+        maxConcurrent: '单用户并发上限',
+        save: '保存设置',
+        saved: '设置已保存',
+        readonly: '仅管理员可修改设置',
+      },
+
+      tasks: {
+        create: '新建任务',
+        edit: '编辑任务',
+        name: '任务名称',
+        group: '分组',
+        model: '模型',
+        cases: '题目',
+        casesSelected: '已选 {n} 道题',
+        interval: '执行间隔（分钟）',
+        jitter: '随机抖动（秒）',
+        enabled: '启用',
+        status: '状态',
+        nextRun: '下次执行',
+        lastRun: '上次执行',
+        runNow: '立即执行',
+        runStarted: '已触发执行',
+        delete: '删除',
+        deleteConfirm: '确定删除该任务？执行记录会保留。',
+        intervalHint: '取值范围 {min} - {max} 分钟。',
+        jitterHint: '每次调度在前述间隔基础上随机提前 0 - {n} 秒。',
+        enableToRecover: '启用可解除熔断状态',
+        duplicate: '该分组与模型的组合已存在启用中的任务',
+      },
+
+      cases: {
+        create: '新建题目',
+        edit: '编辑题目',
+        name: '题目名称',
+        kind: '题目类型',
+        prompt: '提示词',
+        systemPrompt: '系统提示词',
+        expectKind: '期望产出',
+        scoring: '评分方式',
+        enabled: '启用',
+        sortOrder: '排序',
+        builtin: '内置',
+        delete: '删除',
+        deleteConfirm: '确定删除该题目？',
+        builtinUndeletable: '内置题目不可删除',
+        inUse: '该题目正被启用中的任务使用，无法删除',
+        paramsHint: '可选，JSON 格式的额外请求参数。',
+      },
+
+      artifacts: {
+        filters: '筛选',
+        run: '执行',
+        case: '题目',
+        model: '模型',
+        status: '状态',
+        errorCode: '错误码',
+        errorSummary: '错误说明',
+        unsafeFlags: '危险构造',
+        blobKey: '存储键',
+        cost: '成本',
+        delete: '删除',
+        deleteConfirm: '确定删除该作品？',
+        score: '评分',
+        scorePrompt: '输入 0 - 100 的分数',
+        scoreSaved: '评分已保存',
+      },
+
+      runs: {
+        title: '执行记录',
+        trigger: '触发方式',
+        startedAt: '开始时间',
+        finishedAt: '结束时间',
+        counts: '成功/失败/超时/拦截',
+        cost: '成本',
+        status: '状态',
+      },
+    },
+  },
+}
