@@ -267,3 +267,23 @@ Wire 图内取不到；要注入必须先给上游加导出方法，会突破「
       `TestIQBenchmarkModerateArtifactPersistsReview` 走完
       「写 pending → 公开口径查不到 → 审核 approved → 查得到 → 留痕可读回」。
 
+### 8.7 关闭 §8.5 记录的剩余缺口
+
+- [x] 8.7.1 `ratelimit.AcquireUserTestSlot` 的 fail-closed 补 7 个用例：
+      Redis 出错即拒、超限归还自增、释放幂等（`sync.Once`）、按用户隔离、
+      两条短路（不限并发 / 匿名）不碰 Redis、nil client 降级放行。
+- [x] 8.7.2 变异实证：把 Redis 出错分支改成放行 →
+      `TestUserTestSlotFailsClosedOnRedisError` 翻红。
+- [x] 8.7.3 `MyTargets` 补 5 个用例：无 Key 原样返回、Key 绑组时收窄、
+      别人的 Key 不收窄（否则可探测他人分组存在性）、`Targets` 未装配时
+      返回空集合而非报错、非法身份被拒。
+- [x] 8.7.4 自测路由的注册条件补 3 个用例，覆盖 `/targets`；
+      并确认两个开关是「与」的关系（主功能关闭时自测不得成为例外）。
+- [x] 8.7.5 **复核时挖出一个更深的测试盲点**：`TestUserRoutesAreReadOnly`
+      要求 `/api/v1/iq-gal` 下全是 GET，但 `stubbedHandlers` 没挂
+      `UserTest`，所以自测那条 POST 从未被它看到 —— 断言一直「绿」得
+      没有意义。改为显式排除自测前缀 + `checked != 0` 空扫描守卫，
+      并换成挂了 `UserTest` 的 handler。变异实证：删掉排除逻辑即翻红。
+- [ ] 8.7.6 `user_test_daily_cost_budget` 用的是题目维度的**估算**成本
+      （`EstimatedCost`），不是实际结算值。这是设计选择而非缺陷：
+      预算只能拦住量级，精确到分需要等网关回写结算结果，属于后续工作。

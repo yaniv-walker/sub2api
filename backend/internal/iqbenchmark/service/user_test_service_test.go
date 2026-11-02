@@ -593,3 +593,99 @@ func validSubmitInput() iqbenchmark.UserTestSubmitInput {
 		Model:    "gpt-4o",
 	}
 }
+
+// ---------- MyTargets ----------
+//
+// MyTargets 是普通用户唯一能拿到「可测分组 + 模型」的入口（管理侧的
+// /admin/iq-benchmark/targets 需要管理员身份）。它错了，用户只会撞上
+// MODEL_NOT_AVAILABLE 而无法自行纠正。
+
+// TestMyTargetsAlwaysReturnsGroups 覆盖未带 Key 的场景：应原样返回全部分组。
+func TestMyTargetsAlwaysReturnsGroups(t *testing.T) {
+	svc, _, _ := newUserTestFixture(t, userTestOn())
+
+	targets, err := svc.MyTargets(context.Background(), 42, 0)
+	require.NoError(t, err)
+	require.Len(t, targets.Groups, 1)
+	require.Equal(t, int64(3), targets.Groups[0].ID)
+}
+
+// TestMyTargetsNarrowsToKeyBoundGroup 覆盖 Key 绑组时的收窄。
+//
+// 与 Submit 的分组解析必须同源：若这里给出多个分组而 Submit 只接受
+// Key 那一个，用户选了别的分组就会莫名失败。
+func TestMyTargetsNarrowsToKeyBoundGroup(t *testing.T) {
+	svc, _, keys := newUserTestFixture(t, userTestOn())
+	// 造两个分组，Key 绑定到 3。
+	svc.Targets, _ = newTargetsFixture(
+		map[int64][]string{3: {"gpt-4o"}, 5: {"claude-x"}},
+		[]upstreamsvc.Group{
+			{ID: 3, Name: "g3", Status: upstreamsvc.StatusActive, AllowImageGeneration: true,
+				AccountCount: 1, ActiveAccountCount: 1},
+			{ID: 5, Name: "g5", Status: upstreamsvc.StatusActive, AllowImageGeneration: true,
+				AccountCount: 1, ActiveAccountCount: 1},
+		},
+	)
+	bound := int64(3)
+	keys.key = &upstreamsvc.APIKey{
+		ID: 11, UserID: 42, Key: "sk-user-plaintext",
+		Status: upstreamsvc.StatusActive, GroupID: &bound,
+	}
+
+	targets, err := svc.MyTargets(context.Background(), 42, 11)
+	require.NoError(t, err)
+	require.Len(t, targets.Groups, 1, "a group-bound key must expose exactly one group")
+	require.Equal(t, int64(3), targets.Groups[0].ID)
+}
+
+// TestMyTargetsForeignKeyIsNotResolved 保证别人的 Key 不会收窄结果。
+//
+// VerifyOwnership 返回空即「不是你的」，此时必须**忽略**这把 Key，
+// 而不是拿它的 GroupID 去过滤 —— 否则用户可以通过猜 Key ID 探到
+// 别人分组的存在性。
+func TestMyTargetsForeignKeyIsNotResolved(t *testing.T) {
+	svc, _, keys := newUserTestFixture(t, userTestOn())
+	svc.Targets, _ = newTargetsFixture(
+		map[int64][]string{3: {"gpt-4o"}, 5: {"claude-x"}},
+		[]upstreamsvc.Group{
+			{ID: 3, Name: "g3", Status: upstreamsvc.StatusActive, AllowImageGeneration: true,
+				AccountCount: 1, ActiveAccountCount: 1},
+			{ID: 5, Name: "g5", Status: upstreamsvc.StatusActive, AllowImageGeneration: true,
+				AccountCount: 1, ActiveAccountCount: 1},
+		},
+	)
+	keys.owned = nil // 不属于该用户
+	bound := int64(5)
+	keys.key = &upstreamsvc.APIKey{
+		ID: 11, UserID: 99, Key: "sk-other",
+		Status: upstreamsvc.StatusActive, GroupID: &bound,
+	}
+
+	targets, err := svc.MyTargets(context.Background(), 42, 11)
+	require.NoError(t, err)
+	require.Len(t, targets.Groups, 2, "someone else's key must not narrow the result")
+	ids := []int64{targets.Groups[0].ID, targets.Groups[1].ID}
+	require.ElementsMatch(t, []int64{3, 5}, ids, "groups must be the unfiltered set")
+}
+
+// TestMyTargetsWithoutTargetsService 覆盖 Targets 未装配时的降级。
+//
+// 返回空集合而不是报错：前端据此隐藏「用户自测」入口，
+// 而不是弹一个用户无法理解的错误。
+func TestMyTargetsWithoutTargetsService(t *testing.T) {
+	svc, _, _ := newUserTestFixture(t, userTestOn())
+	svc.Targets = nil
+
+	targets, err := svc.MyTargets(context.Background(), 42, 0)
+	require.NoError(t, err)
+	require.NotNil(t, targets)
+	require.Empty(t, targets.Groups)
+}
+
+// TestMyTargetsRejectsInvalidUser 保证未登录身份不会拿到候选集合。
+func TestMyTargetsRejectsInvalidUser(t *testing.T) {
+	svc, _, _ := newUserTestFixture(t, userTestOn())
+
+	_, err := svc.MyTargets(context.Background(), 0, 0)
+	require.ErrorIs(t, err, iqbenchmark.ErrUserNotActive)
+}

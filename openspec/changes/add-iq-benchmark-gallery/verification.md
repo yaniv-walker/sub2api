@@ -957,9 +957,9 @@ $ git diff --numstat f688e8999e -- backend/internal/service backend/internal/han
 1. ~~`moderation_status='pending'` 的产出无法改成 `approved`。~~
    **已解决**（见 7.11）：补上了 `PUT /admin/iq-benchmark/artifacts/:id/moderation`
    与 `reviewed_by`/`reviewed_at` 留痕，并有真实 PostgreSQL 的端到端用例。
-2. **`ratelimit.AcquireUserTestSlot` 的 fail-closed 分支没有单测。**
-   目前只通过 service 层的假替身覆盖了「拿到/没拿到槽位」两种结果，
-   Redis 报错时的真实降级路径（返回 `(nil, false)`）未被直接验证。
+2. ~~`ratelimit.AcquireUserTestSlot` 的 fail-closed 分支没有单测。~~
+   **已解决**（见 7.13）：补了 7 个用例，覆盖 fail-closed、超限归还、
+   释放幂等、按用户隔离、两条短路与 nil client 降级。
 3. **「禁用时返回 404」只在 service 层与路由注册层验证过**，
    没有为 user-test 单独补 handler 级的 404 断言（其余接口有此断言）。
 4. `user_test_daily_cost_budget` 的预检用的是题目维度的**估算**成本
@@ -1087,3 +1087,84 @@ $ npx vitest run --pool=threads
 ```
 
 用例数由 3257 增至 3259（新增 `moderateArtifact` 的请求形状断言）。
+### 7.13 补齐 §7.9 剩余的两条缺口
+
+**缺口 2（fail-closed 无单测）→ 已补 7 个用例。**
+
+```
+$ go test -tags=unit -count=1 -run 'TestUserTestSlot' -v ./internal/iqbenchmark/ratelimit/
+--- PASS: TestUserTestSlotFailsClosedOnRedisError (0.00s)
+--- PASS: TestUserTestSlotAllowsWithinLimit (0.00s)
+--- PASS: TestUserTestSlotRejectsOverLimitAndRefunds (0.00s)
+--- PASS: TestUserTestSlotReleaseIsIdempotent (0.00s)
+--- PASS: TestUserTestSlotIsPerUser (0.00s)
+--- PASS: TestUserTestSlotBypassedWhenUnlimitedOrAnonymous (0.00s)
+--- PASS: TestUserTestSlotAllowsWithoutRedis (0.00s)
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/ratelimit	0.406s
+```
+
+变异测试实证（把 Redis 出错分支改成放行）：
+
+```
+--- FAIL: TestUserTestSlotFailsClosedOnRedisError (0.00s)
+FAIL	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/ratelimit	0.406s
+```
+
+其中「超限归还」那条守的是一个容易漏的账：超限请求若不把自己的自增
+还回去，用户可用并发会被越挤越小，直到再也测不了。
+
+**缺口 3（禁用时的 404 没有 handler 级断言）→ 已补，但复核时发现了更糟的问题。**
+
+补测试时发现 `TestUserRoutesAreReadOnly` 存在一个**真实盲点**：它遍历
+`/api/v1/iq-gal` 前缀下所有路由并要求一律是 GET，而 `stubbedHandlers`
+恰好没有挂 `UserTest`，所以自测那条 `POST` 从来没被它看到过。
+断言一直是「绿」的，但绿得没有意义。
+
+已改成**显式排除**自测前缀 + 加 `checked != 0` 的空扫描守卫，并把测试
+换成挂了 `UserTest` 的 handler。变异实证（删掉排除逻辑）：
+
+```
+--- FAIL: TestUserRoutesAreReadOnly (0.00s)
+Messages:   用户侧路由 /api/v1/iq-gallery/user-tests 必须是只读 GET，实际为 POST
+```
+
+自测路由的注册条件：
+
+```
+$ go test -tags=unit -count=1 -run 'TestUserTestRoutes|TestUserTestRequiresMain' -v ./internal/server/routes/
+--- PASS: TestUserTestRoutesUnregisteredWhenDisabled (0.00s)
+--- PASS: TestUserTestRoutesRegisteredWhenEnabled (0.00s)
+--- PASS: TestUserTestRequiresMainFeatureEnabled (0.00s)
+ok  	github.com/Wei-Shaw/sub2api/internal/server/routes	0.801s
+```
+
+断言覆盖 `/targets`（此前缺口里点名的那条），并确认：
+两个开关是「与」的关系 —— 主功能关闭时自测路由不得成为例外。
+
+### 7.14 本轮全量复验（结算）
+
+```
+$ go build ./...
+exit=0
+
+$ go test -tags=unit -count=1 ./internal/iqbenchmark/... ./cmd/server/ ./internal/server/routes/
+ok  	.../iqbenchmark/handler	0.612s
+ok  	.../iqbenchmark/module	0.684s
+ok  	.../iqbenchmark/ratelimit	0.573s
+ok  	.../iqbenchmark/repository	0.462s
+ok  	.../iqbenchmark/sanitize	0.488s
+ok  	.../iqbenchmark/scheduler	0.563s
+ok  	.../iqbenchmark/service	7.526s
+ok  	.../cmd/server	0.647s
+ok  	.../internal/server/routes	11.340s
+
+$ go test -tags='unit,integration' -count=1 ./internal/iqbenchmark/repository/
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository	5.722s
+
+$ golangci-lint run --timeout=15m ./internal/iqbenchmark/... ./internal/server/routes/...
+0 issues.
+```
+
+§7.9 的四条缺口现状：1、2、3 已关闭（3 在关闭过程中又挖出一个更深的
+测试盲点并一并修好）；第 4 条（成本预检用估算值）是**设计选择**，
+不是缺陷，保留说明。

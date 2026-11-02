@@ -62,7 +62,7 @@ func RegisterIQBenchmarkRoutes(
 			artifacts.GET("/:id", handlers.Admin.GetArtifact)
 			artifacts.DELETE("/:id", handlers.Admin.DeleteArtifact)
 			artifacts.PUT("/:id/score", handlers.Admin.ScoreArtifact)
-		artifacts.PUT("/:id/moderation", handlers.Admin.ModerateArtifact)
+			artifacts.PUT("/:id/moderation", handlers.Admin.ModerateArtifact)
 		}
 
 		admin.GET("/overview", handlers.Admin.GetOverview)

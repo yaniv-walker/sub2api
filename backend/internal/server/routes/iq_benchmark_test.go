@@ -108,20 +108,34 @@ func TestUserRoutesRegisteredWhenEnabled(t *testing.T) {
 	}
 }
 
-// TestUserRoutesAreReadOnly 断言用户侧不存在任何写操作。
+// TestUserRoutesAreReadOnly 断言用户侧**作品展**路由中不存在任何写操作。
 //
-// 普通用户只能看，不能建/改/删：所有写路径都必须在 /admin 下。
+// 普通用户对作品展只能看，不能建/改/删：所有针对作品展的写路径都必须在
+// /admin 下。
+//
+// 自测前缀（/iq-gallery/user-tests）是显式例外：它的 POST 是用户给自己
+// 发起一次检测，不修改任何他人的数据。这里必须**显式排除**它，而不是靠
+// 「stubbedHandlers 恰好没挂 UserTest」让断言悄悄通过 —— 那是个真实盲点：
+// 一旦有人给 stubbedHandlers 补上 UserTest，这条断言会以一条看不懂的报错
+// 失败；更糟的情况是有人顺手把它放宽到失去意义。
 func TestUserRoutesAreReadOnly(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	engine := buildRouter(stubbedHandlers(true))
+	engine := buildRouter(stubbedHandlersWithUserTest(true, true))
 
+	const selfTestPrefix = "/api/v1/iq-gallery/user-tests"
+	checked := 0
 	for _, route := range engine.Routes() {
 		if len(route.Path) < 14 || route.Path[:14] != "/api/v1/iq-gal" {
 			continue
 		}
+		if len(route.Path) >= len(selfTestPrefix) && route.Path[:len(selfTestPrefix)] == selfTestPrefix {
+			continue
+		}
+		checked++
 		require.Equal(t, http.MethodGet, route.Method,
 			"用户侧路由 %s 必须是只读 GET，实际为 %s", route.Path, route.Method)
 	}
+	require.NotZero(t, checked, "断言必须真的扫到了路由，否则是空扫描")
 }
 
 // TestAllAdminWriteRoutesAreUnderAdminPrefix 断言所有写路由都在管理前缀下。
@@ -174,4 +188,73 @@ func TestEnabledIsFailClosed(t *testing.T) {
 	require.False(t, (&iqhandler.Handlers{}).Enabled(), "nil IsEnabled 必须视为关闭")
 	require.False(t, (*iqhandler.Handlers)(nil).Enabled(), "nil Handlers 必须视为关闭")
 	require.True(t, (&iqhandler.Handlers{IsEnabled: func() bool { return true }}).Enabled())
+}
+
+// ---------- 用户自测路由（阶段 8）----------
+//
+// stubbedHandlers 刻意不带 UserTest，上面「用户侧只读」的断言因此
+// 从来看不到自测那条 POST —— 这是个真实盲点。下面把它显式补上。
+
+// stubbedHandlersWithUserTest 在 stubbedHandlers 之上挂一个空的 UserTest handler。
+func stubbedHandlersWithUserTest(enabled, userTestEnabled bool) *iqhandler.Handlers {
+	h := stubbedHandlers(enabled)
+	h.UserTest = &iqhandler.UserTestHandler{}
+	h.IsUserTestEnabled = func() bool { return userTestEnabled }
+	return h
+}
+
+// TestUserTestRoutesUnregisteredWhenDisabled 断言自测关闭时**连 /targets 都不存在**。
+//
+// 必须包含 /targets：它虽是只读，但会暴露「哪些分组可自测」这一业务事实，
+// 功能关闭时同样不该可达。这是此前已知缺口 3 的直接覆盖。
+func TestUserTestRoutesUnregisteredWhenDisabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := buildRouter(stubbedHandlersWithUserTest(true, false))
+	paths := routePaths(engine)
+
+	for _, path := range []string{
+		"/api/v1/iq-gallery/user-tests",
+		"/api/v1/iq-gallery/user-tests/targets",
+		"/api/v1/iq-gallery/user-tests/:id",
+	} {
+		require.False(t, paths[path], "自测关闭时不得注册 %s", path)
+	}
+
+	// 确认真的 404，而不是被某个 catch-all 接住。
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/iq-gallery/user-tests/targets", nil)
+	rec := httptest.NewRecorder()
+	engine.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+
+	// 作品展主体不受影响：自测是附加功能，关掉它不该连带关掉浏览。
+	require.True(t, paths["/api/v1/iq-gallery/artifacts"])
+}
+
+// TestUserTestRoutesRegisteredWhenEnabled 断言自测开启后三条路由齐备。
+func TestUserTestRoutesRegisteredWhenEnabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := buildRouter(stubbedHandlersWithUserTest(true, true))
+	paths := routePaths(engine)
+
+	for _, path := range []string{
+		"/api/v1/iq-gallery/user-tests",
+		"/api/v1/iq-gallery/user-tests/targets",
+		"/api/v1/iq-gallery/user-tests/:id",
+	} {
+		require.True(t, paths[path], "自测开启后必须注册 %s", path)
+	}
+}
+
+// TestUserTestRequiresMainFeatureEnabled 断言主开关关闭时自测也一并消失。
+//
+// 两个开关是「与」的关系：主功能整体关闭时，自测的路由不该成为例外。
+func TestUserTestRequiresMainFeatureEnabled(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	engine := buildRouter(stubbedHandlersWithUserTest(false, true))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/iq-gallery/user-tests/targets", nil)
+	rec := httptest.NewRecorder()
+	engine.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusNotFound, rec.Code,
+		"主功能关闭时自测路由不得存活，即使 UserTestEnabled 为真")
 }
