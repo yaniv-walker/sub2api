@@ -123,3 +123,38 @@ Wire 图内取不到；要注入必须先给上游加导出方法，会突破「
 - [x] 6.8 更新 `verification.md`：贴全部真实输出
 - [ ] 6.9 灰度：迁移上线（关闭态）→ 管理员开启 + 配题/任务 → `run-now` 验证 → 开启用户侧
       **需在真实部署环境执行**，代码仓库内无法完成，故保持未勾选。
+
+## 阶段 7：A —— 新建任务的分组/模型级联下拉（已完成）
+
+需求依据：`docs/iq-benchmark-target-dropdown.md`。目标是把两个自由输入框
+（`group_id` 数字框、`model` 文本框）换成受约束的级联下拉，杜绝「填了跑不出来」。
+
+- [x] 7.1 `service/targets.go`：`TargetsService` 复刻上游 `GET /v1/models` 的四层口径
+      （`modelListingSource` / 平台默认集 / `mergeModelIDs` / 白名单过滤），
+      保真 `nil` 与空切片的不同语义（OpenAI「非 nil 即用」不回退）。
+- [x] 7.2 `GET /admin/iq-benchmark/targets`，支持 `?refresh=1` 精确失效上游 `modelsListCache`；
+      分组/模型上限 200/500，超限回传 `truncated`。
+- [x] 7.3 三个错误哨兵 `ErrTargetGroupUnavailable` / `ErrTargetModelUnavailable` /
+      `ErrTargetCapabilityMismatch`，`writeError` 映射为 **400**（用户可改的输入错误，非 404）。
+- [x] 7.4 `validateTask` 之后追加 `validateTarget`：校验分组 active、模型在可用集合内、
+      题目能力与分组能力匹配。绕过前端直接调 API 同样被拦。
+- [x] 7.5 新状态 `invalid_target`：迁移 `250_iq_benchmark_invalid_target.sql` 重写 status CHECK。
+- [x] 7.6 `Guard.TripInvalidTarget` 只熔断**单个**任务（目标失效是局部配置问题，
+      不应像 `account_disabled` 那样让所有任务停摆）。
+- [x] 7.7 调度器在发起模型调用前做目标前置检查；只有明确的目标失效哨兵才熔断，
+      查询类错误按暂时性故障放行（避免一次 DB 抖动把任务永久挂起）。
+- [x] 7.8 顺带修掉既有静默失败缺陷：`GatewayClient` 的 `APIKey` 在 Wire 装配期写死为空串，
+      而内部账号 Key 是运行期创建的 ⇒ 所有检测请求都带空 Bearer 打网关。
+      改为 Key 随请求传入（`ChatRequest`/`ImageRequest.APIKey`），客户端无状态。
+- [x] 7.9 前端 `TaskForm.vue` 级联下拉；切换分组清空模型（跨分组模型 ID 不兼容）。
+- [x] 7.10 历史任务兼容：分组已停用则注入只读占位项、模型已下线则作为**禁用项保留**，
+      绝不静默清空原值（否则管理员只想改名字就会永久丢掉配置）。
+- [x] 7.11 30s 节流只约束 `refresh=1`，首次加载不节流（否则第二个编辑框会是空的）。
+- [x] 7.12 测试：`targets_test.go` 9 例、`targets_parity_test.go` 8 例（对上游导出的
+      `openai`/`claude`/`xai`/`gemini`/`antigravity`/`opencode_go`/`typesafe`/`composite`/默认分支逐一对照）、
+      `scheduler_test.go` 3 例、前端 `taskFormCascade.spec.ts` 9 例 + `api.spec.ts` 补 4 例。
+- [x] 7.13 集成测试补上迁移 250，并在真实 PostgreSQL 18 上实测 13 个用例全部通过；
+      另用一次性 schema 实测「250 之前 `invalid_target` 被 CHECK 拒绝、之后被接受」。
+- [x] 7.14 上游零改动：`internal/service` 与 `internal/handler/dto` diff 为空；
+      接触面仍为 `design.md` §10 记录的 11 文件 / 108 插入 / 3 删除。
+

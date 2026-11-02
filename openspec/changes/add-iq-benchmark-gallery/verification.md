@@ -581,3 +581,255 @@ exit=0
   **实测无变更**。
 - 与本文件 §2.1 记录的上游既有失败对比时，必须比较「失败的包与用例」，不能只比总数——
   `internal/service` 的顺序敏感会让失败用例在每次运行之间漂移（§2.4 已给出两次基线运行的对照）。
+
+---
+
+## 六、阶段 7（A：级联下拉）验证输出
+
+需求依据 `docs/iq-benchmark-target-dropdown.md`。本节所有输出均为实际执行结果。
+
+### 6.1 编译与 Wire
+
+```
+$ go build ./...
+exit=0
+
+$ wire ./cmd/server/
+exit=0            # 重新生成 wire_gen.go
+```
+
+### 6.2 后端单测（iqbenchmark 全包 + cmd/server）
+
+```
+$ go test -tags=unit -count=1 ./internal/iqbenchmark/... ./cmd/server/
+?   	github.com/Wei-Shaw/sub2api/internal/iqbenchmark	[no test files]
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/handler	0.737s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/module	0.723s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/ratelimit	0.810s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository	0.555s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/sanitize	0.774s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/scheduler	0.947s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service	7.493s
+ok  	github.com/Wei-Shaw/sub2api/cmd/server	0.636s
+exit=0
+```
+
+### 6.3 口径一致性测试（防上游漂移）
+
+`targets_parity_test.go` 对上游**已导出**符号逐一对照，上游改默认集时这里必须失败：
+
+```
+$ go test -tags=unit -count=1 -run 'Parity|PlatformDefault|ModelListingSource|MergeModelIDs' -v ./internal/iqbenchmark/service/
+=== RUN   TestPlatformDefaultModelIDsMatchesUpstreamExports
+=== RUN   TestPlatformDefaultModelIDsMatchesUpstreamExports/openai
+=== RUN   TestPlatformDefaultModelIDsMatchesUpstreamExports/anthropic
+=== RUN   TestPlatformDefaultModelIDsMatchesUpstreamExports/grok
+=== RUN   TestPlatformDefaultModelIDsMatchesUpstreamExports/opencode_go
+--- PASS: TestPlatformDefaultModelIDsMatchesUpstreamExports (0.00s)
+=== RUN   TestPlatformDefaultModelIDsGeminiAndAntigravity
+--- PASS: TestPlatformDefaultModelIDsGeminiAndAntigravity (0.00s)
+=== RUN   TestPlatformDefaultModelIDsTypeSafe
+--- PASS: TestPlatformDefaultModelIDsTypeSafe (0.00s)
+=== RUN   TestPlatformDefaultModelIDsDefaultBranchIsClaude
+--- PASS: TestPlatformDefaultModelIDsDefaultBranchIsClaude (0.00s)
+=== RUN   TestPlatformDefaultModelIDsCompositeExcludesTypeSafe
+--- PASS: TestPlatformDefaultModelIDsCompositeExcludesTypeSafe (0.00s)
+=== RUN   TestModelListingSourceParity
+--- PASS: TestModelListingSourceParity (0.00s)
+=== RUN   TestMergeModelIDsParity
+--- PASS: TestMergeModelIDsParity (0.00s)
+=== RUN   TestListTargetsFallsBackToPlatformDefaults
+--- PASS: TestListTargetsFallsBackToPlatformDefaults (0.00s)
+PASS
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service	0.391s
+exit=0
+```
+
+### 6.4 熔断只针对「目标失效」哨兵
+
+```
+$ go test -tags=unit -count=1 -run 'Target|TestExecuteTask' -v ./internal/iqbenchmark/scheduler/
+--- PASS: TestExecuteTaskAbortsWhenLeaseLostBeforeRun (0.00s)
+--- PASS: TestExecuteTaskAdvancesNextRunBeforeRun (0.00s)
+--- PASS: TestExecuteTaskTripsInvalidTarget (0.00s)
+--- PASS: TestExecuteTaskProceedsOnTransientTargetError (0.00s)
+2026/11/02 20:28:14 WARN iqbenchmark: target check failed transiently, proceeding task_id=12 error="dial tcp: connection refused"
+--- PASS: TestExecuteTaskSkipsTargetCheckWhenValidatorAbsent (0.00s)
+PASS
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/scheduler	0.389s
+exit=0
+```
+
+`TestExecuteTaskProceedsOnTransientTargetError` 的日志证明它**真的继续执行了**
+（而不是被静默熔断）——这正是「一次 DB 抖动不该把任务永久挂起」的断言。
+
+### 6.5 集成测试（真实 PostgreSQL 18）
+
+一次性容器 `postgres:18-alpine`，独立 `iq_test` 库 + 每次随机 schema：
+
+```
+$ $env:IQ_BENCHMARK_TEST_DSN="postgres://sub2api:test1234@127.0.0.1:55433/iq_test?sslmode=disable"
+$ go test -tags='unit,integration' -count=1 -run 'TestIQBenchmark' -v ./internal/iqbenchmark/repository/
+--- PASS: TestIQBenchmarkDailyCostScopesToInternalKeyOnly (0.18s)
+--- PASS: TestIQBenchmarkDailyCostResetsNextDay (0.16s)
+--- PASS: TestIQBenchmarkGuardBudgetBreaker (0.18s)
+--- PASS: TestIQBenchmarkGuardBudgetDisabledWhenZero (0.15s)
+--- PASS: TestIQBenchmarkUsageSnapshotByRequestIDs (0.15s)
+--- PASS: TestIQBenchmarkMigrationAppliesCleanly (0.19s)
+--- PASS: TestIQBenchmarkPartialUniqueEnabledTask (0.16s)
+--- PASS: TestIQBenchmarkClaimSkipsLockedRows (0.17s)
+--- PASS: TestIQBenchmarkLeaseTakeover (0.18s)
+--- PASS: TestIQBenchmarkEntSchemaMatchesMigration (0.19s)
+--- PASS: TestIQBenchmarkTaskStatusCheck (0.17s)
+--- PASS: TestIQBenchmarkIntervalCheck (0.16s)
+--- PASS: TestIQBenchmarkServiceStatusValuesMatchMigration (0.18s)
+PASS
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository	2.727s
+exit=0
+```
+
+**首次运行确实失败过**，如实记录：`TestIQBenchmarkServiceStatusValuesMatchMigration` 报
+`pq: new row for relation "iq_benchmark_tasks" violates check constraint "iq_benchmark_tasks_status_check"`。
+根因是测试 helper 只应用了 249，没应用 250（不是迁移本身的问题）。
+已在 `iqTestDB` 里补上 250 并断言其可重复执行，重跑全绿。
+
+### 6.6 迁移 250 的直接证明（一次性 schema 实测）
+
+证明它确实**改变**了约束行为，而不是一条无效语句：
+
+```
+-- 250 之前（复刻 249 的匿名 CHECK）
+$ INSERT INTO iq_benchmark_tasks (status) VALUES ('invalid_target');
+ERROR:  new row for relation "iq_benchmark_tasks" violates check constraint "iq_benchmark_tasks_status_check"
+DETAIL:  Failing row contains (1, invalid_target).
+exit=1
+
+-- 应用 250 之后
+$ ALTER TABLE ... DROP CONSTRAINT IF EXISTS iq_benchmark_tasks_status_check;
+$ ALTER TABLE ... ADD CONSTRAINT ... CHECK (status IN (..., 'invalid_target'));
+$ INSERT INTO iq_benchmark_tasks (status) VALUES ('invalid_target');
+INSERT 0 1
+     status
+----------------
+ invalid_target
+(1 row)
+```
+
+顺带实测确认了 PostgreSQL 对匿名 CHECK 的自动命名确实是 `<表>_<列>_check`。
+迁移文件刻意不含 `BEGIN;`/`COMMIT;`（runner 已按文件开事务）。
+
+### 6.7 Lint
+
+```
+$ golangci-lint run ./internal/iqbenchmark/... ./internal/server/routes/... ./cmd/server/...
+0 issues.
+exit=0
+```
+
+首次运行为 `2 issues: gofmt: 2`（`targets.go:57`、`targets_test.go:263` 对齐问题），
+`gofmt -w` 后为 0。
+
+全仓库对照基线：
+
+```
+$ golangci-lint run ./...
+42 issues:
+```
+
+42 与基线 `f688e8999e` 完全一致；按文件分组后**新增/改动文件贡献 0 个**，
+42 个全部落在 `plugins/upstream-monitor/**`、`internal/server/middleware/**`、
+`internal/repository/checkin*`、`internal/handler/**` 等未改动文件上。
+
+### 6.8 前端
+
+```
+$ npx vue-tsc -b
+exit=0
+
+$ npx vitest run --pool=threads
+ Test Files  392 passed (392)
+      Tests  3233 passed (3233)
+   Duration  144.72s
+exit=0
+```
+
+基线为 391 文件 / 3220 用例；本阶段新增 1 文件（`taskFormCascade.spec.ts`）
+与 13 个用例（级联 9 + API 4），数目吻合。
+
+级联用例单独运行：
+
+```
+$ npx vitest run --pool=threads src/features/iq-benchmark/__tests__/taskFormCascade.spec.ts
+ ✓ src/features/iq-benchmark/__tests__/taskFormCascade.spec.ts (9 tests) 99ms
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+exit=0
+```
+
+**两个用例是先失败、后修代码通过的**，如实记录（它们各暴露了一个真实缺陷）：
+
+1. `renders an empty-state label when no groups are available` 失败：
+   期望 `noTargets`，实际渲染出 `orphanGroupName`。
+   → 缺陷：新建任务时也会注入「分组 #1（已停用）」占位项，纯噪音。
+   → 修复：占位项只在 `props.initial` 存在时注入。
+2. `throttles refresh calls to one per 30s` 失败：期望 1 次调用，实际 2 次。
+   → 缺陷：30s 节流错误地也作用于首次加载，导致打开第二个编辑框时下拉为空。
+   → 修复：节流只约束 `refresh=1`；用例随之改为断言「每次挂载都重新加载」。
+
+另有两个缺陷是在写代码时自查发现、未进入失败态的：
+`applyingInitial` 标志（否则载入编辑态时刚写入的 model 会被级联清空逻辑抹掉）、
+`modelOptions` 保留已下线模型为**禁用项**（否则 `<select>` 视觉上跳回第一项，
+管理员会误以为值被改了）。
+
+### 6.9 全仓库后端单测（对照基线）
+
+```
+$ go test -tags=unit -count=1 ./...
+--- FAIL: TestResolvePageImagePath                                        (handler)
+--- FAIL: TestPgDumperHoldsMigrationLockThroughReaderClose                 (repository)
+--- FAIL: TestPgDumperReleasesMigrationLockWhenProcessFails                (repository)
+--- FAIL: TestPgDumperReportsUnlockFailureAndDiscardsConnection            (repository)
+--- FAIL: TestAPIContracts                                                (server)
+--- FAIL: TestForwardSystemOneSchemaConformancePassthrough                 (service)
+--- FAIL: TestAccountTestServiceOpenAICompactAgentIdentityRecoversInvalidTaskOnce (service)
+--- FAIL: TestFetchCodexModelsManifestOAuthPreservesResponsesLite          (service)
+```
+
+前 5 个与本文件 §2.1 记录的基线失败**完全一致**。
+`internal/service` 的 3 个是顺序敏感噪音，已两次独立验证：
+
+| 运行 | 失败用例 |
+|---|---|
+| 本分支第 1 次 | `TestForwardSystemOneSchemaConformancePassthrough`、`TestAccountTestServiceOpenAICompact...`、`TestFetchCodexModelsManifestOAuthPreservesResponsesLite` |
+| 本分支第 2 次 | `TestInflightEstimate_AccountMappingNoDBAndBoundedMemory` |
+| 基线 `f688e8999e` 单跑这 3 个 | 全部 PASS（`ok ... 1.222s`） |
+| 基线 `f688e8999e` 全包 | `TestCommandCodeGatewayPassesThroughCatalogProtocols` |
+
+四次运行出现四组不同失败，而 `git diff f688e8999e -- backend/internal/service backend/internal/handler/dto`
+**输出为空**（该包零改动）。结论：这是既有的顺序敏感 flakiness，非本次回归。
+
+### 6.10 上游接触面复核
+
+```
+$ git diff --stat -- <11 个上游文件>      # 仅针对本次未提交改动
+(empty)
+```
+
+阶段 7 **未新增任何上游文件改动**，接触面仍为 `design.md` §10 的
+11 文件 / 108 插入 / 3 删除。
+
+### 6.11 已知缺口（阶段 7）
+
+1. **`?refresh=1` 只在服务端做精确缓存失效，没有服务端限流**；前端 30s 节流是
+   唯一节流点。当前判断：管理员接口、调用者受管理员鉴权约束，够用；
+   若后续暴露给非管理员需要补服务端限流。
+2. **`TargetsMaxGroups=200` / `TargetsMaxModelsPerGroup=500` 无分页**。
+   超限时回 `truncated=true`，前端只提示不翻页。分组数 200 在可预见规模内够用。
+3. **四层口径是「复制」而非「调用」**：上游把 `modelListingSource` 等写成
+   `internal/handler` 的私有函数，导出会给上游加改动、突破「注册一行」约束。
+   缓解手段是 `targets_parity_test.go` 对上游**已导出**符号逐一对照；
+   对无法导出的 switch 分发本身，用精选平台绝对值 + 空值约束兜底。
+   —— 这是本阶段最主要的技术债，若上游重构这几个函数，需同步更新 `targets.go`。
+4. **`invalid_target` 只按单任务熔断**，不做跨任务联动。同一分组下的其他任务
+   会在各自下次被领取时各自发现失效，最多产生 N 次重复查询（N = 该分组任务数）。
+
