@@ -46,6 +46,12 @@
           {{ t('iqBenchmark.admin.cases.enabled') }}
         </label>
       </div>
+      <div class="flex items-end">
+        <label class="flex items-center gap-2 text-sm" :title="t('iqBenchmark.admin.cases.allowUserTestHint')">
+          <input v-model="form.allow_user_test" type="checkbox" />
+          {{ t('iqBenchmark.admin.cases.allowUserTest') }}
+        </label>
+      </div>
     </div>
 
     <!-- 一致性提示：图片类题目必须期望 image_url -->
@@ -94,6 +100,7 @@ interface FormState {
   system_prompt: string
   sort_order: number
   enabled: boolean
+  allow_user_test: boolean
 }
 
 const form = reactive<FormState>(blank())
@@ -107,6 +114,9 @@ function blank(): FormState {
     system_prompt: '',
     sort_order: 0,
     enabled: true,
+    // 默认关闭（与后端一致）：自测花的是用户自己的额度，
+    // 开放应由管理员逐题决定。
+    allow_user_test: false,
   }
 }
 
@@ -128,6 +138,7 @@ watch(
       system_prompt: next.system_prompt ?? '',
       sort_order: next.sort_order,
       enabled: next.enabled,
+      allow_user_test: next.allow_user_test ?? false,
     })
   },
   { immediate: true },
@@ -154,6 +165,7 @@ function submit(): void {
     system_prompt: form.system_prompt,
     sort_order: form.sort_order,
     enabled: form.enabled,
+    allow_user_test: form.allow_user_test,
     params: props.initial?.params ?? {},
     scoring: props.initial?.scoring ?? 'manual',
   })

@@ -193,10 +193,26 @@ describe('FilterBar', () => {
     const wrapper = mount(FilterBar, {
       props: { modelValue: defaultFilterState(), modelOptions: ['gpt-4o'], caseOptions: cases },
     })
+    // 模型 / 题目 / 状态 / 类型 / 来源 / 时间范围 = 6 个下拉。
     const selects = wrapper.findAll('select')
-    expect(selects.length).toBe(5)
+    expect(selects.length).toBe(6)
     expect(wrapper.text()).toContain('gpt-4o')
     expect(wrapper.text()).toContain('Prompt A')
+    // 来源下拉必须真实存在：它的缺失会让「用户自测」产出无法被筛出来。
+    expect(wrapper.text()).toContain('iqBenchmark.source.scheduled')
+    expect(wrapper.text()).toContain('iqBenchmark.source.user_test')
+    expect(wrapper.text()).toContain('iqBenchmark.source.all')
+  })
+
+  it('emits the picked source so the feed can filter by it', async () => {
+    const wrapper = mount(FilterBar, {
+      props: { modelValue: defaultFilterState(), modelOptions: [], caseOptions: [] },
+    })
+    const sourceSelect = wrapper.findAll('select').at(4)!
+    await sourceSelect.setValue('user_test')
+    const emitted = wrapper.emitted('update:modelValue')
+    expect(emitted).toBeTruthy()
+    expect((emitted!.at(-1)![0] as { source: string }).source).toBe('user_test')
   })
 
   it('shows the reset button only when filters deviate from the default', () => {

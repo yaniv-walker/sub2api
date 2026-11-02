@@ -35,9 +35,9 @@ function artifact(overrides: Partial<IQPublicArtifact> = {}): IQPublicArtifact {
 }
 
 describe('defaultFilterState', () => {
-  it('defaults to the last 7 days with no model/case/status/kind filter', () => {
+  it('defaults to the last 7 days, scheduled source, no model/case/status/kind filter', () => {
     const state = defaultFilterState()
-    expect(state).toEqual({ model: '', caseId: null, status: '', kind: '', sinceDays: 7 })
+    expect(state).toEqual({ model: '', caseId: null, status: '', kind: '', source: 'scheduled', sinceDays: 7 })
   })
 
   it('recognises the default state and rejects any deviation', () => {
@@ -47,6 +47,9 @@ describe('defaultFilterState', () => {
     expect(isDefaultFilterState({ ...defaultFilterState(), status: 'failed' })).toBe(false)
     expect(isDefaultFilterState({ ...defaultFilterState(), kind: 'svg' })).toBe(false)
     expect(isDefaultFilterState({ ...defaultFilterState(), sinceDays: 0 })).toBe(false)
+    // 切到「全部来源」或「只看自测」都算偏离默认。
+    expect(isDefaultFilterState({ ...defaultFilterState(), source: 'all' })).toBe(false)
+    expect(isDefaultFilterState({ ...defaultFilterState(), source: 'user_test' })).toBe(false)
   })
 })
 
@@ -55,7 +58,7 @@ describe('toArtifactFilters', () => {
 
   it('maps a full filter state to query parameters', () => {
     const filters = toArtifactFilters(
-      { model: 'gpt-4o', caseId: 7, status: 'success', kind: 'text', sinceDays: 7 },
+      { model: 'gpt-4o', caseId: 7, status: 'success', kind: 'text', source: 'user_test', sinceDays: 7 },
       now,
       2,
       50,
@@ -64,10 +67,20 @@ describe('toArtifactFilters', () => {
     expect(filters.case_id).toBe(7)
     expect(filters.status).toBe('success')
     expect(filters.kind).toBe('text')
+    expect(filters.source).toBe('user_test')
     expect(filters.page).toBe(2)
     expect(filters.page_size).toBe(50)
     // 7 天前 = 2026-10-26T12:00:00.000Z
     expect(filters.since).toBe('2026-10-26T12:00:00.000Z')
+  })
+
+  it('always sends an explicit source, including "all"', () => {
+    // 'all' 与「省略」在后端含义不同：省略走服务端默认口径（只含定时检测），
+    // 'all' 才是真正的全量。所以这里必须始终显式下发。
+    const all = toArtifactFilters({ ...defaultFilterState(), source: 'all' }, now)
+    expect(all.source).toBe('all')
+    const scheduled = toArtifactFilters(defaultFilterState(), now)
+    expect(scheduled.source).toBe('scheduled')
   })
 
   it('omits empty filters instead of sending empty strings', () => {

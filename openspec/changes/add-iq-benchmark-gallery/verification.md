@@ -833,3 +833,139 @@ $ git diff --stat -- <11 个上游文件>      # 仅针对本次未提交改动
 4. **`invalid_target` 只按单任务熔断**，不做跨任务联动。同一分组下的其他任务
    会在各自下次被领取时各自发现失效，最多产生 N 次重复查询（N = 该分组任务数）。
 
+
+---
+
+## 七、阶段 8（B：用户自测）验证输出
+
+### 7.1 后端单测
+
+```
+$ go test -tags=unit -count=1 ./internal/iqbenchmark/... ./cmd/server/ ./internal/server/routes/
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/handler	0.888s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/module	0.551s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/ratelimit	0.637s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository	0.550s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/sanitize	0.699s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/scheduler	0.825s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service	7.653s
+ok  	github.com/Wei-Shaw/sub2api/cmd/server	0.640s
+ok  	github.com/Wei-Shaw/sub2api/internal/server/routes	11.207s
+```
+
+### 7.2 集成测试（真实 PostgreSQL 18）
+
+```
+$ $env:IQ_BENCHMARK_TEST_DSN="postgres://sub2api:test1234@127.0.0.1:55433/iq_test?sslmode=disable"
+$ go test -tags='unit,integration' -count=1 ./internal/iqbenchmark/repository/
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository	4.894s
+```
+
+### 7.3 阶段 8 新增的关键用例
+
+```
+$ go test -tags=unit -count=1 -v -run 'TestUserTestGroupBound|TestUserTestUnboundKey|TestUserTestDedupeKeyIncludes|TestUserTestBuildsUserTestIdentity' ./internal/iqbenchmark/service/
+--- PASS: TestUserTestBuildsUserTestIdentity (0.00s)
+--- PASS: TestUserTestGroupBoundToKeyWins (0.00s)
+--- PASS: TestUserTestUnboundKeyUsesRequestGroup (0.00s)
+--- PASS: TestUserTestDedupeKeyIncludesGroup (0.00s)
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service	0.391s
+```
+
+### 7.4 Lint
+
+```
+$ golangci-lint run --timeout=15m ./internal/iqbenchmark/...
+0 issues.
+exit=0
+```
+
+### 7.5 前端
+
+```
+$ npx vue-tsc -b
+exit=0
+
+$ npx vitest run --pool=threads
+ Test Files  394 passed (394)
+      Tests  3257 passed (3257)
+   Duration  145.20s
+exit=0
+```
+
+阶段 7 结束时为 392 文件 / 3233 用例；本阶段新增 2 文件
+（`userTestError.spec.ts` 12 例、`userTestDialog.spec.ts` 10 例）与
+12 个既有文件内的新用例，净增 24 个用例。
+
+### 7.6 本阶段实现中发现并修掉的两个真实缺陷
+
+**缺陷 1：信任请求里的 `group_id`（安全问题）。**
+
+上游网关的路由完全由 `apiKey.GroupID` 决定（`billing_inflight_reservation.go`
+的 `resolveGroupByAPIKey`：Key 绑了分组就用它，未绑才按平台主键回落）。
+原实现直接使用请求体里的 `group_id`，后果有两个：
+
+- 用户可挑一个「未开放图片生成」的分组提交图片题，让本地预检通过而实际在别的
+  分组执行 —— 正是 §七 校验 #5 想拦的情况被绕过；
+- 产出被记到 A 分组、实际在 B 分组跑出来，排行榜会把这个成绩算在错误的模型头上。
+
+修复：`Submit` 在通过归属校验后，用 `apiKey.GroupID` 覆盖请求值；写入记录与
+执行入参都用解析后的分组（否则记录会指向一个根本没被用到的分组）。去重键
+也补上分组，否则用户 10 分钟内无法测第二个分组，而提示是「刚刚已提交过」。
+
+变异测试实证（把覆盖那行改成 `if false`）：
+
+```
+--- FAIL: TestUserTestGroupBoundToKeyWins (0.00s)
+FAIL	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service	0.390s
+```
+
+**缺陷 2：`TestUserTestBuildsUserTestIdentity` 的断言本身是错的。**
+
+该用例原先断言去重键「不包含 `42`」。这在 64 个 hex 字符里几乎必然失败
+（每个位置命中概率约 1/256），属于会随机翻红的坏断言，而且证明不了任何有价值
+的东西。改为断言真正要防的事实：长度 64、`^[0-9a-f]{64}$`、不含 `:`、
+不含明文模型名。
+
+> 诚实说明：这一条是**我这轮自己写错、又自己发现**的，不是既有代码的问题。
+
+### 7.7 一处无法用变异测试隔离的地方（如实记录）
+
+前端「生效分组」`effectiveGroupID` 有三重保护：Key 绑定 watcher 把
+`form.group_id` 同步成绑定值、`loadTargets` 在分组集合变化时把它落回合法值、
+提交时再用 `effectiveGroupID`。把这行改成只用 `form.group_id` 后
+`userTestDialog.spec.ts` 仍然 10/10 通过 —— 这是**等价变异**，测试无法区分。
+
+三重保护是有意的（这条路径会花用户的真钱，宁可重复），代价就是任何单点变异都
+不改变可观测行为。真正的防线在后端：`Submit` 忽略请求里的 `group_id`
+（见 7.3 的 `TestUserTestGroupBoundToKeyWins`）。已在测试文件内注明，不假装有覆盖。
+
+### 7.8 上游接触面复核
+
+```
+$ git diff --numstat f688e8999e -- backend/internal/service backend/internal/handler backend/internal/server/router.go
+4	0	backend/internal/handler/handler.go
+3	0	backend/internal/handler/wire.go
+2	0	backend/internal/server/router.go
+```
+
+阶段 8 **未新增任何上游文件改动**，仍为 9 插入 / 0 删除。
+`backend/internal/service` diff 为空。
+
+### 7.9 已知缺口（阶段 8）
+
+1. **`moderation_status='pending'` 的产出当前不可达，也还没排进审核队列。**
+   `user_test_require_review=true` 时产出会写成 `pending`，但既没有管理员
+   审核列表读取它、也没有任何接口能把它改成 `approved`。默认配置下
+   `user_test_require_review` 为 `true`（与后端 `DefaultSettings()` 一致），
+   所以**这是一个会影响真实使用的缺口**：开启自测并保持默认配置时，
+   用户测完的作品不会出现在作品展里。
+   当前判断：先如实记录，不擅自扩大改动面（审核队列是独立的一块功能）。
+   上线前必须二选一：要么先做审核读取路径，要么把该默认值改为 `false`。
+2. **`ratelimit.AcquireUserTestSlot` 的 fail-closed 分支没有单测。**
+   目前只通过 service 层的假替身覆盖了「拿到/没拿到槽位」两种结果，
+   Redis 报错时的真实降级路径（返回 `(nil, false)`）未被直接验证。
+3. **「禁用时返回 404」只在 service 层与路由注册层验证过**，
+   没有为 user-test 单独补 handler 级的 404 断言（其余接口有此断言）。
+4. `user_test_daily_cost_budget` 的预检用的是题目维度的**估算**成本
+   （`EstimatedCost`），不是实际结算值。预算只能拦住量级，不能精确到分。

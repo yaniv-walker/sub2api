@@ -170,6 +170,12 @@ type PublicCaseDTO struct {
 	Kind       string `json:"kind"`
 	ExpectKind string `json:"expect_kind"`
 	Prompt     string `json:"prompt"`
+	// AllowUserTest 表示该题目是否开放自测。
+	//
+	// 公开它有两个理由：自测对话框要据此过滤候选（否则用户能选中一个
+	// 提交必被拒的题目，只能靠错误提示才知道原因）；而且「这题能不能自测」
+	// 本身不是敏感信息 —— 它不泄露提示词工程细节，只说明一道门是否敞开。
+	AllowUserTest bool `json:"allow_user_test"`
 }
 
 // PublicOverviewDTO 是公开侧的作品展总览。
@@ -456,11 +462,12 @@ func toPublicCase(c *iqbenchmark.Case) PublicCaseDTO {
 		return PublicCaseDTO{}
 	}
 	return PublicCaseDTO{
-		ID:         c.ID,
-		Name:       c.Name,
-		Kind:       c.Kind,
-		ExpectKind: c.ExpectKind,
-		Prompt:     c.Prompt,
+		ID:            c.ID,
+		Name:          c.Name,
+		Kind:          c.Kind,
+		ExpectKind:    c.ExpectKind,
+		Prompt:        c.Prompt,
+		AllowUserTest: c.AllowUserTest,
 	}
 }
 

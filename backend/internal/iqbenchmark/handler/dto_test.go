@@ -112,9 +112,9 @@ func TestPublicArtifactSourceFallsBackToScheduled(t *testing.T) {
 func TestPublicCaseDTOHasNoPromptInternals(t *testing.T) {
 	names := jsonFieldNames(reflect.TypeOf(PublicCaseDTO{}))
 	require.ElementsMatch(t,
-		[]string{"id", "name", "kind", "expect_kind", "prompt"},
+		[]string{"id", "name", "kind", "expect_kind", "prompt", "allow_user_test"},
 		names,
-		"PublicCaseDTO 字段集合固定为 5 个；新增字段需同步更新 design.md 第 9.2 节")
+		"PublicCaseDTO 字段集合固定；新增字段需同步更新 design.md 第 9.2 节")
 }
 
 // TestPublicOverviewBucketDTOExposesNoGroupIdentity 断言趋势桶不暴露分组身份。

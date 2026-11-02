@@ -2,9 +2,19 @@
   <AppLayout>
     <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 p-4">
       <!-- 标题 -->
-      <header>
-        <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('iqBenchmark.title') }}</h1>
-        <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('iqBenchmark.subtitle') }}</p>
+      <header class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('iqBenchmark.title') }}</h1>
+          <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('iqBenchmark.subtitle') }}</p>
+        </div>
+        <!--
+          自测入口默认隐藏：它依赖后端 user_test_enabled，而那个开关不在
+          公开接口里。先探测 /user-tests/targets，能拿到数据才显示按钮 ——
+          否则用户在关闭自测的站点上点开对话框只会看到一片空。
+        -->
+        <button v-if="selfTestAvailable" class="btn btn-primary btn-sm" @click="showUserTest = true">
+          {{ t('iqBenchmark.userTest.action') }}
+        </button>
       </header>
 
       <!-- 限流提示：不自动重试，让用户自己决定何时再试 -->
@@ -132,6 +142,14 @@
 
     <!-- 详情弹层 -->
     <ArtifactDetail :artifact="detailTarget" @close="detailTarget = null" />
+
+    <!-- 自测弹层 -->
+    <UserTestDialog
+      v-if="showUserTest"
+      :require-review="true"
+      @close="showUserTest = false"
+      @submitted="onUserTestSubmitted"
+    />
   </AppLayout>
 </template>
 
@@ -143,10 +161,12 @@ import ArtifactGrid from '@/features/iq-benchmark/ArtifactGrid.vue'
 import ArtifactDetail from '@/features/iq-benchmark/ArtifactDetail.vue'
 import ComparePanel from '@/features/iq-benchmark/ComparePanel.vue'
 import FilterBar from '@/features/iq-benchmark/FilterBar.vue'
+import UserTestDialog from '@/features/iq-benchmark/UserTestDialog.vue'
 import { useArtifactFeed } from '@/features/iq-benchmark/useArtifactFeed'
 import {
   fetchArtifacts,
   fetchCompare,
+  fetchMyTargets,
   fetchOverview,
   fetchPublicCases,
 } from '@/features/iq-benchmark/api'
@@ -178,6 +198,10 @@ const cases = ref<IQPublicCase[]>([])
 const overview = ref<IQPublicOverview | null>(null)
 const detailTarget = ref<IQPublicArtifact | null>(null)
 
+/** 自测入口是否可用（探测 /user-tests/targets 的结果）。 */
+const selfTestAvailable = ref(false)
+const showUserTest = ref(false)
+
 /** 已选对比的作品 ID。 */
 const selectedIds = ref<number[]>([])
 const compareResults = ref<IQPublicArtifact[]>([])
@@ -195,7 +219,27 @@ onMounted(async () => {
   const [caseList, overviewData] = await Promise.allSettled([fetchPublicCases(), fetchOverview()])
   if (caseList.status === 'fulfilled') cases.value = caseList.value
   if (overviewData.status === 'fulfilled') overview.value = overviewData.value
+
+  // 探测自测可用性。失败（含 404 = 未开启）一律当作不可用：
+  // 这里刻意**吞掉错误**，因为它只是决定要不要显示一个按钮，
+  // 不值得在作品展顶部弹一条红色错误。
+  try {
+    const targets = await fetchMyTargets()
+    selfTestAvailable.value = targets.groups.length > 0
+  } catch {
+    selfTestAvailable.value = false
+  }
 })
+
+/** 自测提交成功：关弹层并刷新列表（source 切到「全部」才看得到自测产出）。 */
+async function onUserTestSubmitted(): Promise<void> {
+  showUserTest.value = false
+  // 自测产出默认被 source=scheduled 过滤掉，所以主动切到 all，
+  // 否则用户提交完看不到自己刚测的东西，会以为失败了。
+  // filters 是 reactive 对象，必须就地赋值（重新绑定会让 v-model 断链）。
+  feed.filters.source = 'all'
+  await feed.reloadNow(1)
+}
 
 function openDetail(artifact: IQPublicArtifact): void {
   detailTarget.value = artifact

@@ -158,3 +158,87 @@ Wire 图内取不到；要注入必须先给上游加导出方法，会突破「
 - [x] 7.14 上游零改动：`internal/service` 与 `internal/handler/dto` diff 为空；
       接触面仍为 `design.md` §10 记录的 11 文件 / 108 插入 / 3 删除。
 
+## 阶段 8：B —— 用户用自己本站 API Key 一键自测（已完成）
+
+需求依据：`docs/iq-benchmark-user-test.md`。计费发生在网关侧、用的是用户的 Key，
+所以「用谁的 Key」是唯一切换点，执行器内不得出现任何身份分支。
+
+### 8.1 数据层
+
+- [x] 8.1.1 迁移 `251_iq_benchmark_user_test.sql`：`run_id`/`task_id` 放开 NOT NULL；
+      `source` + 回填 + CHECK(`scheduled`/`user_test`)；`triggered_by_user_id`（不加 FK）；
+      `moderation_status`；`iq_artifact_source_consistent` 配对约束；
+      `iq_benchmark_cases.allow_user_test`；`iq_benchmark_user_tests` 表；来源索引。
+- [x] 8.1.2 `source` **刻意不设 DEFAULT**：有 DEFAULT 就会把忘记赋值的自测产出
+      静默标成 `scheduled`，那是最坏的错误方向。改由 `CreateArtifact` 无条件 `SetSource` 保证。
+- [x] 8.1.3 Ent schema 三处扩展并 `go generate`（生成包 `ent/iqbenchmarkusertest`）。
+- [x] 8.1.4 `run_id`/`task_id` 为 NULL 时在领域层收敛为 `0`，使读取路径无需指针判空。
+      实证：`TestIQBenchmarkUserTestArtifactKeepsNullRunAndTask`。
+
+### 8.2 编排层
+
+- [x] 8.2.1 `service/user_test_service.go`：`Submit` 的校验顺序按「越便宜越靠前」排列
+      （开关 → 题目 → Key 归属 → Key 绑定分组 → 目标 → 配额），
+      且**全部校验都在落记录之前**，否则被拒的请求会污染日配额把用户锁死。
+- [x] 8.2.2 **分组以 Key 绑定为准**。发现并修掉的真实漏洞：网关按 `apiKey.GroupID`
+      路由（`billing_inflight_reservation.go` 的 `resolveGroupByAPIKey`），
+      原先信任请求里的 `group_id`，用户可借此让本地预检与实际执行分组不一致——
+      既能绕过「分组未开放生图」的图片题预检，也会让排行榜把成绩算到错误的模型头上。
+      写入记录与执行入参都改用解析后的分组；变异测试实证该断言能翻红。
+- [x] 8.2.3 去重键加入分组（`user_id:case_id:group_id:model` 的 SHA-256）。
+      漏掉分组会让用户 10 分钟内无法测第二个分组，而提示是「刚刚已提交过」。
+- [x] 8.2.4 去重只统计 `pending`/`running`/`success`，失败的尝试不占用窗口。
+- [x] 8.2.5 配额三项分工：在途并发走 Redis 原子槽位（有真实 TOCTOU，失败即真扣钱，
+      故 **fail-closed**）；日次数与日成本只以数据库为准（再开一个 Redis 计数器必然漂移，
+      会让用户看到的历史条数与系统拒他的理由对不上）。
+- [x] 8.2.6 槽位释放用 `defer` + `slotReleased` 标志 + `sync.Once`，任一前置失败都不会
+      永久占住用户的一格并发额度。
+- [x] 8.2.7 `startOfDay` 用本地时区（UTC 会让东八区配额在早 8 点重置）。
+- [x] 8.2.8 `MyTargets`：用户侧只读的分组/模型候选（复用 A 的 resolver），
+      带 `api_key_id` 时按 Key 绑定收窄，保证「下拉里看到的 = 提交时执行的」。
+      不返回全部分组，避免泄露站点分组拓扑。
+
+### 8.3 接口与限流
+
+- [x] 8.3.1 `GET/POST /iq-gallery/user-tests`、`GET /:id`、`GET /targets`，
+      整组受 `user_test_enabled` 控制（关闭时 404，而非 403/503）。
+- [x] 8.3.2 `POST` 走 `Limiter.HeavyMiddleware()`；用显式 if/else 注册，
+      使未装配限流器的部署仍能自测（否则整条路由会消失）。
+- [x] 8.3.3 `statusOfUserTestError` 15 个 reason → HTTP 状态映射；
+      前端 `userTestError.ts` 以**逐字相同的 reason 字符串**为键，并有测试双向校验。
+- [x] 8.3.4 公开作品 DTO 增 `source`，但**永不**下发 `triggered_by_user_id`
+      （精确白名单测试 + 单独的隐私断言）。
+
+### 8.4 前端
+
+- [x] 8.4.1 `UserTestDialog.vue`：Key/题目/分组/模型四个下拉；
+      题目按 `allow_user_test` 前端过滤（公开列表接口不按它过滤）；
+      Key 绑定分组时锁定分组下拉并给出说明；换分组清空模型。
+- [x] 8.4.2 不在前端做任何额度计算：日次数/成本/Key 状态全以后端为准，
+      前端再算一遍只会漂移成「按钮可点但一提交就报错」。
+- [x] 8.4.3 错误展示走 `userTestError.ts` 的 reason→i18n 子键映射，
+      绝不把后端英文 reason 直接糊给用户。
+- [x] 8.4.4 `SettingsPanel` 增 5 项自测配置（默认值与后端 `DefaultSettings()` 逐字对齐）；
+      `CaseForm` 增 `allow_user_test`；`FilterBar` 增来源筛选（默认 `scheduled`）；
+      `ArtifactCard` 增「用户自测」徽标。
+- [x] 8.4.5 自测入口按钮先探测 `/user-tests/targets`，拿不到数据就不显示——
+      否则在关闭自测的站点上点开只有一片空。
+- [x] 8.4.6 提交成功后自动把来源切到 `all` 并刷新：自测产出被默认的 `scheduled`
+      过滤掉，不切的话用户看不到自己刚测的东西，会以为失败了。
+
+### 8.5 验证
+
+- [x] 8.5.1 后端单测：`internal/iqbenchmark/...` + `cmd/server` + `internal/server/routes`
+      共 9 个包全部 `ok`；`golangci-lint run ./internal/iqbenchmark/...` 0 issues。
+- [x] 8.5.2 集成测试（真实 PostgreSQL 18）：迁移 251 + 自测租约/计费隔离，
+      `internal/iqbenchmark/repository` `ok`。
+- [x] 8.5.3 前端：`npx vue-tsc -b` 无错误；`npx vitest run` 394 文件 / 3257 用例全通过。
+- [x] 8.5.4 变异测试实证关键断言有效：后端「忽略 Key 绑定分组」→
+      `TestUserTestGroupBoundToKeyWins` 翻红；前端「不过滤 `allow_user_test`」→
+      `filters out cases that are not open for self-test` 翻红。
+- [x] 8.5.5 **诚实记录未能变异隔离的一处**：前端「生效分组」被三重保护
+      （Key 绑定 watcher、`loadTargets` 重置、提交时用 `effectiveGroupID`），
+      单点变异是等价变异、测试无法区分。真正防线在后端的
+      `TestUserTestGroupBoundToKeyWins`。已在测试文件内注明，不假装有覆盖。
+- [ ] 8.5.6 `tasks.md` 6.9 的灰度仍需要在真实部署环境执行（与本阶段同因，保持未勾选）。
+

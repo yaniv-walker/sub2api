@@ -135,6 +135,72 @@ export default {
       retry: '重试',
     },
 
+    /** 作品来源角标。 */
+    source: {
+      scheduled: '定时检测',
+      user_test: '用户自测',
+      /** 筛选下拉用。 */
+      label: '来源',
+      all: '全部来源',
+    },
+
+    /** 用户自测（用自己本站的 Key 跑一次检测）。 */
+    userTest: {
+      title: '自己测一次',
+      subtitle: '用你自己的 API Key 跑同一批题目，结果会进入作品展并标记「用户自测」。',
+      action: '用我的 Key 自测',
+      submitting: '提交中…',
+      submitted: '已提交，正在后台执行',
+      dialogTitle: '选择 API Key 与目标',
+      apiKey: 'API Key',
+      apiKeyPlaceholder: '请选择一把可用的 Key',
+      apiKeyEmpty: '你还没有可用的 API Key',
+      apiKeyEmptyHint: '请先到「API 密钥」页面创建一把，额度与过期时间由你自己控制。',
+      apiKeyDisabled: '已停用',
+      case: '题目',
+      casePlaceholder: '请选择题目',
+      model: '模型',
+      modelPlaceholder: '选择该分组可用的模型',
+      group: '分组',
+      groupBoundToKey: '该 Key 已绑定分组，分组不可更改。',
+      submit: '开始自测',
+      cancel: '取消',
+      history: '我的自测记录',
+      historyEmpty: '还没有自测记录',
+      openArtifact: '查看产出',
+      costNotice: '自测消耗的是你自己的 Key 额度，费用计入你的账户。',
+      reviewNotice: '本次产出需要管理员审核后才会出现在公开作品展。',
+      keyFieldNote: 'Key 只在服务端读一次，不会回显，也不会写进日志。',
+      /** 各状态文案。 */
+      status: {
+        pending: '排队中',
+        running: '执行中',
+        success: '已完成',
+        failed: '失败',
+        blocked: '已拦截',
+        rejected: '已拒绝',
+      },
+    },
+
+    /** 自测相关的错误文案（按后端 reason 映射）。 */
+    userTestError: {
+      USER_TEST_DISABLED: '自测功能当前未开启。',
+      CASE_NOT_OPEN_FOR_USER_TEST: '该题目未开放自测。',
+      USER_NOT_ACTIVE: '你的账号当前不可用，无法发起自测。',
+      /** 归属校验失败与「不存在」共用一句文案：避免 Key 存在性泄露。 */
+      API_KEY_INACTIVE: '这把 API Key 已停用。',
+      API_KEY_EXPIRED: '这把 API Key 已过期，请更换。',
+      INSUFFICIENT_QUOTA: '这把 Key 的额度不足，无法发起自测。',
+      GROUP_IMAGE_DISABLED: '该分组未开启生图能力，无法用于图片类题目。',
+      TARGET_INVALID: '所选分组或模型已不可用，请重新选择。',
+      DAILY_LIMIT: '今日自测次数已达上限，请明天再试。',
+      CONCURRENT_LIMIT: '还有自测正在执行，请等它结束后再试。',
+      DUPLICATE: '同样的自测刚刚已提交过，请稍后再试。',
+      BUDGET_EXCEEDED: '今日自测成本已达上限。',
+      NOT_FOUND: '记录不存在。',
+      UNKNOWN: '自测失败，请稍后重试。',
+    },
+
     admin: {
       title: '模型智商检测作品展管理',
       /** 管理端用户列表的「隐藏内部账号」开关文案。 */
@@ -176,6 +242,18 @@ export default {
         save: '保存设置',
         saved: '设置已保存',
         readonly: '仅管理员可修改设置',
+
+        /** 用户自测相关设置。 */
+        userTestEnabled: '允许用户自测',
+        userTestEnabledHint: '用户可用自己的 API Key 跑检测，结果计入作品展。关闭后自测入口不可用。',
+        userTestDailyLimit: '每用户每日自测次数',
+        userTestDailyLimitHint: '按自然日计算，跨天后重置。',
+        userTestMaxConcurrent: '每用户同时执行数',
+        userTestMaxConcurrentHint: '超出后新的自测会被拒绝，直到前面的执行结束。',
+        userTestRequireReview: '自测产出需审核',
+        userTestRequireReviewHint: '开启后自测产出先进待审队列，审核通过才出现在公开作品展。',
+        userTestDailyCostBudget: '每用户每日成本上限（元）',
+        userTestDailyCostBudgetHint: '填 0 表示不限制。非 0 时超出即拒绝新的自测。',
       },
 
       tasks: {
@@ -219,6 +297,8 @@ export default {
         enabled: '启用',
         sortOrder: '排序',
         builtin: '内置',
+        allowUserTest: '开放自测',
+        allowUserTestHint: '开启后用户可用自己的 Key 跑这道题。默认关闭：自测消耗的是用户自己的额度。',
         delete: '删除',
         deleteConfirm: '确定删除该题目？',
         builtinUndeletable: '内置题目不可删除',
@@ -236,6 +316,9 @@ export default {
         errorSummary: '错误说明',
         unsafeFlags: '危险构造',
         blobKey: '存储键',
+        source: '来源',
+        moderation: '审核状态',
+        triggeredBy: '触发用户',
         cost: '成本',
         delete: '删除',
         deleteConfirm: '确定删除该作品？',

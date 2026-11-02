@@ -64,6 +64,18 @@
         v-if="artifact.truncated"
         class="absolute left-2 top-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
       >{{ t('iqBenchmark.card.contentTruncated') }}</span>
+
+      <!--
+        「用户自测」角标。
+        与状态角标分开放（左上角），因为二者是正交的信息：
+        状态说「跑成没跑成」，来源说「谁花的钱」。
+        截断提示也占左上角，所以两者同时出现时下移一行避让。
+      -->
+      <span
+        v-if="artifact.source === 'user_test'"
+        class="absolute left-2 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"
+        :class="artifact.truncated ? 'top-8' : 'top-2'"
+      >{{ t('iqBenchmark.source.user_test') }}</span>
     </div>
 
     <!-- 元信息区 -->

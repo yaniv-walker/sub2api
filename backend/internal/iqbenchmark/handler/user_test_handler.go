@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -120,6 +121,29 @@ func (h *UserTestHandler) promptOf(c *gin.Context, caseID int64) (string, error)
 		return "", iqbenchmark.ErrCaseNotFound
 	}
 	return item.Prompt, nil
+}
+
+// MyTargets 返回该用户可自测的分组与模型候选。
+//
+// 没有这个接口，前端只能让用户手填模型名 —— 填错得到 MODEL_NOT_AVAILABLE，
+// 而用户无从知道正确取值。这是「必被拒的下拉」问题的根因。
+func (h *UserTestHandler) MyTargets(c *gin.Context) {
+	if !h.enabled(c) {
+		writeError(c, iqbenchmark.ErrUserTestDisabled)
+		return
+	}
+	userID := ratelimit.UserIDFromContext(c)
+	if userID <= 0 {
+		response.Unauthorized(c, "authentication required")
+		return
+	}
+	apiKeyID, _ := strconv.ParseInt(c.Query("api_key_id"), 10, 64)
+	targets, err := h.Tests.MyTargets(c.Request.Context(), userID, apiKeyID)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	response.Success(c, targets)
 }
 
 // List 返回当前用户的自测历史。

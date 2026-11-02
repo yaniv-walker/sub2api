@@ -376,8 +376,16 @@ func TestUserTestBuildsUserTestIdentity(t *testing.T) {
 	require.Equal(t, int64(11), created.APIKeyID)
 	require.Equal(t, "gpt-4o", created.Model)
 	require.NotEmpty(t, created.DedupeKey, "a dedupe key must always be written")
-	require.NotContains(t, created.DedupeKey, "42",
-		"the dedupe key must be hashed, not a readable concatenation")
+
+	// 只断言「是 64 位十六进制的 SHA-256」，不要断言它不包含某个短数字串：
+	// 64 个 hex 字符里出现 "42" 几乎是必然（概率约 1/256 每位置），
+	// 那种断言会随机翻红，而且并不能证明任何有价值的东西。
+	require.Len(t, created.DedupeKey, 64)
+	require.Regexp(t, "^[0-9a-f]{64}$", created.DedupeKey)
+	// 真正要防的是「明文拼接」：若把 model 或 id 直接拼进去，
+	// 键里会出现分隔符或非 hex 字符。
+	require.NotContains(t, created.DedupeKey, ":")
+	require.NotContains(t, created.DedupeKey, "gpt-4o")
 }
 
 // TestUserTestGetEnforcesOwnership 覆盖「不能靠传别人的 ID 读取记录」。
@@ -527,6 +535,52 @@ func TestUserTestWorksWithoutLimiter(t *testing.T) {
 	_, err := svc.Submit(context.Background(), validSubmitInput())
 	require.NoError(t, err)
 	require.Len(t, store.created, 1)
+}
+
+// TestUserTestGroupBoundToKeyWins 覆盖本次修复的核心漏洞：
+// 请求里的 group_id 与 Key 绑定的分组不一致时，必须以后者为准。
+//
+// 为什么这是安全问题而不只是行为偏好：上游网关完全按 apiKey.GroupID
+// 路由（billing_inflight_reservation.go 的 resolveGroupByAPIKey）。
+// 若信任请求里的分组，用户就能选一个「不允许生图」的分组提交图片题，
+// 让本地预检通过、实际在另一个分组里执行；更糟的是产出被记到 A 分组、
+// 却在 B 分组跑出来，排行榜会把这个成绩算在错误的模型头上。
+func TestUserTestGroupBoundToKeyWins(t *testing.T) {
+	svc, store, keys := newUserTestFixture(t, userTestOn())
+	// Key 实际绑在分组 3 上，但请求谎称分组 5。
+	bound := int64(3)
+	keys.key.GroupID = &bound
+	in := validSubmitInput()
+	in.GroupID = 5
+
+	_, err := svc.Submit(context.Background(), in)
+	require.NoError(t, err)
+	require.Len(t, store.created, 1)
+	require.Equal(t, int64(3), store.created[0].GroupID,
+		"the persisted group must come from the key binding, not the request")
+}
+
+// TestUserTestUnboundKeyUsesRequestGroup 保证未绑分组的 Key 仍可用请求值：
+// 上游对未绑定的 Key 就是按平台主键回落，此时请求里的分组才有意义。
+func TestUserTestUnboundKeyUsesRequestGroup(t *testing.T) {
+	svc, store, keys := newUserTestFixture(t, userTestOn())
+	keys.key.GroupID = nil
+
+	_, err := svc.Submit(context.Background(), validSubmitInput())
+	require.NoError(t, err)
+	require.Len(t, store.created, 1)
+	require.Equal(t, int64(3), store.created[0].GroupID)
+}
+
+// TestUserTestDedupeKeyIncludesGroup 保证同一题在不同分组不算重复。
+//
+// 漏掉分组会让用户 10 分钟内无法测第二个分组，而错误提示是
+// 「刚刚已提交过」—— 用户只会以为系统卡了。
+func TestUserTestDedupeKeyIncludesGroup(t *testing.T) {
+	a := userTestDedupeKey(1, 2, 3, "m")
+	b := userTestDedupeKey(1, 2, 4, "m")
+	require.NotEqual(t, a, b, "different groups must produce different dedupe keys")
+	require.Len(t, a, 64)
 }
 
 // validSubmitInput 是一份通过所有前置校验的入参。

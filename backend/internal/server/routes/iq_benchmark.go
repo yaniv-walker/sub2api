@@ -111,6 +111,7 @@ func RegisterIQBenchmarkRoutes(
 	userTests.Use(gin.HandlerFunc(jwtAuth))
 	{
 		userTests.GET("", handlers.UserTest.List)
+		userTests.GET("/targets", handlers.UserTest.MyTargets)
 		userTests.GET("/:id", handlers.UserTest.Get)
 
 		// 提交接口是重操作：一次提交会触发真实的模型调用并产生费用。

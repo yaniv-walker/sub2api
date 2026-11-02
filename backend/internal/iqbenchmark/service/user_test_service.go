@@ -147,23 +147,17 @@ func (s *UserTestService) Submit(ctx context.Context, in iqbenchmark.UserTestSub
 	}
 
 	// 2) 分组与模型必须是真实可用的目标（复用 A 的 resolver，不另写一套）。
-	if s.Targets == nil {
-		return nil, iqbenchmark.ErrTargetGroupUnavailable
-	}
-	group, err := s.Targets.ActiveGroup(ctx, in.GroupID)
-	if err != nil {
-		return nil, err
-	}
-	// 图片题要求分组开放图片生成，否则网关必拒 —— 先在本地挡掉，
-	// 避免把用户的额度浪费在注定失败的调用上。
-	if iqbenchmark.IsImageCase(detected.Kind) && !group.AllowImageGeneration {
-		return nil, iqbenchmark.ErrGroupImageGenerationDisabled
-	}
-	if err := s.Targets.ValidateTarget(ctx, group, in.Model, []string{detected.Kind}); err != nil {
-		return nil, err
-	}
-
-	// 3) Key 归属与状态（不泄露存在性）。
+	//
+	// **分组以 Key 的绑定为准，而不是以请求里的值为准。**
+	// 上游网关的路由完全由 apiKey.GroupID 决定（见
+	// billing_inflight_reservation.go 的 resolveGroupByAPIKey：Key 绑了分组
+	// 就用它，未绑才按平台主键回落）。若这里信任请求里的 group_id，
+	// 用户可以选一个「不允许生图」的分组提交图片题来绕过本地预检，
+	// 也可以让产出被记到 A 分组、实际却在 B 分组里执行 ——
+	// 那会让排行榜把成绩算在错误的模型头上。
+	groupID := in.GroupID
+	// 归属校验放在分组解析之前：只有确认这把 Key 是调用者的，
+	// 才允许用它的分组信息影响后续判断。
 	if s.Keys == nil {
 		return nil, iqbenchmark.ErrAPIKeyNotOwned
 	}
@@ -182,6 +176,28 @@ func (s *UserTestService) Submit(ctx context.Context, in iqbenchmark.UserTestSub
 	if !apiKey.IsActive() {
 		return nil, iqbenchmark.ErrAPIKeyInactive
 	}
+	// Key 绑定了分组 ⇒ 以绑定为准（网关就是这么路由的）。
+	if apiKey.GroupID != nil && *apiKey.GroupID > 0 {
+		groupID = *apiKey.GroupID
+	}
+
+	if s.Targets == nil {
+		return nil, iqbenchmark.ErrTargetGroupUnavailable
+	}
+	group, err := s.Targets.ActiveGroup(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+	// 图片题要求分组开放图片生成，否则网关必拒 —— 先在本地挡掉，
+	// 避免把用户的额度浪费在注定失败的调用上。
+	if iqbenchmark.IsImageCase(detected.Kind) && !group.AllowImageGeneration {
+		return nil, iqbenchmark.ErrGroupImageGenerationDisabled
+	}
+	if err := s.Targets.ValidateTarget(ctx, group, in.Model, []string{detected.Kind}); err != nil {
+		return nil, err
+	}
+
+	// 3) Key 状态（归属已在上一步校验，这里只剩可用性）。
 	if err := s.Keys.CheckAPIKeyQuotaAndExpiry(apiKey); err != nil {
 		// 上游把过期与额度耗尽区分开了；这里映射成我们自己的哨兵，
 		// 让 handler 能给出准确的 HTTP 状态（403 / 402）。
@@ -216,7 +232,7 @@ func (s *UserTestService) Submit(ctx context.Context, in iqbenchmark.UserTestSub
 	}()
 
 	// 6) 去重：窗口内已有相同的未失败请求则直接拒绝。
-	dedupeKey := userTestDedupeKey(in.UserID, in.CaseID, in.Model)
+	dedupeKey := userTestDedupeKey(in.UserID, in.CaseID, groupID, in.Model)
 	dupes, err := s.Store.CountUserTestDedupe(ctx, dedupeKey, s.now().Add(-UserTestDedupeWindow))
 	if err != nil {
 		return nil, err
@@ -226,11 +242,15 @@ func (s *UserTestService) Submit(ctx context.Context, in iqbenchmark.UserTestSub
 	}
 
 	// 7) 落记录（此刻起才计入配额）。
+	//
+	// GroupID 写**解析后**的值（可能来自 Key 绑定），不是请求里的原值：
+	// 否则记录与实际执行的分组会不一致，日后排查「这条为什么失败」时
+	// 会指向一个根本没被用到的分组。
 	record, err := s.Store.CreateUserTest(ctx, iqbenchmark.UserTestCreateInput{
 		UserID:        in.UserID,
 		APIKeyID:      in.APIKeyID,
 		CaseID:        in.CaseID,
-		GroupID:       in.GroupID,
+		GroupID:       groupID,
 		Model:         in.Model,
 		EstimatedCost: in.EstimatedCost,
 		DedupeKey:     dedupeKey,
@@ -251,7 +271,7 @@ func (s *UserTestService) Submit(ctx context.Context, in iqbenchmark.UserTestSub
 			Source:            iqbenchmark.SourceUserTest,
 		},
 		Case:    detected,
-		GroupID: in.GroupID,
+		GroupID: groupID,
 		Model:   in.Model,
 	}
 
@@ -289,6 +309,60 @@ func releaseSlot(release func()) {
 	}
 	defer func() { _ = recover() }()
 	release()
+}
+
+// MyTargets 返回该用户可自测的分组与模型。
+//
+// 存在的理由：自测需要「选分组 → 选模型」的候选集合，而管理侧的
+// /admin/iq-benchmark/targets 需要管理员身份。让普通用户去猜模型名
+// 只会得到 MODEL_NOT_AVAILABLE，用户无法自行纠正 —— 所以必须有一个
+// 用户侧接口。这里复用 TargetsService，不另写一套解析逻辑。
+//
+// 传入了 apiKeyID 时，**该 Key 绑定的分组优先**（与 Submit 的判定一致）：
+// 否则前端会展示一个提交时会被忽略的分组，用户改了半天却没生效。
+//
+// 只返回用户自己 Key 能用的分组，不返回全部分组：全量分组列表会泄露
+// 站点的分组拓扑（管理员的分组命名往往能看出上游渠道）。
+func (s *UserTestService) MyTargets(ctx context.Context, userID, apiKeyID int64) (*Targets, error) {
+	if userID <= 0 {
+		return nil, iqbenchmark.ErrUserNotActive
+	}
+	if s.Targets == nil {
+		return &Targets{Groups: []TargetGroup{}}, nil
+	}
+
+	all, err := s.Targets.ListTargets(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// 定位这把 Key 的绑定分组（若请求带了 Key 且确实属于该用户）。
+	var boundGroupID int64
+	if apiKeyID > 0 && s.Keys != nil {
+		owned, err := s.Keys.VerifyOwnership(ctx, userID, []int64{apiKeyID})
+		if err != nil {
+			return nil, fmt.Errorf("iqbenchmark: verify key ownership: %w", err)
+		}
+		if len(owned) > 0 {
+			key, err := s.Keys.GetByID(ctx, apiKeyID)
+			if err == nil && key != nil && key.GroupID != nil && *key.GroupID > 0 {
+				boundGroupID = *key.GroupID
+			}
+		}
+	}
+
+	if boundGroupID > 0 {
+		// Key 绑了分组：只返回那一个分组（Submit 会强制用它）。
+		filtered := make([]TargetGroup, 0, 1)
+		for _, g := range all.Groups {
+			if g.ID == boundGroupID {
+				filtered = append(filtered, g)
+				break
+			}
+		}
+		return &Targets{Groups: filtered, Truncated: false}, nil
+	}
+	return all, nil
 }
 
 // runSync 同步执行（仅单测与关闭异步时使用）。
@@ -420,8 +494,13 @@ func (s *UserTestService) Get(ctx context.Context, userID, id int64) (*iqbenchma
 //
 // 用 SHA-256 而不是明文拼接：避免把 user_id/case_id 以可读形式
 // 散落到索引与日志里（键会出现在慢查询日志中）。
-func userTestDedupeKey(userID, caseID int64, model string) string {
-	sum := sha256.Sum256([]byte(fmt.Sprintf("%d:%d:%s", userID, caseID, model)))
+//
+// 包含 groupID：同一道题在**不同分组**里是两个不同的测试目标
+// （同名模型在不同分组可能路由到不同上游账号）。漏掉分组会让用户
+// 10 分钟内无法测第二个分组，而错误提示是「刚刚已提交过」——
+// 用户会以为是系统卡了。
+func userTestDedupeKey(userID, caseID, groupID int64, model string) string {
+	sum := sha256.Sum256([]byte(fmt.Sprintf("%d:%d:%d:%s", userID, caseID, groupID, model)))
 	return hex.EncodeToString(sum[:])
 }
 

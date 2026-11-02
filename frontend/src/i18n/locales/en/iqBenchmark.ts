@@ -135,6 +135,73 @@ export default {
       retry: 'Retry',
     },
 
+    /** Artifact source badge. */
+    source: {
+      scheduled: 'Scheduled',
+      user_test: 'User self-test',
+      /** Filter dropdown labels. */
+      label: 'Source',
+      all: 'All sources',
+    },
+
+    /** User self-test (run one detection with your own API key). */
+    userTest: {
+      title: 'Test it yourself',
+      subtitle:
+        'Run the same prompts with your own API key. The result joins the gallery and is tagged as a user self-test.',
+      action: 'Self-test with my key',
+      submitting: 'Submitting…',
+      submitted: 'Submitted — running in the background',
+      dialogTitle: 'Choose an API key and a target',
+      apiKey: 'API key',
+      apiKeyPlaceholder: 'Pick an active key',
+      apiKeyEmpty: 'You have no usable API keys yet',
+      apiKeyEmptyHint: 'Create one on the API Keys page first; you control its quota and expiry.',
+      apiKeyDisabled: 'Disabled',
+      case: 'Prompt',
+      casePlaceholder: 'Pick a prompt',
+      model: 'Model',
+      modelPlaceholder: 'Pick a model available in this group',
+      group: 'Group',
+      groupBoundToKey: 'This key is bound to a group, so the group cannot be changed.',
+      submit: 'Start self-test',
+      cancel: 'Cancel',
+      history: 'My self-tests',
+      historyEmpty: 'No self-tests yet',
+      openArtifact: 'View artifact',
+      costNotice: 'A self-test spends your own key quota and is billed to your account.',
+      reviewNotice: 'This artifact appears in the public gallery only after an admin reviews it.',
+      keyFieldNote: 'The key is read once server-side; it is never echoed back or written to logs.',
+      /** Per-status labels. */
+      status: {
+        pending: 'Queued',
+        running: 'Running',
+        success: 'Done',
+        failed: 'Failed',
+        blocked: 'Blocked',
+        rejected: 'Rejected',
+      },
+    },
+
+    /** Self-test error copy (mapped from the backend reason). */
+    userTestError: {
+      USER_TEST_DISABLED: 'Self-test is currently disabled.',
+      CASE_NOT_OPEN_FOR_USER_TEST: 'This prompt is not open for self-test.',
+      USER_NOT_ACTIVE: 'Your account is not active, so a self-test cannot be started.',
+      /** Ownership failures share the "not found" copy to avoid key-existence leakage. */
+      API_KEY_INACTIVE: 'That API key is disabled.',
+      API_KEY_EXPIRED: 'That API key has expired; please pick another.',
+      INSUFFICIENT_QUOTA: 'That API key has insufficient quota for a self-test.',
+      GROUP_IMAGE_DISABLED: 'This group does not allow image generation, so it cannot run image prompts.',
+      TARGET_INVALID: 'The selected group or model is no longer available; please pick again.',
+      DAILY_LIMIT: 'Daily self-test limit reached. Try again tomorrow.',
+      CONCURRENT_LIMIT: 'Another self-test is still running; try again once it finishes.',
+      DUPLICATE: 'The same self-test was just submitted; please try again later.',
+      BUDGET_EXCEEDED: "Today's self-test cost budget has been reached.",
+      NOT_FOUND: 'Record not found.',
+      UNKNOWN: 'Self-test failed, please try again later.',
+    },
+
     admin: {
       title: 'Model IQ Benchmark Gallery Admin',
       /** Admin user-list "hide internal accounts" toggle label. */
@@ -176,6 +243,21 @@ export default {
         save: 'Save settings',
         saved: 'Settings saved',
         readonly: 'Only admins can change settings',
+
+        /** User self-test settings. */
+        userTestEnabled: 'Allow user self-tests',
+        userTestEnabledHint:
+          'Users can run detections with their own API keys; results join the gallery. Turning it off removes the entry point.',
+        userTestDailyLimit: 'Self-tests per user per day',
+        userTestDailyLimitHint: 'Counted per calendar day and reset the next day.',
+        userTestMaxConcurrent: 'Concurrent self-tests per user',
+        userTestMaxConcurrentHint: 'Beyond this, new self-tests are rejected until earlier ones finish.',
+        userTestRequireReview: 'Require review for self-tests',
+        userTestRequireReviewHint:
+          'When on, self-test artifacts enter a pending queue and only appear publicly after approval.',
+        userTestDailyCostBudget: 'Daily cost budget per user',
+        userTestDailyCostBudgetHint:
+          'Zero means unlimited. When non-zero, new self-tests are rejected once it is reached.',
       },
 
       tasks: {
@@ -219,6 +301,9 @@ export default {
         enabled: 'Enabled',
         sortOrder: 'Sort order',
         builtin: 'Built-in',
+        allowUserTest: 'Open for self-test',
+        allowUserTestHint:
+          'Lets users run this prompt with their own key. Off by default: a self-test spends the user\u2019s own quota.',
         delete: 'Delete',
         deleteConfirm: 'Delete this prompt?',
         builtinUndeletable: 'Built-in prompts cannot be deleted',
@@ -236,6 +321,9 @@ export default {
         errorSummary: 'Error summary',
         unsafeFlags: 'Unsafe constructs',
         blobKey: 'Storage key',
+        source: 'Source',
+        moderation: 'Review status',
+        triggeredBy: 'Triggered by',
         cost: 'Cost',
         delete: 'Delete',
         deleteConfirm: 'Delete this artifact?',

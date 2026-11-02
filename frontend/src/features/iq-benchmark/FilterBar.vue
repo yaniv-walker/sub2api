@@ -31,6 +31,13 @@
         <option value="text">{{ t('iqBenchmark.kind.text') }}</option>
       </select>
 
+      <!-- 来源 -->
+      <select v-model="local.source" class="input h-9 min-w-[8rem] py-0 text-xs">
+        <option value="scheduled">{{ t('iqBenchmark.source.scheduled') }}</option>
+        <option value="user_test">{{ t('iqBenchmark.source.user_test') }}</option>
+        <option value="all">{{ t('iqBenchmark.source.all') }}</option>
+      </select>
+
       <!-- 时间范围 -->
       <select v-model.number="local.sinceDays" class="input h-9 min-w-[7rem] py-0 text-xs">
         <option :value="0">{{ t('iqBenchmark.filter.sinceAll') }}</option>

@@ -6,6 +6,7 @@
  */
 import type {
   IQArtifactFilters,
+  IQArtifactSourceFilter,
   IQRenderKind,
   IQArtifactStatus,
 } from './types'
@@ -16,13 +17,20 @@ export interface IQFilterState {
   caseId: number | null
   status: IQArtifactStatus | ''
   kind: IQRenderKind | ''
+  /**
+   * 来源口径。
+   *
+   * 默认 scheduled：作品展的主体是官方定时检测，一次自测刷量
+   * 不该把某模型的排行拉上去。想看全量由用户自己切到「全部来源」。
+   */
+  source: IQArtifactSourceFilter
   /** 时间范围：最近 N 天；0 表示不限。 */
   sinceDays: number
 }
 
-/** 默认筛选（不限模型/题目，默认看最近 7 天）。 */
+/** 默认筛选（不限模型/题目，只看官方定时检测，默认看最近 7 天）。 */
 export function defaultFilterState(): IQFilterState {
-  return { model: '', caseId: null, status: '', kind: '', sinceDays: 7 }
+  return { model: '', caseId: null, status: '', kind: '', source: 'scheduled', sinceDays: 7 }
 }
 
 /** 可选的模型列表（从作品里推导，保持稳定排序）。 */
@@ -49,6 +57,9 @@ export function toArtifactFilters(
   if (state.caseId != null) filters.case_id = state.caseId
   if (state.status) filters.status = state.status
   if (state.kind) filters.kind = state.kind
+  // 总是显式下发 source（包括 'all'）：让「用户主动选了全部」与
+  // 「什么都没选」在后端看起来不同，后者会用服务端默认口径。
+  if (state.source) filters.source = state.source
   if (state.sinceDays > 0) {
     const since = new Date(now.getTime() - state.sinceDays * 24 * 60 * 60 * 1000)
     filters.since = since.toISOString()
@@ -64,13 +75,14 @@ export function isDefaultFilterState(state: IQFilterState): boolean {
     state.caseId === def.caseId &&
     state.status === def.status &&
     state.kind === def.kind &&
+    state.source === def.source &&
     state.sinceDays === def.sinceDays
   )
 }
 
 /** 生成稳定的筛选签名，用于「筛选变化才重新拉取」的比较。 */
 export function filterSignature(state: IQFilterState): string {
-  return [state.model.trim(), state.caseId ?? '', state.status, state.kind, state.sinceDays].join('|')
+  return [state.model.trim(), state.caseId ?? '', state.status, state.kind, state.source, state.sinceDays].join('|')
 }
 
 // ---------------- 对比选择 ----------------

@@ -18,6 +18,31 @@ export type IQRenderKind = 'image_url' | 'svg' | 'markdown' | 'text'
 /** 作品状态。blocked 表示被安全扫描拦截。 */
 export type IQArtifactStatus = 'success' | 'failed' | 'timeout' | 'blocked'
 
+/**
+ * 作品来源。
+ *
+ * - scheduled：管理员配置的定时检测（官方口径，排行榜默认只统计这一部分）；
+ * - user_test：用户用自己的本站 Key 自测（公开可查，但打「用户自测」角标）。
+ */
+export type IQArtifactSource = 'scheduled' | 'user_test'
+
+/**
+ * 来源筛选口径。
+ *
+ * 'all' 是**查询专用**值（表示不加过滤），不会作为落库状态出现。
+ * 公开接口的默认口径是 scheduled：一次自测刷量不应拉偏模型排行。
+ */
+export type IQArtifactSourceFilter = IQArtifactSource | 'all'
+
+/** 自测记录状态。 */
+export type IQUserTestStatus =
+  | 'pending'
+  | 'running'
+  | 'success'
+  | 'failed'
+  | 'blocked'
+  | 'rejected'
+
 /** 任务状态。非 idle/running 均为熔断态。 */
 export type IQTaskStatus =
   | 'idle'
@@ -79,6 +104,8 @@ export interface IQPublicCase {
   kind: IQCaseKind
   expect_kind: IQExpectKind
   prompt: string
+  /** 是否开放自测（自测对话框据此过滤候选）。 */
+  allow_user_test: boolean
 }
 
 /** 公开侧作品。 */
@@ -103,6 +130,13 @@ export interface IQPublicArtifact {
   duration_ms: number
   /** 是否被安全扫描拦截（blocked）。 */
   is_unsafe: boolean
+  /**
+   * 产出属主：定时检测（scheduled）或用户自测（user_test）。
+   *
+   * 用于渲染「用户自测」角标 —— 用户有权知道这条是官方定期检测的结果，
+   * 还是另一个用户自己花钱测的。后端只下发 source，不下发触发者身份。
+   */
+  source: IQArtifactSource
   created_at: string
   /** 以下三项仅在管理员显式开启时才下发。 */
   cost?: number
@@ -137,6 +171,7 @@ export interface IQAdminCase extends IQPublicCase {
   llm_judge_enabled: boolean
   builtin: boolean
   enabled: boolean
+  /** allow_user_test 已由 IQPublicCase 提供，此处不重复声明。 */
   sort_order: number
   created_at: string
   updated_at: string
@@ -214,6 +249,12 @@ export interface IQAdminArtifact {
   scored_by?: number
   scored_at?: string
   blob_key: string
+  /** 产出属主：管理侧看全量，需要能一眼区分定时检测与用户自测。 */
+  source: IQArtifactSource
+  /** 自测产出的触发者（仅管理侧下发；公开侧绝不下发）。 */
+  triggered_by_user_id?: number | null
+  /** 审核状态（仅管理侧下发）。 */
+  moderation_status?: 'approved' | 'pending' | 'rejected'
   created_at: string
 }
 
@@ -245,6 +286,16 @@ export interface IQBenchmarkSettings {
   max_artifacts: number
   cleanup_interval_minutes: number
   rate_limit: IQGalleryRateLimitSettings
+  /** 自测总开关（关闭时前端不显示自测入口，后端路由也不注册）。 */
+  user_test_enabled: boolean
+  /** 每用户每日自测次数上限。 */
+  user_test_daily_limit: number
+  /** 每用户同时在跑的自测数上限。 */
+  user_test_max_concurrent: number
+  /** 自测产出是否需要人工审核后才公开。 */
+  user_test_require_review: boolean
+  /** 每用户每日自测成本上限；0 = 不限制。 */
+  user_test_daily_cost_budget: number
 }
 
 /** 分页信封。 */
@@ -261,10 +312,50 @@ export interface IQArtifactFilters {
   case_id?: number
   status?: IQArtifactStatus | ''
   kind?: IQRenderKind | ''
+  /**
+   * 来源口径。
+   *
+   * 公开侧：省略 = scheduled（只看官方定时检测），'all' = 全量。
+   * 管理侧：省略 = all（管理要看全量），便于排查自测产出。
+   */
+  source?: IQArtifactSourceFilter | ''
   since?: string
   until?: string
   page?: number
   page_size?: number
+}
+
+/** 自测提交入参（用哪个 Key 测哪一题的哪个模型）。 */
+export interface IQUserTestInput {
+  api_key_id: number
+  case_id: number
+  group_id: number
+  model: string
+}
+
+/** 自测记录（公开 DTO，不含预估成本与去重键）。 */
+export interface IQUserTest {
+  id: number
+  case_id: number
+  group_id: number
+  model: string
+  status: IQUserTestStatus
+  error_code?: string
+  /** 成功时指向作品展里的那条产出。 */
+  artifact_id?: number | null
+  created_at: string
+  updated_at: string
+}
+
+/** 用户自己的 API Key（自测下拉用，只取必要字段）。 */
+export interface IQUserAPIKey {
+  id: number
+  name: string
+  /** 后端只下发脱敏后的前缀（如 sk-ab...xyz）。 */
+  key_prefix?: string
+  status: string
+  /** 该 Key 所属分组（自测时用于限定可选模型）。 */
+  group_id?: number
 }
 
 /** 创建/更新题目入参。 */
@@ -277,6 +368,8 @@ export interface IQCaseInput {
   expect_kind: IQExpectKind
   scoring?: string
   enabled?: boolean
+  /** 是否开放给用户自测。 */
+  allow_user_test?: boolean
   sort_order?: number
 }
 

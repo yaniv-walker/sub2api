@@ -23,6 +23,9 @@ import type {
   IQPublicOverview,
   IQTargets,
   IQTaskInput,
+  IQUserAPIKey,
+  IQUserTest,
+  IQUserTestInput,
 } from './types'
 
 /** 后端统一响应信封。 */
@@ -43,6 +46,7 @@ interface PaginatedEnvelope<T> {
 }
 
 const USER_BASE = '/iq-gallery'
+const USER_TESTS_BASE = '/iq-gallery/user-tests'
 const ADMIN_BASE = '/admin/iq-benchmark'
 
 /** 把筛选条件转成 query 参数，跳过空值。 */
@@ -52,6 +56,9 @@ function toParams(filters: IQArtifactFilters): Record<string, string | number> {
   if (filters.case_id) params.case_id = filters.case_id
   if (filters.status) params.status = filters.status
   if (filters.kind) params.kind = filters.kind
+  // source 是唯一「空字符串也有含义」的字段（省略 = 各侧自己的默认口径），
+  // 因此只在非空时下发，让后端的默认值生效。
+  if (filters.source) params.source = filters.source
   if (filters.since) params.since = filters.since
   if (filters.until) params.until = filters.until
   if (filters.page) params.page = filters.page
@@ -101,6 +108,64 @@ export async function fetchPublicCases(): Promise<IQPublicCase[]> {
     params: { page_size: 50 },
   })
   return data.data?.items ?? []
+}
+
+// ---------------- 用户自测 ----------------
+
+/**
+ * 自测：提交一次（用当前用户自己的 Key）。
+ *
+ * 后端会做开关/题目/Key 归属/配额/去重等全套预检，任一不通过都会
+ * 返回明确的 reason（见 handleUserTestError）。成功返回 _pending_ 记录，
+ * 前端轮询或直接用返回的 id 查结果。
+ */
+export async function submitUserTest(input: IQUserTestInput): Promise<IQUserTest> {
+  const { data } = await apiClient.post<Envelope<IQUserTest>>(`${USER_TESTS_BASE}`, input)
+  if (!data.data) {
+    throw new Error('submitUserTest: empty response')
+  }
+  return data.data
+}
+
+/** 自测：我的历史。 */
+export async function fetchUserTests(page = 1, pageSize = 20): Promise<IQPage<IQUserTest>> {
+  const { data } = await apiClient.get<Envelope<PaginatedEnvelope<IQUserTest>>>(`${USER_TESTS_BASE}`, {
+    params: { page, page_size: pageSize },
+  })
+  return normalizePage(data.data)
+}
+
+/** 自测：查单条（用于轮询 pending/running 的终态）。 */
+export async function fetchUserTest(id: number): Promise<IQUserTest | null> {
+  const { data } = await apiClient.get<Envelope<IQUserTest>>(`${USER_TESTS_BASE}/${id}`)
+  return data.data ?? null
+}
+
+/**
+ * 自测：可选的 API Key 列表。
+ *
+ * 读的是上游既有的 /keys 接口（本模块不新增 Key 管理能力），
+ * 只取自测下拉需要的字段。
+ */
+export async function fetchMyAPIKeys(): Promise<IQUserAPIKey[]> {
+  const { data } = await apiClient.get<Envelope<{ items?: IQUserAPIKey[] } | IQUserAPIKey[]>>('/keys')
+  const payload = data.data
+  if (!payload) return []
+  if (Array.isArray(payload)) return payload
+  return payload.items ?? []
+}
+
+/**
+ * 自测：我可以选的分组与模型。
+ *
+ * 传 apiKeyID 时后端会按该 Key 绑定的分组收窄候选 —— 与提交时的判定一致，
+ * 避免前端展示一个提交时会被忽略的分组。
+ */
+export async function fetchMyTargets(apiKeyID?: number): Promise<IQTargets> {
+  const params: Record<string, number> = {}
+  if (apiKeyID && apiKeyID > 0) params.api_key_id = apiKeyID
+  const { data } = await apiClient.get<Envelope<IQTargets>>(`${USER_TESTS_BASE}/targets`, { params })
+  return data.data ?? { groups: [], truncated: false }
 }
 
 // ---------------- 管理侧 ----------------
