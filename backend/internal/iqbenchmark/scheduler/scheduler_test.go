@@ -5,12 +5,14 @@ package scheduler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark"
 	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -369,6 +371,93 @@ func TestCleanupSkippedWhenNoCleaner(t *testing.T) {
 	s := New(Config{Settings: &fakeSettings{}})
 	// 不应 panic。
 	s.runCleanupIfDue(context.Background(), enabledSettings())
+}
+
+// ---- 目标失效熔断 ----
+
+// fakeTargetValidator 是 TargetValidator 的替身。
+type fakeTargetValidator struct {
+	err   error
+	calls int
+}
+
+func (f *fakeTargetValidator) CheckTaskTarget(_ context.Context, _ *iqbenchmark.Task) error {
+	f.calls++
+	return f.err
+}
+
+// TestExecuteTaskTripsInvalidTarget 断言目标失效时：熔断、释放租约、**不发起模型调用**。
+//
+// 「不发起调用」是关键：目标失效属于配置问题，占用一次真实模型调用
+// 既浪费配额又污染 usage 统计。
+func TestExecuteTaskTripsInvalidTarget(t *testing.T) {
+	store := &fakeTaskStore{}
+	guard := &guardStore{}
+	tv := &fakeTargetValidator{
+		err: fmt.Errorf("%w (group_id=3)", iqbenchmark.ErrTargetModelUnavailable),
+	}
+	// Runner 依赖全部为 nil：如果校验没有拦住，RunTask 会走到 nil 解引用或错误分支，
+	// 从而在 store.finished 或 guard.statusCalls 上留下痕迹。
+	s := New(Config{
+		Store:    store,
+		Settings: &fakeSettings{settings: enabledSettings()},
+		Runner:   service.NewRunService(nil, nil, nil, nil, nil, nil),
+		Guard:    service.NewGuard(guard, nil),
+		Targets:  tv,
+	})
+	s.executeTask(ClaimedTask{Task: iqbenchmark.Task{ID: 11, GroupID: 3, Model: "m", CaseIDs: []int64{1}}}, nil)
+
+	require.Equal(t, 1, tv.calls, "必须调用目标校验")
+
+	guard.mu.Lock()
+	defer guard.mu.Unlock()
+	require.Len(t, guard.statusCalls, 1, "目标失效必须写一次任务状态")
+	assert.Equal(t, iqbenchmark.TaskStatusInvalidTarget, guard.statusCalls[0].Status)
+	assert.Nil(t, guard.statusCalls[0].Next, "人工恢复前不得写 next_run_at")
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	require.Empty(t, store.finished, "不得把任务标记为跑完")
+}
+
+// TestExecuteTaskProceedsOnTransientTargetError 断言查询类错误（非目标失效哨兵）
+// 不会被误判成配置失效 —— 否则一次数据库抖动就会把任务永久挂起。
+func TestExecuteTaskProceedsOnTransientTargetError(t *testing.T) {
+	store := &fakeTaskStore{}
+	guard := &guardStore{}
+	tv := &fakeTargetValidator{err: errors.New("dial tcp: connection refused")}
+	s := New(Config{
+		Store:    store,
+		Settings: &fakeSettings{settings: enabledSettings()},
+		Runner:   service.NewRunService(nil, nil, nil, nil, nil, nil),
+		Guard:    service.NewGuard(guard, nil),
+		Targets:  tv,
+	})
+	s.executeTask(ClaimedTask{Task: iqbenchmark.Task{ID: 12, GroupID: 3, Model: "m", CaseIDs: []int64{1}}}, nil)
+
+	require.Equal(t, 1, tv.calls)
+	guard.mu.Lock()
+	defer guard.mu.Unlock()
+	for _, call := range guard.statusCalls {
+		assert.NotEqual(t, iqbenchmark.TaskStatusInvalidTarget, call.Status,
+			"暂时性故障不得触发 invalid_target 熔断")
+	}
+}
+
+// TestExecuteTaskSkipsTargetCheckWhenValidatorAbsent 断言未注入校验器时不 panic 且照常执行。
+func TestExecuteTaskSkipsTargetCheckWhenValidatorAbsent(t *testing.T) {
+	store := &fakeTaskStore{}
+	s := New(Config{
+		Store:    store,
+		Settings: &fakeSettings{settings: enabledSettings()},
+		Runner:   service.NewRunService(nil, nil, nil, nil, nil, nil),
+		Guard:    service.NewGuard(&guardStore{}, nil),
+	})
+	s.executeTask(ClaimedTask{Task: iqbenchmark.Task{ID: 13, CaseIDs: []int64{1}, IntervalMinute: 30}}, nil)
+
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	require.Contains(t, store.advanced, int64(13), "无校验器时应照常推进并执行")
 }
 
 // ---- 辅助 ----

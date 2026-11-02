@@ -21,14 +21,29 @@ type GalleryService struct {
 	Store  Store
 	Logger *slog.Logger
 	Now    func() time.Time
+	// Targets 解析「分组 + 模型」候选集合并做目标二次校验。
+	// 允许为 nil（既有单测可不构造），为 nil 时跳过目标校验。
+	Targets *TargetsService
 }
 
 // NewGalleryService 构造作品展服务。
+//
+// 不含目标解析器：用 WithTargets 单独注入，避免所有既有测试调用点都要改签名。
 func NewGalleryService(store Store, logger *slog.Logger) *GalleryService {
 	if logger == nil {
 		logger = slog.Default()
 	}
 	return &GalleryService{Store: store, Logger: logger, Now: time.Now}
+}
+
+// WithTargets 注入目标解析器（返回自身，便于链式构造）。
+//
+// targets 为 nil 时保持「跳过目标校验」的行为，既有单测因此无需改动。
+func (s *GalleryService) WithTargets(targets *TargetsService) *GalleryService {
+	if s != nil {
+		s.Targets = targets
+	}
+	return s
 }
 
 func (s *GalleryService) now() time.Time {
@@ -134,6 +149,11 @@ func (s *GalleryService) CreateTask(ctx context.Context, in TaskCreateInput) (*i
 	}
 	in.Name = trimSpace(in.Name)
 	in.Model = trimSpace(in.Model)
+	// 目标二次校验：确认 (分组, 模型, 题目能力) 三元组在当前运行态下真的可用。
+	// 前端下拉已经限制了可选范围，这里再校验一次是为了防止绕过前端直接调 API。
+	if err := s.validateTarget(ctx, in.GroupID, in.Model, in.CaseIDs); err != nil {
+		return nil, err
+	}
 	// 启用中的任务在创建时如果没给 next_run_at，立即排一次（不必等一个完整间隔）。
 	if in.Enabled && in.NextRunAt == nil {
 		next := s.now()
@@ -153,7 +173,47 @@ func (s *GalleryService) UpdateTask(ctx context.Context, id int64, in TaskUpdate
 	}
 	in.Name = trimSpace(in.Name)
 	in.Model = trimSpace(in.Model)
+	if err := s.validateTarget(ctx, in.GroupID, in.Model, in.CaseIDs); err != nil {
+		return nil, err
+	}
 	return s.Store.UpdateTask(ctx, id, in)
+}
+
+// validateTarget 校验任务目标（分组 + 模型）在当前运行态下是否可用。
+//
+// 未注入 Targets 解析器时直接放行：这样既有单测与不关心目标的调用方无需构造它，
+// 而生产链路（module.go）总会注入 —— 校验强度不会因为可选注入而静默降级，
+// 因为 targets 为空只可能出现在测试装配里。
+func (s *GalleryService) validateTarget(ctx context.Context, groupID int64, model string, caseIDs []int64) error {
+	if s == nil || s.Targets == nil {
+		return nil
+	}
+	group, err := s.Targets.ActiveGroup(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	kinds, err := s.caseKinds(ctx, caseIDs)
+	if err != nil {
+		return err
+	}
+	return s.Targets.ValidateTarget(ctx, group, model, kinds)
+}
+
+// caseKinds 取出题目类型，用于能力匹配校验。
+// 题目不存在时返回 ErrCaseNotFound（与既有题目校验口径一致）。
+func (s *GalleryService) caseKinds(ctx context.Context, caseIDs []int64) ([]string, error) {
+	kinds := make([]string, 0, len(caseIDs))
+	for _, id := range caseIDs {
+		c, err := s.Store.GetCase(ctx, id)
+		if err != nil {
+			return nil, err
+		}
+		if c == nil {
+			return nil, iqbenchmark.ErrCaseNotFound
+		}
+		kinds = append(kinds, c.Kind)
+	}
+	return kinds, nil
 }
 
 // ListTasks 列出全部任务。
@@ -184,16 +244,16 @@ func (s *GalleryService) SetTaskEnabled(ctx context.Context, id int64, enabled b
 		return nil, err
 	}
 	if enabled {
-		switch task.Status {
-		case iqbenchmark.TaskStatusQuotaExhausted,
-			iqbenchmark.TaskStatusBudgetExhausted,
-			iqbenchmark.TaskStatusAccountDisabled,
-			iqbenchmark.TaskStatusPausedByAdmin:
+		switch {
+		// 这些状态都是「停下来等人工」。重新启用即视为人工恢复，回到 idle 重新排队。
+		// invalid_target 也归入此类：重新启用后若目标仍然失效，调度器会再次熔断，
+		// 不会造成空转（每次只尝试一次就停）。
+		case iqbenchmark.TaskStatusNeedsManualRecovery(task.Status):
 			next := s.now()
 			if err := s.Store.SetTaskStatus(ctx, id, iqbenchmark.TaskStatusIdle, "", &next); err != nil {
 				return nil, err
 			}
-		case iqbenchmark.TaskStatusIdle:
+		case task.Status == iqbenchmark.TaskStatusIdle:
 			if task.NextRunAt == nil {
 				next := s.now()
 				if err := s.Store.SetTaskNextRunAt(ctx, id, next); err != nil {

@@ -24,6 +24,7 @@ import {
   fetchPublicCases,
   fetchRuns,
   fetchSettings,
+  fetchTargets,
   runTaskNow,
   saveSettings,
   scoreArtifact,
@@ -247,5 +248,58 @@ describe('IQ benchmark API — defensive normalization', () => {
     client.get.mockResolvedValue(envelope({ items: [], total: 0, page: 1, page_size: 20, pages: 0 }))
     await fetchArtifacts({ page: 1, page_size: 20, model: '', status: '', kind: '' })
     expect(client.get).toHaveBeenCalledWith('/iq-gallery/artifacts', { params: { page: 1, page_size: 20 } })
+  })
+})
+
+describe('IQ benchmark targets (级联下拉)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('requests the admin targets endpoint', async () => {
+    client.get.mockResolvedValue(envelope({ groups: [], truncated: false }))
+    await fetchTargets()
+    expect(client.get).toHaveBeenCalledWith('/admin/iq-benchmark/targets', { params: undefined })
+  })
+
+  it('passes refresh=1 only when a refresh is requested', async () => {
+    client.get.mockResolvedValue(envelope({ groups: [], truncated: false }))
+    await fetchTargets(true)
+    expect(client.get).toHaveBeenCalledWith('/admin/iq-benchmark/targets', { params: { refresh: 1 } })
+  })
+
+  it('returns a safe empty shape when the backend omits data', async () => {
+    // 后端在功能关闭时可能返回 503，client 层已抛错；这里覆盖 data 为空的情形。
+    client.get.mockResolvedValue({ data: { code: 0, message: 'ok' } })
+    await expect(fetchTargets()).resolves.toEqual({ groups: [], truncated: false })
+  })
+
+  it('preserves groups, models and reason codes verbatim', async () => {
+    const payload = {
+      groups: [
+        {
+          id: 7,
+          name: '主力',
+          platform: 'gemini',
+          allow_image_generation: true,
+          capabilities: ['text', 'image'],
+          models: [{ id: 'gemini-2.5-pro', capabilities: ['text', 'image'] }],
+          model_source: 'runtime',
+        },
+        {
+          id: 8,
+          name: '空',
+          platform: 'openai',
+          allow_image_generation: false,
+          capabilities: [],
+          models: [],
+          model_source: 'none',
+          unavailable_reason: 'NO_SCHEDULABLE_ACCOUNT',
+        },
+      ],
+      truncated: false,
+    }
+    client.get.mockResolvedValue(envelope(payload))
+    await expect(fetchTargets()).resolves.toEqual(payload)
   })
 })

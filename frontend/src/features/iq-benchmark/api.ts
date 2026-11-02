@@ -21,6 +21,7 @@ import type {
   IQPublicArtifact,
   IQPublicCase,
   IQPublicOverview,
+  IQTargets,
   IQTaskInput,
 } from './types'
 
@@ -108,6 +109,19 @@ export async function fetchPublicCases(): Promise<IQPublicCase[]> {
 export async function fetchSettings(): Promise<IQBenchmarkSettings | null> {
   const { data } = await apiClient.get<Envelope<IQBenchmarkSettings>>(`${ADMIN_BASE}/settings`)
   return data.data ?? null
+}
+
+/**
+ * 管理：目标候选（分组 + 模型级联下拉）。
+ *
+ * refresh=true 会让后端失效模型缓存后重取：管理员刚配好账号/model_mapping 时用。
+ * 前端另有 30s 节流（见 TaskForm），避免连点刷爆上游缓存。
+ */
+export async function fetchTargets(refresh = false): Promise<IQTargets> {
+  const { data } = await apiClient.get<Envelope<IQTargets>>(`${ADMIN_BASE}/targets`, {
+    params: refresh ? { refresh: 1 } : undefined,
+  })
+  return data.data ?? { groups: [], truncated: false }
 }
 
 /** 管理：保存配置。 */

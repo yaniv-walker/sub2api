@@ -52,7 +52,27 @@ const (
 	TaskStatusBudgetExhausted = "budget_exhausted"
 	TaskStatusAccountDisabled = "account_disabled"
 	TaskStatusPausedByAdmin   = "paused_by_admin"
+	// TaskStatusInvalidTarget 表示任务的「分组 + 模型」目标已失效
+	// （分组被禁用/删除，或模型已从该分组的可用集合中下线）。
+	//
+	// 与既有状态的区别：它是**配置失效**而非配额/账号问题，恢复必须靠管理员
+	// 改配置（或重新启用任务），因此调度器不会自动重试，而是清空 next_run_at 停下来。
+	TaskStatusInvalidTarget = "invalid_target"
 )
+
+// TaskStatusNeedsManualRecovery 判定某个任务状态是否只能靠管理员手动恢复。
+//
+// 用于 SetTaskEnabled 的「重新启用时清熔断状态」逻辑：这些状态都是「停下来等人工」，
+// 一旦任务被重新启用，就应回到 idle 重新排队。
+func TaskStatusNeedsManualRecovery(status string) bool {
+	switch status {
+	case TaskStatusQuotaExhausted, TaskStatusBudgetExhausted,
+		TaskStatusAccountDisabled, TaskStatusInvalidTarget:
+		return true
+	default:
+		return false
+	}
+}
 
 // 执行触发方式。
 const (
@@ -127,6 +147,13 @@ var (
 	ErrTaskGroupMissing = errors.New("iqbenchmark: task must reference an existing group")
 	// ErrTaskDuplicateEnabled 同「分组 × 模型」已存在启用中的任务。
 	ErrTaskDuplicateEnabled = errors.New("iqbenchmark: an enabled task already exists for this group and model")
+
+	// ErrTargetGroupUnavailable 目标分组不存在或不是 active 状态。
+	ErrTargetGroupUnavailable = errors.New("iqbenchmark: target group is missing or inactive")
+	// ErrTargetModelUnavailable 所选模型不在该分组当前可调用的模型集合内。
+	ErrTargetModelUnavailable = errors.New("iqbenchmark: target model is not available for the selected group")
+	// ErrTargetCapabilityMismatch 所选目标不具备任务题目类型所需的能力（例如含图片题但分组禁止生图）。
+	ErrTargetCapabilityMismatch = errors.New("iqbenchmark: target does not support the capabilities required by the selected cases")
 
 	// ErrRunNotFound 执行记录不存在。
 	ErrRunNotFound = errors.New("iqbenchmark: run not found")

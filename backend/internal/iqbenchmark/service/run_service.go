@@ -98,6 +98,14 @@ func (s *RunService) RunTask(ctx context.Context, in RunTaskInput) (*iqbenchmark
 	if s.Gateway == nil {
 		return nil, iqbenchmark.ErrNoTargetGroup
 	}
+	// Key 明文在这里取出一次，贯穿整轮执行：每轮内 Key 不会变，
+	// 反复从 Agent 读会让「用哪个 Key」的判定散落在多处。
+	apiKey := in.Agent.KeyString()
+	if strings.TrimSpace(apiKey) == "" {
+		// Ready() 只保证 Key 非 nil，不保证 Key.Key 非空；
+		// 这里补一道，避免带着空 Bearer token 去打网关。
+		return nil, iqbenchmark.ErrInternalAgentMissing
+	}
 
 	// 题目：按配置顺序串行执行；已失效的题目跳过（不阻断整轮）。
 	cases, err := s.Store.ListCasesByIDs(ctx, task.CaseIDs)
@@ -156,7 +164,7 @@ func (s *RunService) RunTask(ctx context.Context, in RunTaskInput) (*iqbenchmark
 			continue
 		}
 
-		status, duration, reqID := s.executeCase(ctx, run, task, c)
+		status, duration, reqID := s.executeCase(ctx, apiKey, run, task, c)
 		totalDuration += duration
 		switch status {
 		case iqbenchmark.ArtifactStatusSuccess:
@@ -193,7 +201,9 @@ func (s *RunService) RunTask(ctx context.Context, in RunTaskInput) (*iqbenchmark
 }
 
 // executeCase 执行单个题目并写入产出，返回产出状态 / 耗时 / request_id。
-func (s *RunService) executeCase(ctx context.Context, run *iqbenchmark.Run, task *iqbenchmark.Task, c *iqbenchmark.Case) (string, int64, string) {
+//
+// apiKey 是本次执行使用的明文 Key，一路传到网关调用点，存在栈上而不是结构体字段上。
+func (s *RunService) executeCase(ctx context.Context, apiKey string, run *iqbenchmark.Run, task *iqbenchmark.Task, c *iqbenchmark.Case) (string, int64, string) {
 	snapshot := iqbenchmark.CaseSnapshot(c)
 	started := s.now()
 
@@ -208,19 +218,20 @@ func (s *RunService) executeCase(ctx context.Context, run *iqbenchmark.Run, task
 	}
 
 	if iqbenchmark.IsImageCase(c.Kind) {
-		return s.executeImageCase(ctx, base, task, c, started)
+		return s.executeImageCase(ctx, apiKey, base, task, c, started)
 	}
-	return s.executeTextCase(ctx, base, task, c, started)
+	return s.executeTextCase(ctx, apiKey, base, task, c, started)
 }
 
 // executeTextCase 执行文本 / 代码类题目。
-func (s *RunService) executeTextCase(ctx context.Context, base ArtifactCreateInput, task *iqbenchmark.Task, c *iqbenchmark.Case, started time.Time) (string, int64, string) {
+func (s *RunService) executeTextCase(ctx context.Context, apiKey string, base ArtifactCreateInput, task *iqbenchmark.Task, c *iqbenchmark.Case, started time.Time) (string, int64, string) {
 	settings := s.settings(ctx)
 	resp, err := s.Gateway.Chat(ctx, ChatRequest{
 		Model:        task.Model,
 		Prompt:       c.Prompt,
 		SystemPrompt: c.SystemPrompt,
 		Params:       c.Params,
+		APIKey:       apiKey,
 	})
 	duration := s.now().Sub(started).Milliseconds()
 	base.DurationMS = int(duration)
@@ -254,11 +265,12 @@ func (s *RunService) executeTextCase(ctx context.Context, base ArtifactCreateInp
 //
 // 图片字节由调用方注入的下载/上传链路处理（见 image_uploader 适配）；
 // 这里只把网关返回的 URL / b64 记录为产出引用。
-func (s *RunService) executeImageCase(ctx context.Context, base ArtifactCreateInput, task *iqbenchmark.Task, c *iqbenchmark.Case, started time.Time) (string, int64, string) {
+func (s *RunService) executeImageCase(ctx context.Context, apiKey string, base ArtifactCreateInput, task *iqbenchmark.Task, c *iqbenchmark.Case, started time.Time) (string, int64, string) {
 	resp, err := s.Gateway.Image(ctx, ImageRequest{
 		Model:  task.Model,
 		Prompt: c.Prompt,
 		Params: c.Params,
+		APIKey: apiKey,
 	})
 	duration := s.now().Sub(started).Milliseconds()
 	base.DurationMS = int(duration)

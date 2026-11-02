@@ -200,6 +200,11 @@ export default {
         jitterHint: 'Each run starts 0 - {n} seconds earlier than the interval.',
         enableToRecover: 'Enabling clears the tripped state',
         duplicate: 'A task for this group and model is already enabled',
+        selectModel: 'Select a model',
+        noTargets: 'No groups available',
+        orphanGroupName: 'Group #{id} (inactive or deleted)',
+        orphanModelHint:
+          'Model {model} is no longer in this group\'s available set. Saving will be rejected; pick an available model, or restore it in the group configuration first.',
       },
 
       cases: {
@@ -247,6 +252,19 @@ export default {
         counts: 'Success/Failed/Timeout/Blocked',
         cost: 'Cost',
         status: 'Status',
+      },
+
+      /** Reasons a target group has no selectable models (or is at risk). */
+      targets: {
+        reason: {
+          NO_SCHEDULABLE_ACCOUNT:
+            'This group currently has no schedulable account, so runs will keep producing nothing.',
+          IMAGE_GENERATION_DISABLED: 'Image generation is disabled for this group, so it cannot run image cases.',
+          ALLOWLIST_FILTERED_EMPTY:
+            'This group\'s model allowlist filters everything out. Ask an admin to extend the allowlist.',
+          NO_MODEL_MAPPING:
+            'Accounts in this group have no model mapping configured, and the platform has no default set to fall back to.',
+        },
       },
     },
   },

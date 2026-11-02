@@ -346,8 +346,9 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	batchImageCleanupService := service.ProvideBatchImageCleanupService(batchImageRepository, accountRepository, configConfig)
 	batchImageHandler := handler.ProvideBatchImageHandler(batchImagePublicService, batchImageDownloadService, batchImageCleanupService, openAIGatewayHandler)
 	repositoryRepository := repository2.New(client, db)
+	targetsService := module.ProvideTargetsService(groupRepository, gatewayService)
 	logger := provideInternalPluginLogger()
-	galleryService := service2.NewGalleryService(repositoryRepository, logger)
+	galleryService := module.ProvideGalleryService(repositoryRepository, targetsService, logger)
 	settingsStore, err := module.ProvideSettingsStore(settingRepository)
 	if err != nil {
 		return nil, err
@@ -362,7 +363,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	guard := service2.NewGuard(repositoryRepository, logger)
 	runService := service2.NewRunService(repositoryRepository, gatewayClient, artifactService, guard, settingsProvider, logger)
 	activeDirectory := iqbenchmark.NewActiveDirectory()
-	adminHandler := handler2.NewAdminHandler(galleryService, runService, artifactService, settingsProvider, activeDirectory)
+	adminHandler := module.ProvideAdminHandler(galleryService, runService, artifactService, settingsProvider, activeDirectory, targetsService)
 	handlerUserHandler := handler2.NewUserHandler(galleryService, settingsProvider)
 	redisCounter := ratelimit.NewRedisCounter(redisClient)
 	galleryRateLimiter := module.ProvideGalleryRateLimiter(redisCounter, settingsProvider, logger)
@@ -398,7 +399,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	}
 	engine := server.ProvideRouter(configConfig, handlerHandlers, jwtAuthMiddleware, optionalJWTAuthMiddleware, adminAuthMiddleware, apiKeyAuthMiddleware, auditLogMiddleware, stepUpAuthMiddleware, apiKeyService, subscriptionService, opsService, settingService, compositeRouteResolver, redisClient, manager)
 	httpServer := server.ProvideHTTPServer(configConfig, engine)
-	scheduler := module.ProvideScheduler(repositoryRepository, runService, guard, settingsProvider, activeDirectory, artifactService, logger)
+	scheduler := module.ProvideScheduler(repositoryRepository, runService, guard, settingsProvider, activeDirectory, artifactService, targetsService, logger)
 	agentUserStore := iqbenchmark.NewAgentUserStore(userRepository)
 	agentKeyStore := iqbenchmark.NewAgentKeyStore(apiKeyRepository)
 	lockAcquirer, err := iqbenchmark.NewAgentLocker(repositoryRepository)

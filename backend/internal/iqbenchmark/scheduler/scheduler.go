@@ -59,6 +59,18 @@ type SettingsProvider interface {
 	Get(ctx context.Context) iqbenchmark.Settings
 }
 
+// TargetValidator 在发起请求前校验任务目标（分组 + 模型）是否仍然有效。
+//
+// 用布尔返回值而不是暴露 service.TargetsService：既让 scheduler 不必依赖
+// 上游 service 包的类型，也把「具体怎么判定」留在 service 层单点实现。
+//
+// nil 表示未注入校验器（既有单测可不构造），此时跳过检查。
+type TargetValidator interface {
+	// CheckTaskTarget 返回 nil 表示目标有效；
+	// 返回非 nil 表示目标已失效，err 的内容用于写 status_reason。
+	CheckTaskTarget(ctx context.Context, task *iqbenchmark.Task) error
+}
+
 // Scheduler 是检测任务的调度器。
 type Scheduler struct {
 	store    TaskStore
@@ -68,6 +80,8 @@ type Scheduler struct {
 	agent    AgentProvider
 	cleaner  Cleaner
 	logger   *slog.Logger
+	// targets 可选：未注入时跳过目标有效性前置检查。
+	targets TargetValidator
 
 	workerID string
 
@@ -97,6 +111,9 @@ type Config struct {
 	Settings SettingsProvider
 	Agent    AgentProvider
 	Cleaner  Cleaner
+	// Targets 可选：注入后每个任务在发起请求前校验目标是否仍有效。
+	// 为 nil 时跳过校验（既有单测无需构造）。
+	Targets TargetValidator
 	// WorkerID 是租约持有者标识；为空时自动生成（<hostname>-<rand>）。
 	WorkerID string
 	Logger   *slog.Logger
@@ -119,6 +136,7 @@ func New(cfg Config) *Scheduler {
 		settings: cfg.Settings,
 		agent:    cfg.Agent,
 		cleaner:  cfg.Cleaner,
+		targets:  cfg.Targets,
 		logger:   logger,
 		workerID: workerID,
 	}
@@ -324,6 +342,39 @@ func (s *Scheduler) tick() {
 	}
 }
 
+// checkTarget 前置校验任务目标；返回 (原因, 是否失效)。
+//
+// 未注入校验器时视为有效（既有单测无需构造 targets）。
+// 校验器自身报错（例如数据库抖动）时**不**判为失效：那属于暂时性故障，
+// 贸然把任务永久挂起会制造误熔断。此时记 WARN 放行，让本轮真实执行去暴露问题。
+func (s *Scheduler) checkTarget(ctx context.Context, task *iqbenchmark.Task) (string, bool) {
+	if s.targets == nil || task == nil {
+		return "", false
+	}
+	if err := s.targets.CheckTaskTarget(ctx, task); err != nil {
+		if isTransientTargetErr(err) {
+			s.logger.Warn("iqbenchmark: target check failed transiently, proceeding",
+				"task_id", task.ID, "error", err)
+			return "", false
+		}
+		return err.Error(), true
+	}
+	return "", false
+}
+
+// isTransientTargetErr 判定目标校验错误是否属于「暂时性基础设施故障」。
+//
+// 目标是**配置失效**才应该熔断；查询失败（DB/网络）不该被当成配置错误。
+// 这里用哨兵区分：只有明确的目标失效哨兵才熔断。
+func isTransientTargetErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	return !errors.Is(err, iqbenchmark.ErrTargetGroupUnavailable) &&
+		!errors.Is(err, iqbenchmark.ErrTargetModelUnavailable) &&
+		!errors.Is(err, iqbenchmark.ErrTargetCapabilityMismatch)
+}
+
 // executeTask 在租约保护下执行一个任务。
 func (s *Scheduler) executeTask(claimed ClaimedTask, agent *iqbenchmark.InternalAgent) {
 	task := claimed.Task
@@ -346,6 +397,24 @@ func (s *Scheduler) executeTask(claimed ClaimedTask, agent *iqbenchmark.Internal
 	defer cancelRenew()
 	leaseLost := make(chan struct{})
 	go s.renewLoop(renewCtx, task.ID, leaseLost)
+
+	// 目标有效性前置检查：在**真正发起请求前**确认分组仍可用、模型仍在可用集合内。
+	// 放在这里而不是领取前，是因为领取已经推进了 next_run_at，此处中止只需把状态
+	// 标成 invalid_target 并清空 next_run_at，即可停止空转。
+	//
+	// 注意必须在续期循环之后、RunTask 之前：目标是配置层面的问题，
+	// 没必要占用一次模型调用（那会消耗真实配额）。
+	if reason, invalid := s.checkTarget(ctx, &task); invalid {
+		if err := s.guard.TripInvalidTarget(ctx, &task, reason); err != nil {
+			s.logger.Error("iqbenchmark: trip invalid_target failed",
+				"task_id", task.ID, "reason", reason, "error", err)
+		}
+		if err := s.store.ReleaseLease(ctx, task.ID, s.workerID); err != nil {
+			s.logger.Warn("iqbenchmark: release lease after invalid_target failed",
+				"task_id", task.ID, "error", err)
+		}
+		return
+	}
 
 	run, err := s.runner.RunTask(ctx, service.RunTaskInput{
 		Task:    &task,

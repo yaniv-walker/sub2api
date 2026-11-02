@@ -65,6 +65,9 @@ func RegisterIQBenchmarkRoutes(
 		}
 
 		admin.GET("/overview", handlers.Admin.GetOverview)
+		// 目标候选（分组 + 模型级联下拉）。放在 cases/tasks 之后、overview 之前均可，
+		// 这里紧随 overview，便于阅读「只读查询类」接口。
+		admin.GET("/targets", handlers.Admin.ListTargets)
 	}
 
 	// ---- 用户侧（只读，且仅在启用时注册）----

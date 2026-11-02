@@ -185,6 +185,27 @@ func (g *Guard) CheckBudget(ctx context.Context, apiKeyID int64, budget float64,
 	return spent >= budget, spent, nil
 }
 
+// TripInvalidTarget 把**单个**任务标为 invalid_target 并清空 next_run_at。
+//
+// 与 TripAccountDisabled 的区别是作用域：账号禁用是全局性的（所有任务都跑不了），
+// 而目标失效是**单任务**的局部问题 —— 某个分组被禁用或某个模型下线，
+// 只应停掉引用它的那条任务，其它任务照常运行。
+//
+// 因此这里刻意不使用「遍历全部任务」的形式：那会把一个分组的配置错误
+// 放大成全局停摆，属于过度反应。
+//
+// 为什么清空 next_run_at 而不是留一个未来时间：
+// 与 quota_exhausted 的处理一致 —— 停在原地等人工，不做无意义的空转重试。
+// 模型下线/分组禁用都需要管理员改配置，自动重试只会刷日志。
+func (g *Guard) TripInvalidTarget(ctx context.Context, task *iqbenchmark.Task, reason string) error {
+	if task == nil {
+		return iqbenchmark.ErrTaskNotFound
+	}
+	g.Logger.Warn("iqbenchmark: task target is no longer valid, pausing task; manual recovery required",
+		"task_id", task.ID, "group_id", task.GroupID, "model", task.Model, "reason", reason)
+	return g.Store.SetTaskStatus(ctx, task.ID, iqbenchmark.TaskStatusInvalidTarget, reason, nil)
+}
+
 // 预算相关的哨兵错误（供上层区分失败原因）。
 var (
 	ErrBudgetExhausted = errors.New("iqbenchmark: daily cost budget exhausted")

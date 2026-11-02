@@ -24,11 +24,12 @@ import (
 //   - 不会绕过任何既有的安全策略（内容审核、模型白名单等）。
 
 // GatewayClient 通过回环地址调用本服务自己的网关。
+//
+// 注意：客户端**不持有任何 Key**。Key 随每次请求传入（见 ChatRequest.APIKey），
+// 这样同一个客户端可以被内部账号和用户自测复用，也不会有并发写共享状态的竞争。
 type GatewayClient struct {
 	// BaseURL 形如 http://127.0.0.1:8080（不含 /v1）。
 	BaseURL string
-	// APIKey 是内部专用 Key 的明文。
-	APIKey string
 	// Timeout 是单次调用超时。
 	Timeout time.Duration
 	// HTTPClient 可注入（测试用）；为空时使用加固后的默认客户端。
@@ -41,7 +42,10 @@ type GatewayClient struct {
 //
 // BaseURL 只接受回环地址或显式配置的地址：如果配成了外部地址，
 // 检测流量就会脱离本服务自己的计费与审计链路，因此这里做硬校验。
-func NewGatewayClient(baseURL, apiKey string, timeout time.Duration) (*GatewayClient, error) {
+//
+// 不再接收 apiKey 参数：Key 由调用方按请求传入（内部账号 Key 在运行期才创建，
+// 装配期根本不存在）。保留该参数会让「装配期传空、运行期忘了改」这种缺陷再次发生。
+func NewGatewayClient(baseURL string, timeout time.Duration) (*GatewayClient, error) {
 	trimmed := strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if trimmed == "" {
 		return nil, errors.New("iqbenchmark: gateway base url is empty")
@@ -54,7 +58,6 @@ func NewGatewayClient(baseURL, apiKey string, timeout time.Duration) (*GatewayCl
 	}
 	return &GatewayClient{
 		BaseURL:   trimmed,
-		APIKey:    apiKey,
 		Timeout:   timeout,
 		UserAgent: iqbenchmark.DetectionUserAgent,
 	}, nil
@@ -91,6 +94,15 @@ type ChatRequest struct {
 	SystemPrompt string
 	// Params 是题目里的额外参数（temperature、max_tokens 等），原样透传。
 	Params map[string]any
+	// APIKey 是本次调用使用的明文 Key，必填。
+	//
+	// 为什么按请求传而不是存在 GatewayClient 上：
+	// 内部账号的 Key 是在运行期由 EnsureInternalAgent 创建并写入数据库的，
+	// 而 GatewayClient 在 Wire 装配期就已构造完成 —— 那时 Key 还不存在。
+	// 把 Key 存在客户端上必然要 mutable 共享状态（并发写 + 数据竞争），
+	// 且第二阶段「用户用自己 Key 自测」也需要按请求切换 Key。
+	// 因此 Key 跟随请求走，客户端保持无状态。
+	APIKey string
 }
 
 // ChatResponse 是从网关响应中抽取出的最小信息。
@@ -109,6 +121,8 @@ type ImageRequest struct {
 	Model  string
 	Prompt string
 	Params map[string]any
+	// APIKey 是本次调用使用的明文 Key，必填（语义同 ChatRequest.APIKey）。
+	APIKey string
 }
 
 // ImageResponse 是图片生成结果的抽取。
@@ -143,7 +157,7 @@ func (c *GatewayClient) Chat(ctx context.Context, req ChatRequest) (*ChatRespons
 	}
 	mergeParams(body, req.Params)
 
-	raw, header, err := c.post(ctx, "/v1/chat/completions", body)
+	raw, header, err := c.post(ctx, "/v1/chat/completions", req.APIKey, body)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +207,7 @@ func (c *GatewayClient) Image(ctx context.Context, req ImageRequest) (*ImageResp
 	}
 	mergeParams(body, req.Params)
 
-	raw, header, err := c.post(ctx, "/v1/images/generations", body)
+	raw, header, err := c.post(ctx, "/v1/images/generations", req.APIKey, body)
 	if err != nil {
 		return nil, err
 	}
@@ -226,9 +240,16 @@ func (c *GatewayClient) Image(ctx context.Context, req ImageRequest) (*ImageResp
 }
 
 // post 发起一次带鉴权的 JSON POST。
-func (c *GatewayClient) post(ctx context.Context, path string, body map[string]any) ([]byte, http.Header, error) {
+//
+// apiKey 必须非空：空的 Bearer token 会被网关以 401 拒绝，
+// 但如果在这里放行，故障会在很远的地方以「upstream_error」的形式出现，
+// 排查成本极高。因此这里显式拒绝，让问题在调用点就暴露。
+func (c *GatewayClient) post(ctx context.Context, path, apiKey string, body map[string]any) ([]byte, http.Header, error) {
 	if c == nil {
 		return nil, nil, errors.New("iqbenchmark: gateway client is nil")
+	}
+	if strings.TrimSpace(apiKey) == "" {
+		return nil, nil, iqbenchmark.ErrInternalAgentMissing
 	}
 	payload, err := json.Marshal(body)
 	if err != nil {
@@ -248,7 +269,7 @@ func (c *GatewayClient) post(ctx context.Context, path string, body map[string]a
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+c.APIKey)
+	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	if c.UserAgent != "" {
 		httpReq.Header.Set("User-Agent", c.UserAgent)
 	}

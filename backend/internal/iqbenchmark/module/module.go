@@ -66,12 +66,15 @@ var ProviderSet = wire.NewSet(
 	iqbenchmark.NewActiveDirectory,
 
 	// 业务服务
-	service.NewGalleryService,
+	ProvideGalleryService,
 	ProvideBlobDeleter,
 	service.NewArtifactService,
 	service.NewGuard,
 	ProvideGatewayClient,
 	service.NewRunService,
+
+	// 目标解析（分组 + 模型级联下拉 / 任务二次校验）
+	ProvideTargetsService,
 
 	// 调度
 	ProvideScheduler,
@@ -80,7 +83,7 @@ var ProviderSet = wire.NewSet(
 	ProvideRuntime,
 
 	// HTTP
-	handler.NewAdminHandler,
+	ProvideAdminHandler,
 	handler.NewUserHandler,
 	ProvideHandlers,
 )
@@ -157,7 +160,45 @@ func ProvideGatewayClient(
 	if timeoutSeconds <= 0 {
 		timeoutSeconds = 120
 	}
-	return service.NewGatewayClient(baseURL, "", time.Duration(timeoutSeconds)*time.Second)
+	return service.NewGatewayClient(baseURL, time.Duration(timeoutSeconds)*time.Second)
+}
+
+// ProvideTargetsService 构造目标解析服务。
+//
+// 直接接收上游**具体类型**再收窄成本模块的最小接口，而不是用 wire.Bind：
+// wire.Bind 要求被绑定的具体类型也由同一个 ProviderSet 提供，而上游的
+// GroupRepository / GatewayService 是在上游自己的 wire 图里提供的，
+// 本模块的 ProviderSet 看不到它们（wire 会直接报「ProviderSet does not
+// include a provider for ...」）。
+//
+// 收窄发生在函数签名里（参数用最小接口），因此本模块仍然只依赖
+// ListActive / GetAvailableModels / InvalidateAvailableModelsCache 三个方法，
+// 不会意外耦合上游的完整仓储与网关实现。
+func ProvideTargetsService(
+	groups upstreamsvc.GroupRepository,
+	gateway *upstreamsvc.GatewayService,
+) *service.TargetsService {
+	var store service.TargetsGroupStore
+	if groups != nil {
+		store = groups
+	}
+	var lister service.GatewayModelLister
+	if gateway != nil {
+		lister = gateway
+	}
+	return service.NewTargetsService(store, lister)
+}
+
+// ProvideGalleryService 构造作品展服务并注入目标解析器。
+//
+// 单独包一层是为了让 service.NewGalleryService 保持既有签名（否则所有单测
+// 调用点都要改），同时保证生产链路一定带上目标校验。
+func ProvideGalleryService(
+	store service.Store,
+	targets *service.TargetsService,
+	logger *slog.Logger,
+) *service.GalleryService {
+	return service.NewGalleryService(store, logger).WithTargets(targets)
 }
 
 // ProvideScheduler 构造任务调度器（构造期不启动 goroutine）。
@@ -168,6 +209,7 @@ func ProvideScheduler(
 	settings *iqbenchmark.SettingsProvider,
 	agent *iqbenchmark.ActiveDirectory,
 	artifacts *service.ArtifactService,
+	targets *service.TargetsService,
 	logger *slog.Logger,
 ) *scheduler.Scheduler {
 	return scheduler.New(scheduler.Config{
@@ -177,8 +219,23 @@ func ProvideScheduler(
 		Settings: settings,
 		Agent:    agent,
 		Cleaner:  artifacts,
+		Targets:  targets,
 		Logger:   logger,
 	})
+}
+
+// ProvideAdminHandler 构造管理侧 handler 并注入目标解析器。
+//
+// 单独包一层，让 handler.NewAdminHandler 保持既有签名（既有单测不必改）。
+func ProvideAdminHandler(
+	gallery *service.GalleryService,
+	run *service.RunService,
+	artifact *service.ArtifactService,
+	settings *iqbenchmark.SettingsProvider,
+	agent *iqbenchmark.ActiveDirectory,
+	targets *service.TargetsService,
+) *handler.AdminHandler {
+	return handler.NewAdminHandler(gallery, run, artifact, settings, agent).WithTargets(targets)
 }
 
 // ProvideHandlers 组装本模块的 handler 集合（供 routes 层使用）。

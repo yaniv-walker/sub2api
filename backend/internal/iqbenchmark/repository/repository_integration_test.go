@@ -83,6 +83,16 @@ func iqTestDB(t *testing.T) *sql.DB {
 	// 幂等性：全部语句都是 IF NOT EXISTS，重复执行必须安全。
 	_, err = db.Exec(string(migration))
 	require.NoError(t, err, "migration 249 must be safely repeatable")
+
+	// 250 依赖 249 建出的 iq_benchmark_tasks，必须按序应用。
+	// 它只重写 status 的 CHECK 约束（加 invalid_target），不改数据行。
+	migration250, err := migrations.FS.ReadFile("250_iq_benchmark_invalid_target.sql")
+	require.NoError(t, err)
+	_, err = db.Exec(string(migration250))
+	require.NoError(t, err, "migration 250 must apply on top of 249")
+	// 幂等性：DROP ... IF EXISTS + ADD，重复执行必须安全。
+	_, err = db.Exec(string(migration250))
+	require.NoError(t, err, "migration 250 must be safely repeatable")
 	return db
 }
 
@@ -317,6 +327,7 @@ func TestIQBenchmarkServiceStatusValuesMatchMigration(t *testing.T) {
 		iqbenchmark.TaskStatusBudgetExhausted,
 		iqbenchmark.TaskStatusAccountDisabled,
 		iqbenchmark.TaskStatusPausedByAdmin,
+		iqbenchmark.TaskStatusInvalidTarget,
 	} {
 		require.NotEmpty(t, status)
 		_, err := db.ExecContext(ctx, `UPDATE iq_benchmark_tasks SET status = $1 WHERE id = $2`, status, id)

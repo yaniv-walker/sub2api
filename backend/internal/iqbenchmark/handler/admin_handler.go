@@ -21,6 +21,9 @@ type AdminHandler struct {
 	Artifact *service.ArtifactService
 	Settings *iqbenchmark.SettingsProvider
 	Agent    *iqbenchmark.ActiveDirectory
+	// Targets 解析「分组 + 模型」候选集合，供新建/编辑任务时的级联下拉使用。
+	// 允许为 nil（既有单测无需构造），此时 ListTargets 返回空集合。
+	Targets *service.TargetsService
 }
 
 // NewAdminHandler 构造管理侧 handler。
@@ -32,6 +35,16 @@ func NewAdminHandler(
 	agent *iqbenchmark.ActiveDirectory,
 ) *AdminHandler {
 	return &AdminHandler{Gallery: gallery, Run: run, Artifact: artifact, Settings: settings, Agent: agent}
+}
+
+// WithTargets 注入目标解析器（返回自身，便于链式构造）。
+//
+// 用可选注入而不是改 NewAdminHandler 签名：既有单测无需构造目标解析器。
+func (h *AdminHandler) WithTargets(targets *service.TargetsService) *AdminHandler {
+	if h != nil {
+		h.Targets = targets
+	}
+	return h
 }
 
 // ---------- 题目 ----------
@@ -340,6 +353,33 @@ func (h *AdminHandler) GetOverview(c *gin.Context) {
 	response.Success(c, overview)
 }
 
+// ---------- 任务目标（级联下拉） ----------
+
+// ListTargets 返回「分组 + 模型」候选集合，供新建/编辑任务页的级联下拉使用。
+//
+// 只读：不写 usage、不计费、不触发调度。
+// `?refresh=1` 强制失效上游 modelsListCache 后重取（管理员刚配好账号/映射时用）。
+//
+// 与 GET /v1/models 保持同一口径：模型集合必须等于「这个 Key 实际能调哪些」，
+// 否则会出现「下拉选得到、一跑就报错」的错配。
+func (h *AdminHandler) ListTargets(c *gin.Context) {
+	if !h.ensureEnabled(c) {
+		return
+	}
+	if h.Targets == nil {
+		// 依赖缺失时不报 500：返回空集合，让前端显示「暂不可用」而不是白屏。
+		response.Success(c, &service.Targets{Groups: []service.TargetGroup{}})
+		return
+	}
+	refresh := c.Query("refresh") == "1" || c.Query("refresh") == "true"
+	targets, err := h.Targets.ListTargets(c.Request.Context(), refresh)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	response.Success(c, targets)
+}
+
 // ---------- 配置 ----------
 
 // GetSettings 读取配置。
@@ -572,7 +612,12 @@ func writeError(c *gin.Context, err error) {
 		errors.Is(err, iqbenchmark.ErrTaskNoCases),
 		errors.Is(err, iqbenchmark.ErrTaskGroupMissing),
 		errors.Is(err, iqbenchmark.ErrCaseInvalid),
-		errors.Is(err, iqbenchmark.ErrTaskInvalid):
+		errors.Is(err, iqbenchmark.ErrTaskInvalid),
+		// 目标（分组 + 模型）不可用属于「用户可改的输入错误」，返回 400 让前端
+		// 直接把错误挂在对应下拉上；不返回 404，因为分组可能只是暂时不可调度。
+		errors.Is(err, iqbenchmark.ErrTargetGroupUnavailable),
+		errors.Is(err, iqbenchmark.ErrTargetModelUnavailable),
+		errors.Is(err, iqbenchmark.ErrTargetCapabilityMismatch):
 		response.BadRequest(c, err.Error())
 	default:
 		response.InternalError(c, "internal error")

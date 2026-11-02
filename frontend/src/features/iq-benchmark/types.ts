@@ -26,6 +26,48 @@ export type IQTaskStatus =
   | 'budget_exhausted'
   | 'account_disabled'
   | 'paused_by_admin'
+  /** 目标（分组或模型）已失效，需人工改配置后重新启用。 */
+  | 'invalid_target'
+
+/** 任务目标解析结果的模型来源。 */
+export type IQTargetModelSource = 'runtime' | 'platform_default' | 'none'
+
+/** 分组不可用的原因码（后端返回，前端负责翻译）。 */
+export type IQTargetUnavailableReason =
+  | 'NO_SCHEDULABLE_ACCOUNT'
+  | 'IMAGE_GENERATION_DISABLED'
+  | 'ALLOWLIST_FILTERED_EMPTY'
+  | 'NO_MODEL_MAPPING'
+
+/** 单个可选的模型。 */
+export interface IQTargetModel {
+  id: string
+  /** 该模型在当前分组下支持的能力（text / image）。 */
+  capabilities: string[]
+}
+
+/** 一个候选分组及其可选模型（级联下拉的第一级）。 */
+export interface IQTargetGroup {
+  id: number
+  name: string
+  platform: string
+  allow_image_generation: boolean
+  capabilities: string[]
+  models: IQTargetModel[]
+  model_source: IQTargetModelSource
+  /**
+   * 空模型集合的成因，或「模型非空但当前没有可调度账号」的警告。
+   * 为空表示分组完全健康。
+   */
+  unavailable_reason?: IQTargetUnavailableReason
+}
+
+/** 目标候选集合。 */
+export interface IQTargets {
+  groups: IQTargetGroup[]
+  /** 分组数超上限被截断（只影响展示，不影响已保存的任务）。 */
+  truncated: boolean
+}
 
 /** 执行触发来源。 */
 export type IQRunTrigger = 'schedule' | 'manual' | 'retry'

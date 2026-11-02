@@ -200,6 +200,11 @@ export default {
         jitterHint: '每次调度在前述间隔基础上随机提前 0 - {n} 秒。',
         enableToRecover: '启用可解除熔断状态',
         duplicate: '该分组与模型的组合已存在启用中的任务',
+        selectModel: '请选择模型',
+        noTargets: '暂无可用的分组',
+        orphanGroupName: '分组 #{id}（已停用或不存在）',
+        orphanModelHint:
+          '模型 {model} 已不在该分组的可用集合内。保存会被拒绝；请改选一个可用模型，或先到分组配置里恢复该模型。',
       },
 
       cases: {
@@ -247,6 +252,16 @@ export default {
         counts: '成功/失败/超时/拦截',
         cost: '成本',
         status: '状态',
+      },
+
+      /** 目标级联下拉的空集合/警告成因文案。 */
+      targets: {
+        reason: {
+          NO_SCHEDULABLE_ACCOUNT: '该分组当前没有可调度的账号，任务会一直跑不出结果。',
+          IMAGE_GENERATION_DISABLED: '该分组未开启生图能力，无法用于图片类题目。',
+          ALLOWLIST_FILTERED_EMPTY: '该分组的模型白名单过滤后为空，请联系管理员补齐白名单。',
+          NO_MODEL_MAPPING: '该分组下的账号尚未配置模型映射，且平台没有默认模型可回退。',
+        },
       },
     },
   },

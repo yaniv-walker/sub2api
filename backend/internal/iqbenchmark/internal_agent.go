@@ -84,6 +84,17 @@ func (a *InternalAgent) KeyID() int64 {
 	return a.Key.ID
 }
 
+// KeyString 返回专用 Key 的明文，供网关调用时放入 Authorization。
+//
+// 注意：这是本模块唯一读取 Key 明文的入口。上游 `api_key.key` 是明文列，
+// 因此这里不做解密；返回值**绝不可**写日志或落库。
+func (a *InternalAgent) KeyString() string {
+	if a == nil || a.Key == nil {
+		return ""
+	}
+	return a.Key.Key
+}
+
 // Ready 表示账号与 Key 均已就绪（可以发起检测调用）。
 func (a *InternalAgent) Ready() bool {
 	return a != nil && a.User != nil && a.Key != nil
