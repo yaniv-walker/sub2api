@@ -401,6 +401,11 @@ type Artifact struct {
 	// TriggeredByUserID 是触发自测的用户；定时检测为 0（对应 NULL）。
 	TriggeredByUserID int64  `json:"-"`
 	ModerationStatus  string `json:"-"`
+	// ReviewedBy / ReviewedAt 是审核留痕；从未人工审核时分别为 0 / nil。
+	//
+	// 只走管理侧 DTO，公开侧不下发（审核人身份属于管理信息）。
+	ReviewedBy int64      `json:"-"`
+	ReviewedAt *time.Time `json:"-"`
 }
 
 // ArtifactListFilter 是作品列表的筛选条件。

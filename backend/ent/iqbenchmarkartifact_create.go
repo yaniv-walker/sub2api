@@ -384,6 +384,34 @@ func (_c *IQBenchmarkArtifactCreate) SetNillableModerationStatus(v *string) *IQB
 	return _c
 }
 
+// SetReviewedBy sets the "reviewed_by" field.
+func (_c *IQBenchmarkArtifactCreate) SetReviewedBy(v int64) *IQBenchmarkArtifactCreate {
+	_c.mutation.SetReviewedBy(v)
+	return _c
+}
+
+// SetNillableReviewedBy sets the "reviewed_by" field if the given value is not nil.
+func (_c *IQBenchmarkArtifactCreate) SetNillableReviewedBy(v *int64) *IQBenchmarkArtifactCreate {
+	if v != nil {
+		_c.SetReviewedBy(*v)
+	}
+	return _c
+}
+
+// SetReviewedAt sets the "reviewed_at" field.
+func (_c *IQBenchmarkArtifactCreate) SetReviewedAt(v time.Time) *IQBenchmarkArtifactCreate {
+	_c.mutation.SetReviewedAt(v)
+	return _c
+}
+
+// SetNillableReviewedAt sets the "reviewed_at" field if the given value is not nil.
+func (_c *IQBenchmarkArtifactCreate) SetNillableReviewedAt(v *time.Time) *IQBenchmarkArtifactCreate {
+	if v != nil {
+		_c.SetReviewedAt(*v)
+	}
+	return _c
+}
+
 // Mutation returns the IQBenchmarkArtifactMutation object of the builder.
 func (_c *IQBenchmarkArtifactCreate) Mutation() *IQBenchmarkArtifactMutation {
 	return _c.mutation
@@ -718,6 +746,14 @@ func (_c *IQBenchmarkArtifactCreate) createSpec() (*IQBenchmarkArtifact, *sqlgra
 	if value, ok := _c.mutation.ModerationStatus(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldModerationStatus, field.TypeString, value)
 		_node.ModerationStatus = value
+	}
+	if value, ok := _c.mutation.ReviewedBy(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldReviewedBy, field.TypeInt64, value)
+		_node.ReviewedBy = &value
+	}
+	if value, ok := _c.mutation.ReviewedAt(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldReviewedAt, field.TypeTime, value)
+		_node.ReviewedAt = &value
 	}
 	return _node, _spec
 }
@@ -1278,6 +1314,48 @@ func (u *IQBenchmarkArtifactUpsert) SetModerationStatus(v string) *IQBenchmarkAr
 // UpdateModerationStatus sets the "moderation_status" field to the value that was provided on create.
 func (u *IQBenchmarkArtifactUpsert) UpdateModerationStatus() *IQBenchmarkArtifactUpsert {
 	u.SetExcluded(iqbenchmarkartifact.FieldModerationStatus)
+	return u
+}
+
+// SetReviewedBy sets the "reviewed_by" field.
+func (u *IQBenchmarkArtifactUpsert) SetReviewedBy(v int64) *IQBenchmarkArtifactUpsert {
+	u.Set(iqbenchmarkartifact.FieldReviewedBy, v)
+	return u
+}
+
+// UpdateReviewedBy sets the "reviewed_by" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsert) UpdateReviewedBy() *IQBenchmarkArtifactUpsert {
+	u.SetExcluded(iqbenchmarkartifact.FieldReviewedBy)
+	return u
+}
+
+// AddReviewedBy adds v to the "reviewed_by" field.
+func (u *IQBenchmarkArtifactUpsert) AddReviewedBy(v int64) *IQBenchmarkArtifactUpsert {
+	u.Add(iqbenchmarkartifact.FieldReviewedBy, v)
+	return u
+}
+
+// ClearReviewedBy clears the value of the "reviewed_by" field.
+func (u *IQBenchmarkArtifactUpsert) ClearReviewedBy() *IQBenchmarkArtifactUpsert {
+	u.SetNull(iqbenchmarkartifact.FieldReviewedBy)
+	return u
+}
+
+// SetReviewedAt sets the "reviewed_at" field.
+func (u *IQBenchmarkArtifactUpsert) SetReviewedAt(v time.Time) *IQBenchmarkArtifactUpsert {
+	u.Set(iqbenchmarkartifact.FieldReviewedAt, v)
+	return u
+}
+
+// UpdateReviewedAt sets the "reviewed_at" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsert) UpdateReviewedAt() *IQBenchmarkArtifactUpsert {
+	u.SetExcluded(iqbenchmarkartifact.FieldReviewedAt)
+	return u
+}
+
+// ClearReviewedAt clears the value of the "reviewed_at" field.
+func (u *IQBenchmarkArtifactUpsert) ClearReviewedAt() *IQBenchmarkArtifactUpsert {
+	u.SetNull(iqbenchmarkartifact.FieldReviewedAt)
 	return u
 }
 
@@ -1918,6 +1996,55 @@ func (u *IQBenchmarkArtifactUpsertOne) SetModerationStatus(v string) *IQBenchmar
 func (u *IQBenchmarkArtifactUpsertOne) UpdateModerationStatus() *IQBenchmarkArtifactUpsertOne {
 	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
 		s.UpdateModerationStatus()
+	})
+}
+
+// SetReviewedBy sets the "reviewed_by" field.
+func (u *IQBenchmarkArtifactUpsertOne) SetReviewedBy(v int64) *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.SetReviewedBy(v)
+	})
+}
+
+// AddReviewedBy adds v to the "reviewed_by" field.
+func (u *IQBenchmarkArtifactUpsertOne) AddReviewedBy(v int64) *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.AddReviewedBy(v)
+	})
+}
+
+// UpdateReviewedBy sets the "reviewed_by" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsertOne) UpdateReviewedBy() *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.UpdateReviewedBy()
+	})
+}
+
+// ClearReviewedBy clears the value of the "reviewed_by" field.
+func (u *IQBenchmarkArtifactUpsertOne) ClearReviewedBy() *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.ClearReviewedBy()
+	})
+}
+
+// SetReviewedAt sets the "reviewed_at" field.
+func (u *IQBenchmarkArtifactUpsertOne) SetReviewedAt(v time.Time) *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.SetReviewedAt(v)
+	})
+}
+
+// UpdateReviewedAt sets the "reviewed_at" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsertOne) UpdateReviewedAt() *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.UpdateReviewedAt()
+	})
+}
+
+// ClearReviewedAt clears the value of the "reviewed_at" field.
+func (u *IQBenchmarkArtifactUpsertOne) ClearReviewedAt() *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.ClearReviewedAt()
 	})
 }
 
@@ -2724,6 +2851,55 @@ func (u *IQBenchmarkArtifactUpsertBulk) SetModerationStatus(v string) *IQBenchma
 func (u *IQBenchmarkArtifactUpsertBulk) UpdateModerationStatus() *IQBenchmarkArtifactUpsertBulk {
 	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
 		s.UpdateModerationStatus()
+	})
+}
+
+// SetReviewedBy sets the "reviewed_by" field.
+func (u *IQBenchmarkArtifactUpsertBulk) SetReviewedBy(v int64) *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.SetReviewedBy(v)
+	})
+}
+
+// AddReviewedBy adds v to the "reviewed_by" field.
+func (u *IQBenchmarkArtifactUpsertBulk) AddReviewedBy(v int64) *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.AddReviewedBy(v)
+	})
+}
+
+// UpdateReviewedBy sets the "reviewed_by" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsertBulk) UpdateReviewedBy() *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.UpdateReviewedBy()
+	})
+}
+
+// ClearReviewedBy clears the value of the "reviewed_by" field.
+func (u *IQBenchmarkArtifactUpsertBulk) ClearReviewedBy() *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.ClearReviewedBy()
+	})
+}
+
+// SetReviewedAt sets the "reviewed_at" field.
+func (u *IQBenchmarkArtifactUpsertBulk) SetReviewedAt(v time.Time) *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.SetReviewedAt(v)
+	})
+}
+
+// UpdateReviewedAt sets the "reviewed_at" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsertBulk) UpdateReviewedAt() *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.UpdateReviewedAt()
+	})
+}
+
+// ClearReviewedAt clears the value of the "reviewed_at" field.
+func (u *IQBenchmarkArtifactUpsertBulk) ClearReviewedAt() *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.ClearReviewedAt()
 	})
 }
 

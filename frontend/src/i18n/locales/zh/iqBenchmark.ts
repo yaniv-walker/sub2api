@@ -326,6 +326,8 @@ export default {
           rejected: '已拒绝',
         },
         triggeredBy: '触发用户',
+        approve: '通过审核',
+        reject: '拒绝',
         cost: '成本',
         delete: '删除',
         deleteConfirm: '确定删除该作品？',

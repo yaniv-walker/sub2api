@@ -27972,6 +27972,9 @@ type IQBenchmarkArtifactMutation struct {
 	triggered_by_user_id    *int64
 	addtriggered_by_user_id *int64
 	moderation_status       *string
+	reviewed_by             *int64
+	addreviewed_by          *int64
+	reviewed_at             *time.Time
 	clearedFields           map[string]struct{}
 	done                    bool
 	oldValue                func(context.Context) (*IQBenchmarkArtifact, error)
@@ -29614,6 +29617,125 @@ func (m *IQBenchmarkArtifactMutation) ResetModerationStatus() {
 	m.moderation_status = nil
 }
 
+// SetReviewedBy sets the "reviewed_by" field.
+func (m *IQBenchmarkArtifactMutation) SetReviewedBy(i int64) {
+	m.reviewed_by = &i
+	m.addreviewed_by = nil
+}
+
+// ReviewedBy returns the value of the "reviewed_by" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) ReviewedBy() (r int64, exists bool) {
+	v := m.reviewed_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReviewedBy returns the old "reviewed_by" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldReviewedBy(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReviewedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReviewedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReviewedBy: %w", err)
+	}
+	return oldValue.ReviewedBy, nil
+}
+
+// AddReviewedBy adds i to the "reviewed_by" field.
+func (m *IQBenchmarkArtifactMutation) AddReviewedBy(i int64) {
+	if m.addreviewed_by != nil {
+		*m.addreviewed_by += i
+	} else {
+		m.addreviewed_by = &i
+	}
+}
+
+// AddedReviewedBy returns the value that was added to the "reviewed_by" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedReviewedBy() (r int64, exists bool) {
+	v := m.addreviewed_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearReviewedBy clears the value of the "reviewed_by" field.
+func (m *IQBenchmarkArtifactMutation) ClearReviewedBy() {
+	m.reviewed_by = nil
+	m.addreviewed_by = nil
+	m.clearedFields[iqbenchmarkartifact.FieldReviewedBy] = struct{}{}
+}
+
+// ReviewedByCleared returns if the "reviewed_by" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) ReviewedByCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldReviewedBy]
+	return ok
+}
+
+// ResetReviewedBy resets all changes to the "reviewed_by" field.
+func (m *IQBenchmarkArtifactMutation) ResetReviewedBy() {
+	m.reviewed_by = nil
+	m.addreviewed_by = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldReviewedBy)
+}
+
+// SetReviewedAt sets the "reviewed_at" field.
+func (m *IQBenchmarkArtifactMutation) SetReviewedAt(t time.Time) {
+	m.reviewed_at = &t
+}
+
+// ReviewedAt returns the value of the "reviewed_at" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) ReviewedAt() (r time.Time, exists bool) {
+	v := m.reviewed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReviewedAt returns the old "reviewed_at" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldReviewedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReviewedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReviewedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReviewedAt: %w", err)
+	}
+	return oldValue.ReviewedAt, nil
+}
+
+// ClearReviewedAt clears the value of the "reviewed_at" field.
+func (m *IQBenchmarkArtifactMutation) ClearReviewedAt() {
+	m.reviewed_at = nil
+	m.clearedFields[iqbenchmarkartifact.FieldReviewedAt] = struct{}{}
+}
+
+// ReviewedAtCleared returns if the "reviewed_at" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) ReviewedAtCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldReviewedAt]
+	return ok
+}
+
+// ResetReviewedAt resets all changes to the "reviewed_at" field.
+func (m *IQBenchmarkArtifactMutation) ResetReviewedAt() {
+	m.reviewed_at = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldReviewedAt)
+}
+
 // Where appends a list predicates to the IQBenchmarkArtifactMutation builder.
 func (m *IQBenchmarkArtifactMutation) Where(ps ...predicate.IQBenchmarkArtifact) {
 	m.predicates = append(m.predicates, ps...)
@@ -29648,7 +29770,7 @@ func (m *IQBenchmarkArtifactMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *IQBenchmarkArtifactMutation) Fields() []string {
-	fields := make([]string, 0, 31)
+	fields := make([]string, 0, 33)
 	if m.created_at != nil {
 		fields = append(fields, iqbenchmarkartifact.FieldCreatedAt)
 	}
@@ -29742,6 +29864,12 @@ func (m *IQBenchmarkArtifactMutation) Fields() []string {
 	if m.moderation_status != nil {
 		fields = append(fields, iqbenchmarkartifact.FieldModerationStatus)
 	}
+	if m.reviewed_by != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldReviewedBy)
+	}
+	if m.reviewed_at != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldReviewedAt)
+	}
 	return fields
 }
 
@@ -29812,6 +29940,10 @@ func (m *IQBenchmarkArtifactMutation) Field(name string) (ent.Value, bool) {
 		return m.TriggeredByUserID()
 	case iqbenchmarkartifact.FieldModerationStatus:
 		return m.ModerationStatus()
+	case iqbenchmarkartifact.FieldReviewedBy:
+		return m.ReviewedBy()
+	case iqbenchmarkartifact.FieldReviewedAt:
+		return m.ReviewedAt()
 	}
 	return nil, false
 }
@@ -29883,6 +30015,10 @@ func (m *IQBenchmarkArtifactMutation) OldField(ctx context.Context, name string)
 		return m.OldTriggeredByUserID(ctx)
 	case iqbenchmarkartifact.FieldModerationStatus:
 		return m.OldModerationStatus(ctx)
+	case iqbenchmarkartifact.FieldReviewedBy:
+		return m.OldReviewedBy(ctx)
+	case iqbenchmarkartifact.FieldReviewedAt:
+		return m.OldReviewedAt(ctx)
 	}
 	return nil, fmt.Errorf("unknown IQBenchmarkArtifact field %s", name)
 }
@@ -30109,6 +30245,20 @@ func (m *IQBenchmarkArtifactMutation) SetField(name string, value ent.Value) err
 		}
 		m.SetModerationStatus(v)
 		return nil
+	case iqbenchmarkartifact.FieldReviewedBy:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReviewedBy(v)
+		return nil
+	case iqbenchmarkartifact.FieldReviewedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReviewedAt(v)
+		return nil
 	}
 	return fmt.Errorf("unknown IQBenchmarkArtifact field %s", name)
 }
@@ -30150,6 +30300,9 @@ func (m *IQBenchmarkArtifactMutation) AddedFields() []string {
 	if m.addtriggered_by_user_id != nil {
 		fields = append(fields, iqbenchmarkartifact.FieldTriggeredByUserID)
 	}
+	if m.addreviewed_by != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldReviewedBy)
+	}
 	return fields
 }
 
@@ -30180,6 +30333,8 @@ func (m *IQBenchmarkArtifactMutation) AddedField(name string) (ent.Value, bool) 
 		return m.AddedScoredBy()
 	case iqbenchmarkartifact.FieldTriggeredByUserID:
 		return m.AddedTriggeredByUserID()
+	case iqbenchmarkartifact.FieldReviewedBy:
+		return m.AddedReviewedBy()
 	}
 	return nil, false
 }
@@ -30266,6 +30421,13 @@ func (m *IQBenchmarkArtifactMutation) AddField(name string, value ent.Value) err
 		}
 		m.AddTriggeredByUserID(v)
 		return nil
+	case iqbenchmarkartifact.FieldReviewedBy:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddReviewedBy(v)
+		return nil
 	}
 	return fmt.Errorf("unknown IQBenchmarkArtifact numeric field %s", name)
 }
@@ -30315,6 +30477,12 @@ func (m *IQBenchmarkArtifactMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(iqbenchmarkartifact.FieldTriggeredByUserID) {
 		fields = append(fields, iqbenchmarkartifact.FieldTriggeredByUserID)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldReviewedBy) {
+		fields = append(fields, iqbenchmarkartifact.FieldReviewedBy)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldReviewedAt) {
+		fields = append(fields, iqbenchmarkartifact.FieldReviewedAt)
 	}
 	return fields
 }
@@ -30371,6 +30539,12 @@ func (m *IQBenchmarkArtifactMutation) ClearField(name string) error {
 		return nil
 	case iqbenchmarkartifact.FieldTriggeredByUserID:
 		m.ClearTriggeredByUserID()
+		return nil
+	case iqbenchmarkartifact.FieldReviewedBy:
+		m.ClearReviewedBy()
+		return nil
+	case iqbenchmarkartifact.FieldReviewedAt:
+		m.ClearReviewedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown IQBenchmarkArtifact nullable field %s", name)
@@ -30472,6 +30646,12 @@ func (m *IQBenchmarkArtifactMutation) ResetField(name string) error {
 		return nil
 	case iqbenchmarkartifact.FieldModerationStatus:
 		m.ResetModerationStatus()
+		return nil
+	case iqbenchmarkartifact.FieldReviewedBy:
+		m.ResetReviewedBy()
+		return nil
+	case iqbenchmarkartifact.FieldReviewedAt:
+		m.ResetReviewedAt()
 		return nil
 	}
 	return fmt.Errorf("unknown IQBenchmarkArtifact field %s", name)

@@ -331,6 +331,8 @@ export default {
           rejected: 'Rejected',
         },
         triggeredBy: 'Triggered by',
+        approve: 'Approve',
+        reject: 'Reject',
         cost: 'Cost',
         delete: 'Delete',
         deleteConfirm: 'Delete this artifact?',

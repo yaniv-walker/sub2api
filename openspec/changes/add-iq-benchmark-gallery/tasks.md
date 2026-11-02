@@ -257,7 +257,13 @@ Wire 图内取不到；要注入必须先给上游加导出方法，会突破「
       `?moderation=pending` 即审核队列。
 - [x] 8.6.6 变异测试实证：`filter.ModerationStatus = st` 改成 `_ = st` →
       `TestListArtifactsAdminModerationQueue` 翻红。
-- [ ] 8.6.7 **审核动作仍缺**：没有任何接口能把 `pending` 改成 `approved`，
-      所以待审产出「看得见但进不了公开页」。上线前必须二选一：
-      补审核动作接口，或把 `user_test_require_review` 默认值改为 `false`。
+- [x] 8.6.7 审核动作：`PUT /admin/iq-benchmark/artifacts/:id/moderation`
+      （body `{status}`，白名单校验 → 400）。`ArtifactService.Moderate` 先
+      `GetArtifact` 确认存在再写，避免「更新 0 行也返回成功」的假成功。
+- [x] 8.6.8 迁移 `252_iq_benchmark_artifact_review.sql` 增 `reviewed_by` / `reviewed_at`
+      留痕。**不复用** `scored_by`/`scored_at`：人工评分与内容审核是两件事，
+      混用会让两个字段的含义随上下文漂移。不加外键，理由同 `triggered_by_user_id`。
+- [x] 8.6.9 公开页与审核动作的端到端实证（真实 PostgreSQL 18）：
+      `TestIQBenchmarkModerateArtifactPersistsReview` 走完
+      「写 pending → 公开口径查不到 → 审核 approved → 查得到 → 留痕可读回」。
 

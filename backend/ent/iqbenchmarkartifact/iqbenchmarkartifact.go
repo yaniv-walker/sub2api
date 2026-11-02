@@ -75,6 +75,10 @@ const (
 	FieldTriggeredByUserID = "triggered_by_user_id"
 	// FieldModerationStatus holds the string denoting the moderation_status field in the database.
 	FieldModerationStatus = "moderation_status"
+	// FieldReviewedBy holds the string denoting the reviewed_by field in the database.
+	FieldReviewedBy = "reviewed_by"
+	// FieldReviewedAt holds the string denoting the reviewed_at field in the database.
+	FieldReviewedAt = "reviewed_at"
 	// Table holds the table name of the iqbenchmarkartifact in the database.
 	Table = "iq_benchmark_artifacts"
 )
@@ -113,6 +117,8 @@ var Columns = []string{
 	FieldSource,
 	FieldTriggeredByUserID,
 	FieldModerationStatus,
+	FieldReviewedBy,
+	FieldReviewedAt,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -318,4 +324,14 @@ func ByTriggeredByUserID(opts ...sql.OrderTermOption) OrderOption {
 // ByModerationStatus orders the results by the moderation_status field.
 func ByModerationStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldModerationStatus, opts...).ToFunc()
+}
+
+// ByReviewedBy orders the results by the reviewed_by field.
+func ByReviewedBy(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReviewedBy, opts...).ToFunc()
+}
+
+// ByReviewedAt orders the results by the reviewed_at field.
+func ByReviewedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldReviewedAt, opts...).ToFunc()
 }

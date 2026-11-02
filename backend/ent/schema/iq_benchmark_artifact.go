@@ -135,6 +135,16 @@ func (IQBenchmarkArtifact) Fields() []ent.Field {
 			MaxLen(16).
 			Default("approved").
 			Comment("approved / pending / rejected"),
+		// 审核留痕。NULL 表示没经过人工审核（含系统默认 approved 的产出）。
+		// 不复用 scored_by/scored_at：人工评分与内容审核是两件事。
+		field.Int64("reviewed_by").
+			Optional().
+			Nillable().
+			Comment("审核人 user id"),
+		field.Time("reviewed_at").
+			Optional().
+			Nillable().
+			Comment("审核时间"),
 	}
 }
 

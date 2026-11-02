@@ -28,6 +28,7 @@ import {
   runTaskNow,
   saveSettings,
   scoreArtifact,
+  moderateArtifact,
   setTaskEnabled,
   updateCase,
   updateTask,
@@ -101,6 +102,15 @@ describe('IQ benchmark API — route namespaces', () => {
     // 缺了 moderation，require_review 打开后待审产出没有任何入口能看到。
     expect(client.get).toHaveBeenCalledWith('/admin/iq-benchmark/artifacts', {
       params: { page: 1, page_size: 50, moderation: 'pending', source: 'user_test' },
+    })
+  })
+
+  it('puts the moderation verdict in the body, not the query string', async () => {
+    client.put.mockResolvedValue(envelope({ moderated: true }))
+    await moderateArtifact(9, 'approved')
+    // 审核是状态迁移，必须走 body；放 query 里会被审计日志漏掉。
+    expect(client.put).toHaveBeenCalledWith('/admin/iq-benchmark/artifacts/9/moderation', {
+      status: 'approved',
     })
   })
 })

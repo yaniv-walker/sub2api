@@ -26,6 +26,16 @@ type artifactStore struct {
 	capCalls    int
 	runsDeleted int64
 	hardDeleted int64
+	// moderated 记录审核调用；getErr 让「产出不存在」有独立的可控路径。
+	moderated []moderatedCall
+	getErr    error
+}
+
+// moderatedCall 是一次审核调用的入参快照。
+type moderatedCall struct {
+	id         int64
+	status     string
+	reviewedBy int64
 }
 
 func (a *artifactStore) CreateArtifact(_ context.Context, in ArtifactCreateInput) (*iqbenchmark.Artifact, error) {
@@ -66,10 +76,18 @@ func (a *artifactStore) HardDeleteRunsSoftDeletedBefore(_ context.Context, _ tim
 }
 
 func (a *artifactStore) GetArtifact(_ context.Context, id int64) (*iqbenchmark.Artifact, error) {
+	if a.getErr != nil {
+		return nil, a.getErr
+	}
 	return &iqbenchmark.Artifact{ID: id}, nil
 }
 
 func (a *artifactStore) ScoreArtifact(_ context.Context, _ int64, _ float64, _ int64, _ time.Time) error {
+	return nil
+}
+
+func (a *artifactStore) ModerateArtifact(_ context.Context, id int64, status string, reviewedBy int64, _ time.Time) error {
+	a.moderated = append(a.moderated, moderatedCall{id: id, status: status, reviewedBy: reviewedBy})
 	return nil
 }
 
@@ -293,4 +311,41 @@ func TestSha256HexIsStable(t *testing.T) {
 	require.Equal(t, sha256Hex("abc"), sha256Hex("abc"))
 	require.Len(t, sha256Hex("abc"), 64)
 	require.NotEqual(t, sha256Hex("abc"), sha256Hex("abd"))
+}
+
+// TestArtifactServiceModeratePersistsReview 覆盖审核动作的正常路径。
+//
+// 这是「待审产出能进公开页」的唯一动作；没有它 require_review 就是黑洞。
+func TestArtifactServiceModeratePersistsReview(t *testing.T) {
+	store := &artifactStore{}
+	svc := newTestArtifactService(t, store, nil)
+
+	require.NoError(t, svc.Moderate(context.Background(), 9, iqbenchmark.ModerationApproved, 42))
+	require.Len(t, store.moderated, 1)
+	require.Equal(t, int64(9), store.moderated[0].id)
+	require.Equal(t, iqbenchmark.ModerationApproved, store.moderated[0].status)
+	require.Equal(t, int64(42), store.moderated[0].reviewedBy)
+}
+
+// TestArtifactServiceModerateRejectsUnknownStatus 保证非法状态在校验层被拦。
+//
+// 不校验就会把一个 CHECK 约束拒绝的值写到数据库，得到一个从 handler
+// 视角「已经审过」但其实失败了的假成功。
+func TestArtifactServiceModerateRejectsUnknownStatus(t *testing.T) {
+	store := &artifactStore{}
+	svc := newTestArtifactService(t, store, nil)
+
+	err := svc.Moderate(context.Background(), 9, "maybe", 42)
+	require.Error(t, err)
+	require.Empty(t, store.moderated, "invalid status must not reach the store")
+}
+
+// TestArtifactServiceModeratePropagatesMissingArtifact 保证「产出不存在」不被吞掉。
+func TestArtifactServiceModeratePropagatesMissingArtifact(t *testing.T) {
+	store := &artifactStore{getErr: iqbenchmark.ErrArtifactNotFound}
+	svc := newTestArtifactService(t, store, nil)
+
+	err := svc.Moderate(context.Background(), 9, iqbenchmark.ModerationApproved, 42)
+	require.ErrorIs(t, err, iqbenchmark.ErrArtifactNotFound)
+	require.Empty(t, store.moderated)
 }

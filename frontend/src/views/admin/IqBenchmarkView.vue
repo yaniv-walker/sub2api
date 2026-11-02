@@ -302,6 +302,24 @@
                 <td class="p-2 tabular-nums">{{ item.score ?? '—' }}</td>
                 <td class="p-2">
                   <div class="flex items-center justify-end gap-1">
+                    <!-- 审核：pending 时放行/拒绝。公开页只返回 approved，
+                         所以没有这两个按钮，待审产出永远进不了作品展。 -->
+                    <button
+                      v-if="item.moderation_status !== 'approved'"
+                      class="btn btn-ghost btn-sm py-0.5 text-emerald-600"
+                      :title="t('iqBenchmark.admin.artifacts.approve')"
+                      @click="moderate(item, 'approved')"
+                    >
+                      <Icon name="check" size="xs" />
+                    </button>
+                    <button
+                      v-if="item.moderation_status !== 'rejected'"
+                      class="btn btn-ghost btn-sm py-0.5 text-amber-600"
+                      :title="t('iqBenchmark.admin.artifacts.reject')"
+                      @click="moderate(item, 'rejected')"
+                    >
+                      <Icon name="x" size="xs" />
+                    </button>
                     <button class="btn btn-ghost btn-sm py-0.5" @click="promptScore(item)">
                       <Icon name="check" size="xs" />
                     </button>
@@ -400,6 +418,7 @@ import {
   runTaskNow,
   saveSettings,
   scoreArtifact,
+  moderateArtifact,
   setTaskEnabled,
   updateCase,
   updateTask,
@@ -418,6 +437,7 @@ import type {
   IQArtifactFilters,
   IQBenchmarkSettings,
   IQCaseInput,
+  IQModerationStatus,
   IQTaskInput,
 } from '@/features/iq-benchmark/types'
 
@@ -642,8 +662,23 @@ async function promptScore(item: IQAdminArtifact): Promise<void> {
   }
 }
 
-async function removeArtifact(item: IQAdminArtifact): Promise<void> {
-  if (!window.confirm(t('iqBenchmark.admin.artifacts.deleteConfirm'))) return
+/**
+ * 审核一件产出。
+ *
+ * 审核接口只返回 {moderated:true}（不像评分那样回传整行），所以这里
+ * 就地改状态而不是重新拉全表：管理员连续审多条时，重载会把他滚回顶部。
+ * reviewed_by / reviewed_at 让它自己下一次刷新时补齐即可。
+ */
+async function moderate(item: IQAdminArtifact, status: IQModerationStatus): Promise<void> {
+  try {
+    await moderateArtifact(item.id, status)
+    item.moderation_status = status
+  } catch (err) {
+    handleError(err)
+  }
+}
+
+async function removeArtifact(item: IQAdminArtifact): Promise<void> {  if (!window.confirm(t('iqBenchmark.admin.artifacts.deleteConfirm'))) return
   try {
     await deleteArtifact(item.id)
     adminArtifacts.value = adminArtifacts.value.filter((row) => row.id !== item.id)

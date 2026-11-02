@@ -1052,6 +1052,8 @@ var (
 		{Name: "source", Type: field.TypeString, Size: 16},
 		{Name: "triggered_by_user_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "moderation_status", Type: field.TypeString, Size: 16, Default: "approved"},
+		{Name: "reviewed_by", Type: field.TypeInt64, Nullable: true},
+		{Name: "reviewed_at", Type: field.TypeTime, Nullable: true},
 	}
 	// IqBenchmarkArtifactsTable holds the schema information for the "iq_benchmark_artifacts" table.
 	IqBenchmarkArtifactsTable = &schema.Table{

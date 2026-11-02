@@ -954,12 +954,9 @@ $ git diff --numstat f688e8999e -- backend/internal/service backend/internal/han
 
 ### 7.9 已知缺口（阶段 8）
 
-1. **`moderation_status='pending'` 的产出目前无法改成 `approved`（审核动作缺失）。**
-   `user_test_require_review=true` 时产出会写成 `pending`。读取路径这一轮已补上
-   （见 7.10），但**没有任何接口能把它改成 `approved`**，所以待审产出虽然
-   「看得见」，仍进不了公开作品展。默认配置下 `user_test_require_review`
-   为 `true`（与后端 `DefaultSettings()` 一致），上线前必须二选一：
-   补上审核动作接口，或把该默认值改为 `false`。
+1. ~~`moderation_status='pending'` 的产出无法改成 `approved`。~~
+   **已解决**（见 7.11）：补上了 `PUT /admin/iq-benchmark/artifacts/:id/moderation`
+   与 `reviewed_by`/`reviewed_at` 留痕，并有真实 PostgreSQL 的端到端用例。
 2. **`ratelimit.AcquireUserTestSlot` 的 fail-closed 分支没有单测。**
    目前只通过 service 层的假替身覆盖了「拿到/没拿到槽位」两种结果，
    Redis 报错时的真实降级路径（返回 `(nil, false)`）未被直接验证。
@@ -1014,3 +1011,79 @@ $ npx vitest run src/features/iq-benchmark/__tests__/api.spec.ts --pool=threads
 > 这一条是**复核自己上一轮的文档时发现的**：上一轮我把缺口写成「待审产出
 > 不可达」，实际比那更糟——`source` 也没接，自测产出在管理侧同样不可见。
 > 已按实修正。
+### 7.11 审核动作与留痕（本轮补上，缺口关闭）
+
+§7.10 之后剩下的最后一道缺口：待审产出「看得见但放不行」。本轮补完。
+
+- `PUT /admin/iq-benchmark/artifacts/:id/moderation`，body `{status}`。
+  白名单在 handler 做（非法值 → 400），而不是让它静默更新 0 行。
+- `ArtifactService.Moderate` 先 `GetArtifact` 确认存在再写。理由与 `Score`
+  一致：裸 UPDATE 会「更新 0 行也返回成功」，管理员会以为审过了，
+  而产出其实还躺在待审队列里。
+- 迁移 `252_iq_benchmark_artifact_review.sql` 增 `reviewed_by` / `reviewed_at`。
+  **不复用** `scored_by`/`scored_at` —— 人工评分（模型答得好不好）与内容审核
+  （能不能公开）是两件事，混用两个字段会让它们的含义随上下文漂移，
+  以后谁也说不清 `scored_by` 到底指谁。不加外键，理由同 `triggered_by_user_id`：
+  用户被删后审核记录仍应留存，它是管理行为的审计线索。
+- 前端管理页加放行/拒绝两个按钮；审核后**就地**改状态而不重载全表 ——
+  连续审多条时重载会把管理员滚回顶部。
+
+端到端实证（真实 PostgreSQL 18，走完整个链路）：
+
+```
+$ go test -tags='unit,integration' -count=1 -run 'TestIQBenchmarkModerateArtifact|TestIQBenchmarkUserTestArtifactKeepsNull' -v ./internal/iqbenchmark/repository/
+--- PASS: TestIQBenchmarkUserTestArtifactKeepsNullRunAndTask (0.36s)
+--- PASS: TestIQBenchmarkModerateArtifactPersistsReview (0.27s)
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository	1.152s
+```
+
+`TestIQBenchmarkModerateArtifactPersistsReview` 断言的正是那条业务链路：
+写 `pending` → 公开口径（`moderation_status='approved'`）查不到 →
+管理员审核为 `approved` → 查得到 → `reviewed_by`/`reviewed_at` 可读回 →
+审核不存在的产出返回 `ErrArtifactNotFound` 而非假成功。
+
+服务层用例：
+
+```
+$ go test -tags=unit -count=1 -run 'TestArtifactServiceModerate' -v ./internal/iqbenchmark/service/
+--- PASS: TestArtifactServiceModeratePersistsReview (0.00s)
+--- PASS: TestArtifactServiceModerateRejectsUnknownStatus (0.00s)
+--- PASS: TestArtifactServiceModeratePropagatesMissingArtifact (0.00s)
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service	0.449s
+```
+
+> 迁移 252 也已加入 `iqTestDB` 的按序应用列表，并断言重复执行安全。
+
+### 7.12 本轮全量复验
+
+```
+$ go build ./...
+exit=0
+
+$ go test -tags='unit,integration' -count=1 ./internal/iqbenchmark/repository/
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository	4.563s
+
+$ go test -tags=unit -count=1 ./internal/iqbenchmark/... ./cmd/server/ ./internal/server/routes/
+ok  	.../iqbenchmark/handler	0.610s
+ok  	.../iqbenchmark/module	0.876s
+ok  	.../iqbenchmark/ratelimit	0.948s
+ok  	.../iqbenchmark/repository	0.507s
+ok  	.../iqbenchmark/sanitize	0.744s
+ok  	.../iqbenchmark/scheduler	0.725s
+ok  	.../iqbenchmark/service	7.774s
+ok  	.../cmd/server	0.639s
+ok  	.../internal/server/routes	11.242s
+
+$ golangci-lint run --timeout=15m ./internal/iqbenchmark/...
+0 issues.
+
+$ npx vue-tsc -b
+exit=0
+
+$ npx vitest run --pool=threads
+ Test Files  394 passed (394)
+      Tests  3259 passed (3259)
+   Duration  160.76s
+```
+
+用例数由 3257 增至 3259（新增 `moderateArtifact` 的请求形状断言）。

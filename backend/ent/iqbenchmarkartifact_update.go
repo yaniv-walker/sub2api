@@ -584,6 +584,53 @@ func (_u *IQBenchmarkArtifactUpdate) SetNillableModerationStatus(v *string) *IQB
 	return _u
 }
 
+// SetReviewedBy sets the "reviewed_by" field.
+func (_u *IQBenchmarkArtifactUpdate) SetReviewedBy(v int64) *IQBenchmarkArtifactUpdate {
+	_u.mutation.ResetReviewedBy()
+	_u.mutation.SetReviewedBy(v)
+	return _u
+}
+
+// SetNillableReviewedBy sets the "reviewed_by" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdate) SetNillableReviewedBy(v *int64) *IQBenchmarkArtifactUpdate {
+	if v != nil {
+		_u.SetReviewedBy(*v)
+	}
+	return _u
+}
+
+// AddReviewedBy adds value to the "reviewed_by" field.
+func (_u *IQBenchmarkArtifactUpdate) AddReviewedBy(v int64) *IQBenchmarkArtifactUpdate {
+	_u.mutation.AddReviewedBy(v)
+	return _u
+}
+
+// ClearReviewedBy clears the value of the "reviewed_by" field.
+func (_u *IQBenchmarkArtifactUpdate) ClearReviewedBy() *IQBenchmarkArtifactUpdate {
+	_u.mutation.ClearReviewedBy()
+	return _u
+}
+
+// SetReviewedAt sets the "reviewed_at" field.
+func (_u *IQBenchmarkArtifactUpdate) SetReviewedAt(v time.Time) *IQBenchmarkArtifactUpdate {
+	_u.mutation.SetReviewedAt(v)
+	return _u
+}
+
+// SetNillableReviewedAt sets the "reviewed_at" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdate) SetNillableReviewedAt(v *time.Time) *IQBenchmarkArtifactUpdate {
+	if v != nil {
+		_u.SetReviewedAt(*v)
+	}
+	return _u
+}
+
+// ClearReviewedAt clears the value of the "reviewed_at" field.
+func (_u *IQBenchmarkArtifactUpdate) ClearReviewedAt() *IQBenchmarkArtifactUpdate {
+	_u.mutation.ClearReviewedAt()
+	return _u
+}
+
 // Mutation returns the IQBenchmarkArtifactMutation object of the builder.
 func (_u *IQBenchmarkArtifactUpdate) Mutation() *IQBenchmarkArtifactMutation {
 	return _u.mutation
@@ -861,6 +908,21 @@ func (_u *IQBenchmarkArtifactUpdate) sqlSave(ctx context.Context) (_node int, er
 	}
 	if value, ok := _u.mutation.ModerationStatus(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldModerationStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ReviewedBy(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldReviewedBy, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedReviewedBy(); ok {
+		_spec.AddField(iqbenchmarkartifact.FieldReviewedBy, field.TypeInt64, value)
+	}
+	if _u.mutation.ReviewedByCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldReviewedBy, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.ReviewedAt(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldReviewedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ReviewedAtCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldReviewedAt, field.TypeTime)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -1437,6 +1499,53 @@ func (_u *IQBenchmarkArtifactUpdateOne) SetNillableModerationStatus(v *string) *
 	return _u
 }
 
+// SetReviewedBy sets the "reviewed_by" field.
+func (_u *IQBenchmarkArtifactUpdateOne) SetReviewedBy(v int64) *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.ResetReviewedBy()
+	_u.mutation.SetReviewedBy(v)
+	return _u
+}
+
+// SetNillableReviewedBy sets the "reviewed_by" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdateOne) SetNillableReviewedBy(v *int64) *IQBenchmarkArtifactUpdateOne {
+	if v != nil {
+		_u.SetReviewedBy(*v)
+	}
+	return _u
+}
+
+// AddReviewedBy adds value to the "reviewed_by" field.
+func (_u *IQBenchmarkArtifactUpdateOne) AddReviewedBy(v int64) *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.AddReviewedBy(v)
+	return _u
+}
+
+// ClearReviewedBy clears the value of the "reviewed_by" field.
+func (_u *IQBenchmarkArtifactUpdateOne) ClearReviewedBy() *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.ClearReviewedBy()
+	return _u
+}
+
+// SetReviewedAt sets the "reviewed_at" field.
+func (_u *IQBenchmarkArtifactUpdateOne) SetReviewedAt(v time.Time) *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.SetReviewedAt(v)
+	return _u
+}
+
+// SetNillableReviewedAt sets the "reviewed_at" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdateOne) SetNillableReviewedAt(v *time.Time) *IQBenchmarkArtifactUpdateOne {
+	if v != nil {
+		_u.SetReviewedAt(*v)
+	}
+	return _u
+}
+
+// ClearReviewedAt clears the value of the "reviewed_at" field.
+func (_u *IQBenchmarkArtifactUpdateOne) ClearReviewedAt() *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.ClearReviewedAt()
+	return _u
+}
+
 // Mutation returns the IQBenchmarkArtifactMutation object of the builder.
 func (_u *IQBenchmarkArtifactUpdateOne) Mutation() *IQBenchmarkArtifactMutation {
 	return _u.mutation
@@ -1744,6 +1853,21 @@ func (_u *IQBenchmarkArtifactUpdateOne) sqlSave(ctx context.Context) (_node *IQB
 	}
 	if value, ok := _u.mutation.ModerationStatus(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldModerationStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.ReviewedBy(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldReviewedBy, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedReviewedBy(); ok {
+		_spec.AddField(iqbenchmarkartifact.FieldReviewedBy, field.TypeInt64, value)
+	}
+	if _u.mutation.ReviewedByCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldReviewedBy, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.ReviewedAt(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldReviewedAt, field.TypeTime, value)
+	}
+	if _u.mutation.ReviewedAtCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldReviewedAt, field.TypeTime)
 	}
 	_node = &IQBenchmarkArtifact{config: _u.config}
 	_spec.Assign = _node.assignValues

@@ -147,6 +147,27 @@ func (s *ArtifactService) EnsureCapacity(ctx context.Context) error {
 	return nil
 }
 
+// Moderate 写入审核结论（approved / pending / rejected）。
+//
+// 为什么需要它：公开作品展只返回 approved，而自测产出在
+// user_test_require_review=true 时写成 pending。没有这个动作，
+// 用户花钱测出的作品永远进不了公开页，等于白测。
+//
+// 先 GetArtifact 确认存在：直接 UPDATE 会「更新 0 行也返回成功」，
+// 管理员会以为审过了。与 Score 的做法保持一致。
+func (s *ArtifactService) Moderate(ctx context.Context, artifactID int64, status string, reviewedBy int64) error {
+	normalized := strings.TrimSpace(status)
+	switch normalized {
+	case iqbenchmark.ModerationApproved, iqbenchmark.ModerationPending, iqbenchmark.ModerationRejected:
+	default:
+		return fmt.Errorf("iqbenchmark: invalid moderation status %q", status)
+	}
+	if _, err := s.Store.GetArtifact(ctx, artifactID); err != nil {
+		return err
+	}
+	return s.Store.ModerateArtifact(ctx, artifactID, normalized, reviewedBy, time.Now())
+}
+
 // Score 写入人工评分。score 必须在 [0, 100]。
 func (s *ArtifactService) Score(ctx context.Context, artifactID int64, score float64, scoredBy int64) error {
 	if score < 0 || score > 100 {

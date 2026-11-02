@@ -744,6 +744,26 @@ func (r *Repository) ScoreArtifact(ctx context.Context, id int64, score float64,
 	return nil
 }
 
+// ModerateArtifact 写入审核结论与留痕。
+//
+// 与 ScoreArtifact 同样以 affected==0 判 NotFound：静默成功会让管理员
+// 以为审过了，而产出其实还在待审队列里。
+func (r *Repository) ModerateArtifact(ctx context.Context, id int64, status string, reviewedBy int64, reviewedAt time.Time) error {
+	affected, err := r.client0().IQBenchmarkArtifact.Update().
+		Where(iqbenchmarkartifact.ID(id), iqbenchmarkartifact.DeletedAtIsNil()).
+		SetModerationStatus(status).
+		SetReviewedBy(reviewedBy).
+		SetReviewedAt(reviewedAt).
+		Save(ctx)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return iqbenchmark.ErrArtifactNotFound
+	}
+	return nil
+}
+
 // SoftDeleteArtifact 软删除单条产出，返回其对象存储键（供清理 blob 使用）。
 func (r *Repository) SoftDeleteArtifact(ctx context.Context, id int64) (string, error) {
 	var blobKey sql.NullString
@@ -1098,6 +1118,8 @@ func artifactFromEntity(e *dbent.IQBenchmarkArtifact) *iqbenchmark.Artifact {
 		Source:            e.Source,
 		TriggeredByUserID: derefInt64(e.TriggeredByUserID),
 		ModerationStatus:  e.ModerationStatus,
+		ReviewedBy:        derefInt64(e.ReviewedBy),
+		ReviewedAt:        e.ReviewedAt,
 	}
 }
 

@@ -85,6 +85,8 @@ type Store interface {
 	ListArtifacts(ctx context.Context, f iqbenchmark.ArtifactListFilter) (*iqbenchmark.ArtifactListResult, error)
 	ListArtifactsByRun(ctx context.Context, runID int64) ([]iqbenchmark.Artifact, error)
 	ScoreArtifact(ctx context.Context, id int64, score float64, scoredBy int64, scoredAt time.Time) error
+	// ModerateArtifact 写入审核结论。reviewedBy 为 0 表示系统判定。
+	ModerateArtifact(ctx context.Context, id int64, status string, reviewedBy int64, reviewedAt time.Time) error
 	SoftDeleteArtifact(ctx context.Context, id int64) (string, error)
 	CountLiveArtifacts(ctx context.Context) (int64, error)
 	PurgeOlderThan(ctx context.Context, cutoff time.Time, limit int) ([]PurgedArtifact, error)

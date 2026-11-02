@@ -80,7 +80,11 @@ type IQBenchmarkArtifact struct {
 	TriggeredByUserID *int64 `json:"triggered_by_user_id,omitempty"`
 	// approved / pending / rejected
 	ModerationStatus string `json:"moderation_status,omitempty"`
-	selectValues     sql.SelectValues
+	// 审核人 user id
+	ReviewedBy *int64 `json:"reviewed_by,omitempty"`
+	// 审核时间
+	ReviewedAt   *time.Time `json:"reviewed_at,omitempty"`
+	selectValues sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -94,11 +98,11 @@ func (*IQBenchmarkArtifact) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case iqbenchmarkartifact.FieldCost, iqbenchmarkartifact.FieldScore:
 			values[i] = new(sql.NullFloat64)
-		case iqbenchmarkartifact.FieldID, iqbenchmarkartifact.FieldRunID, iqbenchmarkartifact.FieldTaskID, iqbenchmarkartifact.FieldCaseID, iqbenchmarkartifact.FieldGroupID, iqbenchmarkartifact.FieldDurationMs, iqbenchmarkartifact.FieldInputTokens, iqbenchmarkartifact.FieldOutputTokens, iqbenchmarkartifact.FieldScoredBy, iqbenchmarkartifact.FieldTriggeredByUserID:
+		case iqbenchmarkartifact.FieldID, iqbenchmarkartifact.FieldRunID, iqbenchmarkartifact.FieldTaskID, iqbenchmarkartifact.FieldCaseID, iqbenchmarkartifact.FieldGroupID, iqbenchmarkartifact.FieldDurationMs, iqbenchmarkartifact.FieldInputTokens, iqbenchmarkartifact.FieldOutputTokens, iqbenchmarkartifact.FieldScoredBy, iqbenchmarkartifact.FieldTriggeredByUserID, iqbenchmarkartifact.FieldReviewedBy:
 			values[i] = new(sql.NullInt64)
 		case iqbenchmarkartifact.FieldModel, iqbenchmarkartifact.FieldRenderKind, iqbenchmarkartifact.FieldImageURL, iqbenchmarkartifact.FieldContent, iqbenchmarkartifact.FieldContentSha256, iqbenchmarkartifact.FieldRawResponseRef, iqbenchmarkartifact.FieldStatus, iqbenchmarkartifact.FieldErrorCode, iqbenchmarkartifact.FieldErrorSummary, iqbenchmarkartifact.FieldBlobKey, iqbenchmarkartifact.FieldSource, iqbenchmarkartifact.FieldModerationStatus:
 			values[i] = new(sql.NullString)
-		case iqbenchmarkartifact.FieldCreatedAt, iqbenchmarkartifact.FieldUpdatedAt, iqbenchmarkartifact.FieldScoredAt, iqbenchmarkartifact.FieldDeletedAt:
+		case iqbenchmarkartifact.FieldCreatedAt, iqbenchmarkartifact.FieldUpdatedAt, iqbenchmarkartifact.FieldScoredAt, iqbenchmarkartifact.FieldDeletedAt, iqbenchmarkartifact.FieldReviewedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -327,6 +331,20 @@ func (_m *IQBenchmarkArtifact) assignValues(columns []string, values []any) erro
 			} else if value.Valid {
 				_m.ModerationStatus = value.String
 			}
+		case iqbenchmarkartifact.FieldReviewedBy:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field reviewed_by", values[i])
+			} else if value.Valid {
+				_m.ReviewedBy = new(int64)
+				*_m.ReviewedBy = value.Int64
+			}
+		case iqbenchmarkartifact.FieldReviewedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field reviewed_at", values[i])
+			} else if value.Valid {
+				_m.ReviewedAt = new(time.Time)
+				*_m.ReviewedAt = value.Time
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -483,6 +501,16 @@ func (_m *IQBenchmarkArtifact) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("moderation_status=")
 	builder.WriteString(_m.ModerationStatus)
+	builder.WriteString(", ")
+	if v := _m.ReviewedBy; v != nil {
+		builder.WriteString("reviewed_by=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.ReviewedAt; v != nil {
+		builder.WriteString("reviewed_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

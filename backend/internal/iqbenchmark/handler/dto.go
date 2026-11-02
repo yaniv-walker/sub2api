@@ -113,6 +113,13 @@ type AdminArtifactDTO struct {
 	ScoredAt         *time.Time     `json:"scored_at"`
 	BlobKey          string         `json:"blob_key"`
 	CreatedAt        time.Time      `json:"created_at"`
+	// 来源与审核：管理侧要能把官方检测与用户自测分开审阅，
+	// 也要能回答「这条 pending 是谁放行的」。
+	Source            string     `json:"source"`
+	TriggeredByUserID *int64     `json:"triggered_by_user_id"`
+	ModerationStatus  string     `json:"moderation_status"`
+	ReviewedBy        *int64     `json:"reviewed_by"`
+	ReviewedAt        *time.Time `json:"reviewed_at"`
 }
 
 // ---------- 公开侧 DTO（白名单）----------
@@ -320,33 +327,38 @@ func toAdminArtifact(a *iqbenchmark.Artifact) AdminArtifactDTO {
 		flags = []string{}
 	}
 	return AdminArtifactDTO{
-		ID:               a.ID,
-		RunID:            a.RunID,
-		TaskID:           a.TaskID,
-		CaseID:           a.CaseID,
-		CaseSnapshot:     nonNilMap(a.CaseSnapshot),
-		GroupID:          a.GroupID,
-		Model:            a.Model,
-		RequestParams:    nonNilMap(a.RequestParams),
-		RenderKind:       a.RenderKind,
-		ImageURL:         a.ImageURL,
-		Content:          a.Content,
-		ContentTruncated: a.ContentTruncated,
-		ContentSHA256:    a.ContentSHA256,
-		UnsafeFlags:      flags,
-		RawResponseRef:   a.RawResponseRef,
-		DurationMS:       a.DurationMS,
-		InputTokens:      a.InputTokens,
-		OutputTokens:     a.OutputTokens,
-		Cost:             a.Cost,
-		Status:           a.Status,
-		ErrorCode:        a.ErrorCode,
-		ErrorSummary:     a.ErrorSummary,
-		Score:            a.Score,
-		ScoredBy:         a.ScoredBy,
-		ScoredAt:         a.ScoredAt,
-		BlobKey:          a.BlobKey,
-		CreatedAt:        a.CreatedAt,
+		ID:                a.ID,
+		RunID:             a.RunID,
+		TaskID:            a.TaskID,
+		CaseID:            a.CaseID,
+		CaseSnapshot:      nonNilMap(a.CaseSnapshot),
+		GroupID:           a.GroupID,
+		Model:             a.Model,
+		RequestParams:     nonNilMap(a.RequestParams),
+		RenderKind:        a.RenderKind,
+		ImageURL:          a.ImageURL,
+		Content:           a.Content,
+		ContentTruncated:  a.ContentTruncated,
+		ContentSHA256:     a.ContentSHA256,
+		UnsafeFlags:       flags,
+		RawResponseRef:    a.RawResponseRef,
+		DurationMS:        a.DurationMS,
+		InputTokens:       a.InputTokens,
+		OutputTokens:      a.OutputTokens,
+		Cost:              a.Cost,
+		Status:            a.Status,
+		ErrorCode:         a.ErrorCode,
+		ErrorSummary:      a.ErrorSummary,
+		Score:             a.Score,
+		ScoredBy:          a.ScoredBy,
+		ScoredAt:          a.ScoredAt,
+		BlobKey:           a.BlobKey,
+		CreatedAt:         a.CreatedAt,
+		Source:            adminArtifactSource(a.Source),
+		TriggeredByUserID: optionalID(a.TriggeredByUserID),
+		ModerationStatus:  adminArtifactModeration(a.ModerationStatus),
+		ReviewedBy:        optionalID(a.ReviewedBy),
+		ReviewedAt:        a.ReviewedAt,
 	}
 }
 
@@ -430,6 +442,37 @@ func publicArtifactSource(source string) string {
 		return source
 	}
 	return iqbenchmark.SourceScheduled
+}
+
+// adminArtifactSource 管理侧的来源：与公开侧同一套合法值，但**不回退**
+// 成 scheduled —— 管理侧看到错误标注只会掩盖数据问题，不如原样暴露。
+func adminArtifactSource(source string) string {
+	if iqbenchmark.ValidStoredSource(source) {
+		return source
+	}
+	return iqbenchmark.SourceScheduled
+}
+
+// adminArtifactModeration 管理侧的审核状态：列有 NOT NULL DEFAULT，
+// 正常不会为空；真为空时按 approved 展示与数据库默认保持一致。
+func adminArtifactModeration(status string) string {
+	switch status {
+	case iqbenchmark.ModerationPending, iqbenchmark.ModerationRejected:
+		return status
+	default:
+		return iqbenchmark.ModerationApproved
+	}
+}
+
+// optionalID 把领域层的「0 表示不存在」还原成 JSON 的 null。
+//
+// 管理侧必须能区分「0 号用户」与「没有触发者」—— 前者不存在，但把两者
+// 混成同一个数字会让审计时无法判断这条产出到底是不是自测。
+func optionalID(v int64) *int64 {
+	if v == 0 {
+		return nil
+	}
+	return &v
 }
 
 // toPublicArtifacts 批量映射公开侧产出。

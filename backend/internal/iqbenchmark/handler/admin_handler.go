@@ -339,6 +339,44 @@ func (h *AdminHandler) ScoreArtifact(c *gin.Context) {
 	response.Success(c, gin.H{"scored": true})
 }
 
+// ModerateArtifact 审核一件产出（通过 / 拒绝）。
+//
+// 公开作品展只返回 approved，所以 `require_review` 打开后，**没有这个动作
+// 待审产出就永远进不了公开页** —— 用户花钱测完却什么都看不到。
+// 只允许在三种状态间显式迁移，不提供「清空审核状态」：一条产出必须
+// 明确是通过还是拒绝，含糊的中间态会让公开页的过滤条件失去意义。
+func (h *AdminHandler) ModerateArtifact(c *gin.Context) {
+	if !h.ensureEnabled(c) {
+		return
+	}
+	id, ok := parseIDParam(c, "id")
+	if !ok {
+		return
+	}
+	var req struct {
+		Status string `json:"status"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	// 白名单校验在 handler 做：让非法值得到明确的 400，
+	// 而不是「更新了 0 行却返回成功」。
+	switch strings.TrimSpace(req.Status) {
+	case iqbenchmark.ModerationApproved, iqbenchmark.ModerationRejected, iqbenchmark.ModerationPending:
+	default:
+		response.BadRequest(c, "status must be one of approved, pending, rejected")
+		return
+	}
+	reviewedBy := currentUserID(c)
+	if err := h.Artifact.Moderate(c.Request.Context(), id, strings.TrimSpace(req.Status), reviewedBy); err != nil {
+		writeError(c, err)
+		return
+	}
+	middleware.SetAuditAction(c, "admin.iq_benchmark.artifact.moderate")
+	response.Success(c, gin.H{"moderated": true})
+}
+
 // ---------- 总览 ----------
 
 // GetOverview 返回总览（管理侧含分组维度）。

@@ -105,6 +105,16 @@ func iqTestDB(t *testing.T) *sql.DB {
 	// IF NOT EXISTS，重复执行必须安全（这也是迁移器「每个文件一个事务」的前提）。
 	_, err = db.Exec(string(migration251))
 	require.NoError(t, err, "migration 251 must be safely repeatable")
+
+	// 252 只给 artifacts 加 reviewed_by / reviewed_at 两列（审核留痕），
+	// 不依赖 251 之外的结构，但仍须按序应用。
+	migration252, err := migrations.FS.ReadFile("252_iq_benchmark_artifact_review.sql")
+	require.NoError(t, err)
+	_, err = db.Exec(string(migration252))
+	require.NoError(t, err, "migration 252 must apply on top of 251")
+	// 幂等性：ADD COLUMN IF NOT EXISTS，重复执行必须安全。
+	_, err = db.Exec(string(migration252))
+	require.NoError(t, err, "migration 252 must be safely repeatable")
 	return db
 }
 
@@ -331,6 +341,64 @@ func TestIQBenchmarkUserTestArtifactKeepsNullRunAndTask(t *testing.T) {
 	require.Equal(t, int64(0), got.TaskID)
 	require.Equal(t, int64(42), got.TriggeredByUserID)
 	require.Equal(t, iqbenchmark.SourceUserTest, got.Source)
+}
+
+// TestIQBenchmarkModerateArtifactPersistsReview 覆盖审核动作的落库与留痕。
+//
+// 这是「待审产出能被放行」的端到端证明：写入 pending → 审核为 approved →
+// 公开侧的过滤条件（moderation_status='approved'）能查到它。
+// 没有这条链路，require_review 打开后用户测出的作品永远进不了公开页。
+func TestIQBenchmarkModerateArtifactPersistsReview(t *testing.T) {
+	db := iqTestDB(t)
+	ctx := context.Background()
+	repo := iqTestRepo(db)
+
+	created, err := repo.CreateArtifact(ctx, iqbenchmark.ArtifactCreateInput{
+		CaseID:            1,
+		CaseSnapshot:      map[string]any{"name": "pending-one"},
+		GroupID:           7,
+		Model:             "gpt-4o",
+		RenderKind:        iqbenchmark.RenderKindMarkdown,
+		Status:            iqbenchmark.ArtifactStatusSuccess,
+		Source:            iqbenchmark.SourceUserTest,
+		TriggeredByUserID: 42,
+		ModerationStatus:  iqbenchmark.ModerationPending,
+	})
+	require.NoError(t, err)
+
+	// 审核前：公开侧口径（approved）查不到它。
+	before, err := repo.ListArtifacts(ctx, iqbenchmark.ArtifactListFilter{
+		Source:           iqbenchmark.SourceUserTest,
+		ModerationStatus: iqbenchmark.ModerationApproved,
+		Page:             1,
+		PageSize:         10,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(0), before.Total, "pending artifacts must not be publicly visible")
+
+	// 管理员放行。
+	require.NoError(t, repo.ModerateArtifact(ctx, created.ID, iqbenchmark.ModerationApproved, 7, time.Now()))
+
+	// 审核后：能查到，且留痕可读回。
+	after, err := repo.ListArtifacts(ctx, iqbenchmark.ArtifactListFilter{
+		Source:           iqbenchmark.SourceUserTest,
+		ModerationStatus: iqbenchmark.ModerationApproved,
+		Page:             1,
+		PageSize:         10,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), after.Total, "approved artifact must become publicly visible")
+
+	got, err := repo.GetArtifact(ctx, created.ID)
+	require.NoError(t, err)
+	require.Equal(t, iqbenchmark.ModerationApproved, got.ModerationStatus)
+	require.Equal(t, int64(7), got.ReviewedBy, "the reviewer must be recorded")
+	require.NotNil(t, got.ReviewedAt, "the review time must be recorded")
+
+	// 不存在的产出必须报错，不能静默「更新 0 行」。
+	require.ErrorIs(t,
+		repo.ModerateArtifact(ctx, 999999, iqbenchmark.ModerationApproved, 7, time.Now()),
+		iqbenchmark.ErrArtifactNotFound)
 }
 
 // TestIQBenchmarkArtifactSourceConsistencyCheck 保证 source 与 triggered_by_user_id

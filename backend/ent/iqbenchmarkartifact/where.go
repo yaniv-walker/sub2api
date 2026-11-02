@@ -194,6 +194,16 @@ func ModerationStatus(v string) predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldModerationStatus, v))
 }
 
+// ReviewedBy applies equality check predicate on the "reviewed_by" field. It's identical to ReviewedByEQ.
+func ReviewedBy(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldReviewedBy, v))
+}
+
+// ReviewedAt applies equality check predicate on the "reviewed_at" field. It's identical to ReviewedAtEQ.
+func ReviewedAt(v time.Time) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldReviewedAt, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldCreatedAt, v))
@@ -1722,6 +1732,106 @@ func ModerationStatusEqualFold(v string) predicate.IQBenchmarkArtifact {
 // ModerationStatusContainsFold applies the ContainsFold predicate on the "moderation_status" field.
 func ModerationStatusContainsFold(v string) predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldContainsFold(FieldModerationStatus, v))
+}
+
+// ReviewedByEQ applies the EQ predicate on the "reviewed_by" field.
+func ReviewedByEQ(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldReviewedBy, v))
+}
+
+// ReviewedByNEQ applies the NEQ predicate on the "reviewed_by" field.
+func ReviewedByNEQ(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNEQ(FieldReviewedBy, v))
+}
+
+// ReviewedByIn applies the In predicate on the "reviewed_by" field.
+func ReviewedByIn(vs ...int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIn(FieldReviewedBy, vs...))
+}
+
+// ReviewedByNotIn applies the NotIn predicate on the "reviewed_by" field.
+func ReviewedByNotIn(vs ...int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotIn(FieldReviewedBy, vs...))
+}
+
+// ReviewedByGT applies the GT predicate on the "reviewed_by" field.
+func ReviewedByGT(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGT(FieldReviewedBy, v))
+}
+
+// ReviewedByGTE applies the GTE predicate on the "reviewed_by" field.
+func ReviewedByGTE(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGTE(FieldReviewedBy, v))
+}
+
+// ReviewedByLT applies the LT predicate on the "reviewed_by" field.
+func ReviewedByLT(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLT(FieldReviewedBy, v))
+}
+
+// ReviewedByLTE applies the LTE predicate on the "reviewed_by" field.
+func ReviewedByLTE(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLTE(FieldReviewedBy, v))
+}
+
+// ReviewedByIsNil applies the IsNil predicate on the "reviewed_by" field.
+func ReviewedByIsNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIsNull(FieldReviewedBy))
+}
+
+// ReviewedByNotNil applies the NotNil predicate on the "reviewed_by" field.
+func ReviewedByNotNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotNull(FieldReviewedBy))
+}
+
+// ReviewedAtEQ applies the EQ predicate on the "reviewed_at" field.
+func ReviewedAtEQ(v time.Time) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldReviewedAt, v))
+}
+
+// ReviewedAtNEQ applies the NEQ predicate on the "reviewed_at" field.
+func ReviewedAtNEQ(v time.Time) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNEQ(FieldReviewedAt, v))
+}
+
+// ReviewedAtIn applies the In predicate on the "reviewed_at" field.
+func ReviewedAtIn(vs ...time.Time) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIn(FieldReviewedAt, vs...))
+}
+
+// ReviewedAtNotIn applies the NotIn predicate on the "reviewed_at" field.
+func ReviewedAtNotIn(vs ...time.Time) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotIn(FieldReviewedAt, vs...))
+}
+
+// ReviewedAtGT applies the GT predicate on the "reviewed_at" field.
+func ReviewedAtGT(v time.Time) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGT(FieldReviewedAt, v))
+}
+
+// ReviewedAtGTE applies the GTE predicate on the "reviewed_at" field.
+func ReviewedAtGTE(v time.Time) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGTE(FieldReviewedAt, v))
+}
+
+// ReviewedAtLT applies the LT predicate on the "reviewed_at" field.
+func ReviewedAtLT(v time.Time) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLT(FieldReviewedAt, v))
+}
+
+// ReviewedAtLTE applies the LTE predicate on the "reviewed_at" field.
+func ReviewedAtLTE(v time.Time) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLTE(FieldReviewedAt, v))
+}
+
+// ReviewedAtIsNil applies the IsNil predicate on the "reviewed_at" field.
+func ReviewedAtIsNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIsNull(FieldReviewedAt))
+}
+
+// ReviewedAtNotNil applies the NotNil predicate on the "reviewed_at" field.
+func ReviewedAtNotNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotNull(FieldReviewedAt))
 }
 
 // And groups predicates with the AND operator between them.

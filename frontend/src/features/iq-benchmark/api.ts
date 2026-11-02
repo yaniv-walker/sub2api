@@ -13,6 +13,7 @@ import type {
   IQAdminArtifact,
   IQAdminCase,
   IQAdminRun,
+  IQModerationStatus,
   IQAdminTask,
   IQArtifactFilters,
   IQBenchmarkSettings,
@@ -288,6 +289,16 @@ export async function scoreArtifact(id: number, score: number): Promise<IQAdminA
     score,
   })
   return data.data ?? null
+}
+
+/**
+ * 审核一件产出。
+ *
+ * 后端只回 {moderated:true}，不回传整行 —— 与评分的差异是有意的：
+ * 审核是幂等的状态迁移，不需要把整条记录再传一遍。
+ */
+export async function moderateArtifact(id: number, status: IQModerationStatus): Promise<void> {
+  await apiClient.put(`${ADMIN_BASE}/artifacts/${id}/moderation`, { status })
 }
 
 /** 空概览（请求失败时的安全兜底，避免页面因 undefined 崩掉）。 */
