@@ -31,6 +31,10 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkartifact"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkcase"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkrun"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarktask"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -84,6 +88,10 @@ const (
 	TypeCompositeModelRoute           = "CompositeModelRoute"
 	TypeErrorPassthroughRule          = "ErrorPassthroughRule"
 	TypeGroup                         = "Group"
+	TypeIQBenchmarkArtifact           = "IQBenchmarkArtifact"
+	TypeIQBenchmarkCase               = "IQBenchmarkCase"
+	TypeIQBenchmarkRun                = "IQBenchmarkRun"
+	TypeIQBenchmarkTask               = "IQBenchmarkTask"
 	TypeIdempotencyRecord             = "IdempotencyRecord"
 	TypeIdentityAdoptionDecision      = "IdentityAdoptionDecision"
 	TypePaymentAuditLog               = "PaymentAuditLog"
@@ -27911,6 +27919,6548 @@ func (m *GroupMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown Group edge %s", name)
+}
+
+// IQBenchmarkArtifactMutation represents an operation that mutates the IQBenchmarkArtifact nodes in the graph.
+type IQBenchmarkArtifactMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *int64
+	created_at         *time.Time
+	updated_at         *time.Time
+	run_id             *int64
+	addrun_id          *int64
+	task_id            *int64
+	addtask_id         *int64
+	case_id            *int64
+	addcase_id         *int64
+	case_snapshot      *map[string]interface{}
+	group_id           *int64
+	addgroup_id        *int64
+	model              *string
+	request_params     *map[string]interface{}
+	render_kind        *string
+	image_url          *string
+	content            *string
+	content_truncated  *bool
+	content_sha256     *string
+	unsafe_flags       *[]string
+	appendunsafe_flags []string
+	raw_response_ref   *string
+	duration_ms        *int
+	addduration_ms     *int
+	input_tokens       *int
+	addinput_tokens    *int
+	output_tokens      *int
+	addoutput_tokens   *int
+	cost               *float64
+	addcost            *float64
+	status             *string
+	error_code         *string
+	error_summary      *string
+	score              *float64
+	addscore           *float64
+	scored_by          *int64
+	addscored_by       *int64
+	scored_at          *time.Time
+	blob_key           *string
+	deleted_at         *time.Time
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*IQBenchmarkArtifact, error)
+	predicates         []predicate.IQBenchmarkArtifact
+}
+
+var _ ent.Mutation = (*IQBenchmarkArtifactMutation)(nil)
+
+// iqbenchmarkartifactOption allows management of the mutation configuration using functional options.
+type iqbenchmarkartifactOption func(*IQBenchmarkArtifactMutation)
+
+// newIQBenchmarkArtifactMutation creates new mutation for the IQBenchmarkArtifact entity.
+func newIQBenchmarkArtifactMutation(c config, op Op, opts ...iqbenchmarkartifactOption) *IQBenchmarkArtifactMutation {
+	m := &IQBenchmarkArtifactMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeIQBenchmarkArtifact,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withIQBenchmarkArtifactID sets the ID field of the mutation.
+func withIQBenchmarkArtifactID(id int64) iqbenchmarkartifactOption {
+	return func(m *IQBenchmarkArtifactMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *IQBenchmarkArtifact
+		)
+		m.oldValue = func(ctx context.Context) (*IQBenchmarkArtifact, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().IQBenchmarkArtifact.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withIQBenchmarkArtifact sets the old IQBenchmarkArtifact of the mutation.
+func withIQBenchmarkArtifact(node *IQBenchmarkArtifact) iqbenchmarkartifactOption {
+	return func(m *IQBenchmarkArtifactMutation) {
+		m.oldValue = func(context.Context) (*IQBenchmarkArtifact, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m IQBenchmarkArtifactMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m IQBenchmarkArtifactMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *IQBenchmarkArtifactMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *IQBenchmarkArtifactMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().IQBenchmarkArtifact.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *IQBenchmarkArtifactMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *IQBenchmarkArtifactMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *IQBenchmarkArtifactMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *IQBenchmarkArtifactMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetRunID sets the "run_id" field.
+func (m *IQBenchmarkArtifactMutation) SetRunID(i int64) {
+	m.run_id = &i
+	m.addrun_id = nil
+}
+
+// RunID returns the value of the "run_id" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) RunID() (r int64, exists bool) {
+	v := m.run_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRunID returns the old "run_id" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldRunID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRunID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRunID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRunID: %w", err)
+	}
+	return oldValue.RunID, nil
+}
+
+// AddRunID adds i to the "run_id" field.
+func (m *IQBenchmarkArtifactMutation) AddRunID(i int64) {
+	if m.addrun_id != nil {
+		*m.addrun_id += i
+	} else {
+		m.addrun_id = &i
+	}
+}
+
+// AddedRunID returns the value that was added to the "run_id" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedRunID() (r int64, exists bool) {
+	v := m.addrun_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRunID resets all changes to the "run_id" field.
+func (m *IQBenchmarkArtifactMutation) ResetRunID() {
+	m.run_id = nil
+	m.addrun_id = nil
+}
+
+// SetTaskID sets the "task_id" field.
+func (m *IQBenchmarkArtifactMutation) SetTaskID(i int64) {
+	m.task_id = &i
+	m.addtask_id = nil
+}
+
+// TaskID returns the value of the "task_id" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) TaskID() (r int64, exists bool) {
+	v := m.task_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaskID returns the old "task_id" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldTaskID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaskID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaskID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaskID: %w", err)
+	}
+	return oldValue.TaskID, nil
+}
+
+// AddTaskID adds i to the "task_id" field.
+func (m *IQBenchmarkArtifactMutation) AddTaskID(i int64) {
+	if m.addtask_id != nil {
+		*m.addtask_id += i
+	} else {
+		m.addtask_id = &i
+	}
+}
+
+// AddedTaskID returns the value that was added to the "task_id" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedTaskID() (r int64, exists bool) {
+	v := m.addtask_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTaskID resets all changes to the "task_id" field.
+func (m *IQBenchmarkArtifactMutation) ResetTaskID() {
+	m.task_id = nil
+	m.addtask_id = nil
+}
+
+// SetCaseID sets the "case_id" field.
+func (m *IQBenchmarkArtifactMutation) SetCaseID(i int64) {
+	m.case_id = &i
+	m.addcase_id = nil
+}
+
+// CaseID returns the value of the "case_id" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) CaseID() (r int64, exists bool) {
+	v := m.case_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCaseID returns the old "case_id" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldCaseID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCaseID: %w", err)
+	}
+	return oldValue.CaseID, nil
+}
+
+// AddCaseID adds i to the "case_id" field.
+func (m *IQBenchmarkArtifactMutation) AddCaseID(i int64) {
+	if m.addcase_id != nil {
+		*m.addcase_id += i
+	} else {
+		m.addcase_id = &i
+	}
+}
+
+// AddedCaseID returns the value that was added to the "case_id" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedCaseID() (r int64, exists bool) {
+	v := m.addcase_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCaseID resets all changes to the "case_id" field.
+func (m *IQBenchmarkArtifactMutation) ResetCaseID() {
+	m.case_id = nil
+	m.addcase_id = nil
+}
+
+// SetCaseSnapshot sets the "case_snapshot" field.
+func (m *IQBenchmarkArtifactMutation) SetCaseSnapshot(value map[string]interface{}) {
+	m.case_snapshot = &value
+}
+
+// CaseSnapshot returns the value of the "case_snapshot" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) CaseSnapshot() (r map[string]interface{}, exists bool) {
+	v := m.case_snapshot
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCaseSnapshot returns the old "case_snapshot" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldCaseSnapshot(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCaseSnapshot is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCaseSnapshot requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCaseSnapshot: %w", err)
+	}
+	return oldValue.CaseSnapshot, nil
+}
+
+// ResetCaseSnapshot resets all changes to the "case_snapshot" field.
+func (m *IQBenchmarkArtifactMutation) ResetCaseSnapshot() {
+	m.case_snapshot = nil
+}
+
+// SetGroupID sets the "group_id" field.
+func (m *IQBenchmarkArtifactMutation) SetGroupID(i int64) {
+	m.group_id = &i
+	m.addgroup_id = nil
+}
+
+// GroupID returns the value of the "group_id" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) GroupID() (r int64, exists bool) {
+	v := m.group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroupID returns the old "group_id" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldGroupID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroupID: %w", err)
+	}
+	return oldValue.GroupID, nil
+}
+
+// AddGroupID adds i to the "group_id" field.
+func (m *IQBenchmarkArtifactMutation) AddGroupID(i int64) {
+	if m.addgroup_id != nil {
+		*m.addgroup_id += i
+	} else {
+		m.addgroup_id = &i
+	}
+}
+
+// AddedGroupID returns the value that was added to the "group_id" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedGroupID() (r int64, exists bool) {
+	v := m.addgroup_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetGroupID resets all changes to the "group_id" field.
+func (m *IQBenchmarkArtifactMutation) ResetGroupID() {
+	m.group_id = nil
+	m.addgroup_id = nil
+}
+
+// SetModel sets the "model" field.
+func (m *IQBenchmarkArtifactMutation) SetModel(s string) {
+	m.model = &s
+}
+
+// Model returns the value of the "model" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) Model() (r string, exists bool) {
+	v := m.model
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModel returns the old "model" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldModel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModel: %w", err)
+	}
+	return oldValue.Model, nil
+}
+
+// ResetModel resets all changes to the "model" field.
+func (m *IQBenchmarkArtifactMutation) ResetModel() {
+	m.model = nil
+}
+
+// SetRequestParams sets the "request_params" field.
+func (m *IQBenchmarkArtifactMutation) SetRequestParams(value map[string]interface{}) {
+	m.request_params = &value
+}
+
+// RequestParams returns the value of the "request_params" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) RequestParams() (r map[string]interface{}, exists bool) {
+	v := m.request_params
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequestParams returns the old "request_params" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldRequestParams(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequestParams is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequestParams requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequestParams: %w", err)
+	}
+	return oldValue.RequestParams, nil
+}
+
+// ResetRequestParams resets all changes to the "request_params" field.
+func (m *IQBenchmarkArtifactMutation) ResetRequestParams() {
+	m.request_params = nil
+}
+
+// SetRenderKind sets the "render_kind" field.
+func (m *IQBenchmarkArtifactMutation) SetRenderKind(s string) {
+	m.render_kind = &s
+}
+
+// RenderKind returns the value of the "render_kind" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) RenderKind() (r string, exists bool) {
+	v := m.render_kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRenderKind returns the old "render_kind" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldRenderKind(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRenderKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRenderKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRenderKind: %w", err)
+	}
+	return oldValue.RenderKind, nil
+}
+
+// ResetRenderKind resets all changes to the "render_kind" field.
+func (m *IQBenchmarkArtifactMutation) ResetRenderKind() {
+	m.render_kind = nil
+}
+
+// SetImageURL sets the "image_url" field.
+func (m *IQBenchmarkArtifactMutation) SetImageURL(s string) {
+	m.image_url = &s
+}
+
+// ImageURL returns the value of the "image_url" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) ImageURL() (r string, exists bool) {
+	v := m.image_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldImageURL returns the old "image_url" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldImageURL(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldImageURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldImageURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldImageURL: %w", err)
+	}
+	return oldValue.ImageURL, nil
+}
+
+// ClearImageURL clears the value of the "image_url" field.
+func (m *IQBenchmarkArtifactMutation) ClearImageURL() {
+	m.image_url = nil
+	m.clearedFields[iqbenchmarkartifact.FieldImageURL] = struct{}{}
+}
+
+// ImageURLCleared returns if the "image_url" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) ImageURLCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldImageURL]
+	return ok
+}
+
+// ResetImageURL resets all changes to the "image_url" field.
+func (m *IQBenchmarkArtifactMutation) ResetImageURL() {
+	m.image_url = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldImageURL)
+}
+
+// SetContent sets the "content" field.
+func (m *IQBenchmarkArtifactMutation) SetContent(s string) {
+	m.content = &s
+}
+
+// Content returns the value of the "content" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) Content() (r string, exists bool) {
+	v := m.content
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContent returns the old "content" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldContent(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContent is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContent requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContent: %w", err)
+	}
+	return oldValue.Content, nil
+}
+
+// ClearContent clears the value of the "content" field.
+func (m *IQBenchmarkArtifactMutation) ClearContent() {
+	m.content = nil
+	m.clearedFields[iqbenchmarkartifact.FieldContent] = struct{}{}
+}
+
+// ContentCleared returns if the "content" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) ContentCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldContent]
+	return ok
+}
+
+// ResetContent resets all changes to the "content" field.
+func (m *IQBenchmarkArtifactMutation) ResetContent() {
+	m.content = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldContent)
+}
+
+// SetContentTruncated sets the "content_truncated" field.
+func (m *IQBenchmarkArtifactMutation) SetContentTruncated(b bool) {
+	m.content_truncated = &b
+}
+
+// ContentTruncated returns the value of the "content_truncated" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) ContentTruncated() (r bool, exists bool) {
+	v := m.content_truncated
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContentTruncated returns the old "content_truncated" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldContentTruncated(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContentTruncated is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContentTruncated requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContentTruncated: %w", err)
+	}
+	return oldValue.ContentTruncated, nil
+}
+
+// ResetContentTruncated resets all changes to the "content_truncated" field.
+func (m *IQBenchmarkArtifactMutation) ResetContentTruncated() {
+	m.content_truncated = nil
+}
+
+// SetContentSha256 sets the "content_sha256" field.
+func (m *IQBenchmarkArtifactMutation) SetContentSha256(s string) {
+	m.content_sha256 = &s
+}
+
+// ContentSha256 returns the value of the "content_sha256" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) ContentSha256() (r string, exists bool) {
+	v := m.content_sha256
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContentSha256 returns the old "content_sha256" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldContentSha256(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContentSha256 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContentSha256 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContentSha256: %w", err)
+	}
+	return oldValue.ContentSha256, nil
+}
+
+// ClearContentSha256 clears the value of the "content_sha256" field.
+func (m *IQBenchmarkArtifactMutation) ClearContentSha256() {
+	m.content_sha256 = nil
+	m.clearedFields[iqbenchmarkartifact.FieldContentSha256] = struct{}{}
+}
+
+// ContentSha256Cleared returns if the "content_sha256" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) ContentSha256Cleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldContentSha256]
+	return ok
+}
+
+// ResetContentSha256 resets all changes to the "content_sha256" field.
+func (m *IQBenchmarkArtifactMutation) ResetContentSha256() {
+	m.content_sha256 = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldContentSha256)
+}
+
+// SetUnsafeFlags sets the "unsafe_flags" field.
+func (m *IQBenchmarkArtifactMutation) SetUnsafeFlags(s []string) {
+	m.unsafe_flags = &s
+	m.appendunsafe_flags = nil
+}
+
+// UnsafeFlags returns the value of the "unsafe_flags" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) UnsafeFlags() (r []string, exists bool) {
+	v := m.unsafe_flags
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUnsafeFlags returns the old "unsafe_flags" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldUnsafeFlags(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUnsafeFlags is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUnsafeFlags requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUnsafeFlags: %w", err)
+	}
+	return oldValue.UnsafeFlags, nil
+}
+
+// AppendUnsafeFlags adds s to the "unsafe_flags" field.
+func (m *IQBenchmarkArtifactMutation) AppendUnsafeFlags(s []string) {
+	m.appendunsafe_flags = append(m.appendunsafe_flags, s...)
+}
+
+// AppendedUnsafeFlags returns the list of values that were appended to the "unsafe_flags" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AppendedUnsafeFlags() ([]string, bool) {
+	if len(m.appendunsafe_flags) == 0 {
+		return nil, false
+	}
+	return m.appendunsafe_flags, true
+}
+
+// ResetUnsafeFlags resets all changes to the "unsafe_flags" field.
+func (m *IQBenchmarkArtifactMutation) ResetUnsafeFlags() {
+	m.unsafe_flags = nil
+	m.appendunsafe_flags = nil
+}
+
+// SetRawResponseRef sets the "raw_response_ref" field.
+func (m *IQBenchmarkArtifactMutation) SetRawResponseRef(s string) {
+	m.raw_response_ref = &s
+}
+
+// RawResponseRef returns the value of the "raw_response_ref" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) RawResponseRef() (r string, exists bool) {
+	v := m.raw_response_ref
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRawResponseRef returns the old "raw_response_ref" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldRawResponseRef(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRawResponseRef is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRawResponseRef requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRawResponseRef: %w", err)
+	}
+	return oldValue.RawResponseRef, nil
+}
+
+// ClearRawResponseRef clears the value of the "raw_response_ref" field.
+func (m *IQBenchmarkArtifactMutation) ClearRawResponseRef() {
+	m.raw_response_ref = nil
+	m.clearedFields[iqbenchmarkartifact.FieldRawResponseRef] = struct{}{}
+}
+
+// RawResponseRefCleared returns if the "raw_response_ref" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) RawResponseRefCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldRawResponseRef]
+	return ok
+}
+
+// ResetRawResponseRef resets all changes to the "raw_response_ref" field.
+func (m *IQBenchmarkArtifactMutation) ResetRawResponseRef() {
+	m.raw_response_ref = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldRawResponseRef)
+}
+
+// SetDurationMs sets the "duration_ms" field.
+func (m *IQBenchmarkArtifactMutation) SetDurationMs(i int) {
+	m.duration_ms = &i
+	m.addduration_ms = nil
+}
+
+// DurationMs returns the value of the "duration_ms" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) DurationMs() (r int, exists bool) {
+	v := m.duration_ms
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDurationMs returns the old "duration_ms" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldDurationMs(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDurationMs is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDurationMs requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDurationMs: %w", err)
+	}
+	return oldValue.DurationMs, nil
+}
+
+// AddDurationMs adds i to the "duration_ms" field.
+func (m *IQBenchmarkArtifactMutation) AddDurationMs(i int) {
+	if m.addduration_ms != nil {
+		*m.addduration_ms += i
+	} else {
+		m.addduration_ms = &i
+	}
+}
+
+// AddedDurationMs returns the value that was added to the "duration_ms" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedDurationMs() (r int, exists bool) {
+	v := m.addduration_ms
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDurationMs resets all changes to the "duration_ms" field.
+func (m *IQBenchmarkArtifactMutation) ResetDurationMs() {
+	m.duration_ms = nil
+	m.addduration_ms = nil
+}
+
+// SetInputTokens sets the "input_tokens" field.
+func (m *IQBenchmarkArtifactMutation) SetInputTokens(i int) {
+	m.input_tokens = &i
+	m.addinput_tokens = nil
+}
+
+// InputTokens returns the value of the "input_tokens" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) InputTokens() (r int, exists bool) {
+	v := m.input_tokens
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInputTokens returns the old "input_tokens" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldInputTokens(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInputTokens is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInputTokens requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInputTokens: %w", err)
+	}
+	return oldValue.InputTokens, nil
+}
+
+// AddInputTokens adds i to the "input_tokens" field.
+func (m *IQBenchmarkArtifactMutation) AddInputTokens(i int) {
+	if m.addinput_tokens != nil {
+		*m.addinput_tokens += i
+	} else {
+		m.addinput_tokens = &i
+	}
+}
+
+// AddedInputTokens returns the value that was added to the "input_tokens" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedInputTokens() (r int, exists bool) {
+	v := m.addinput_tokens
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetInputTokens resets all changes to the "input_tokens" field.
+func (m *IQBenchmarkArtifactMutation) ResetInputTokens() {
+	m.input_tokens = nil
+	m.addinput_tokens = nil
+}
+
+// SetOutputTokens sets the "output_tokens" field.
+func (m *IQBenchmarkArtifactMutation) SetOutputTokens(i int) {
+	m.output_tokens = &i
+	m.addoutput_tokens = nil
+}
+
+// OutputTokens returns the value of the "output_tokens" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) OutputTokens() (r int, exists bool) {
+	v := m.output_tokens
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOutputTokens returns the old "output_tokens" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldOutputTokens(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOutputTokens is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOutputTokens requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOutputTokens: %w", err)
+	}
+	return oldValue.OutputTokens, nil
+}
+
+// AddOutputTokens adds i to the "output_tokens" field.
+func (m *IQBenchmarkArtifactMutation) AddOutputTokens(i int) {
+	if m.addoutput_tokens != nil {
+		*m.addoutput_tokens += i
+	} else {
+		m.addoutput_tokens = &i
+	}
+}
+
+// AddedOutputTokens returns the value that was added to the "output_tokens" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedOutputTokens() (r int, exists bool) {
+	v := m.addoutput_tokens
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOutputTokens resets all changes to the "output_tokens" field.
+func (m *IQBenchmarkArtifactMutation) ResetOutputTokens() {
+	m.output_tokens = nil
+	m.addoutput_tokens = nil
+}
+
+// SetCost sets the "cost" field.
+func (m *IQBenchmarkArtifactMutation) SetCost(f float64) {
+	m.cost = &f
+	m.addcost = nil
+}
+
+// Cost returns the value of the "cost" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) Cost() (r float64, exists bool) {
+	v := m.cost
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCost returns the old "cost" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldCost(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCost is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCost requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCost: %w", err)
+	}
+	return oldValue.Cost, nil
+}
+
+// AddCost adds f to the "cost" field.
+func (m *IQBenchmarkArtifactMutation) AddCost(f float64) {
+	if m.addcost != nil {
+		*m.addcost += f
+	} else {
+		m.addcost = &f
+	}
+}
+
+// AddedCost returns the value that was added to the "cost" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedCost() (r float64, exists bool) {
+	v := m.addcost
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCost resets all changes to the "cost" field.
+func (m *IQBenchmarkArtifactMutation) ResetCost() {
+	m.cost = nil
+	m.addcost = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *IQBenchmarkArtifactMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *IQBenchmarkArtifactMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetErrorCode sets the "error_code" field.
+func (m *IQBenchmarkArtifactMutation) SetErrorCode(s string) {
+	m.error_code = &s
+}
+
+// ErrorCode returns the value of the "error_code" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) ErrorCode() (r string, exists bool) {
+	v := m.error_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldErrorCode returns the old "error_code" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldErrorCode(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldErrorCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldErrorCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldErrorCode: %w", err)
+	}
+	return oldValue.ErrorCode, nil
+}
+
+// ClearErrorCode clears the value of the "error_code" field.
+func (m *IQBenchmarkArtifactMutation) ClearErrorCode() {
+	m.error_code = nil
+	m.clearedFields[iqbenchmarkartifact.FieldErrorCode] = struct{}{}
+}
+
+// ErrorCodeCleared returns if the "error_code" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) ErrorCodeCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldErrorCode]
+	return ok
+}
+
+// ResetErrorCode resets all changes to the "error_code" field.
+func (m *IQBenchmarkArtifactMutation) ResetErrorCode() {
+	m.error_code = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldErrorCode)
+}
+
+// SetErrorSummary sets the "error_summary" field.
+func (m *IQBenchmarkArtifactMutation) SetErrorSummary(s string) {
+	m.error_summary = &s
+}
+
+// ErrorSummary returns the value of the "error_summary" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) ErrorSummary() (r string, exists bool) {
+	v := m.error_summary
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldErrorSummary returns the old "error_summary" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldErrorSummary(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldErrorSummary is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldErrorSummary requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldErrorSummary: %w", err)
+	}
+	return oldValue.ErrorSummary, nil
+}
+
+// ClearErrorSummary clears the value of the "error_summary" field.
+func (m *IQBenchmarkArtifactMutation) ClearErrorSummary() {
+	m.error_summary = nil
+	m.clearedFields[iqbenchmarkartifact.FieldErrorSummary] = struct{}{}
+}
+
+// ErrorSummaryCleared returns if the "error_summary" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) ErrorSummaryCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldErrorSummary]
+	return ok
+}
+
+// ResetErrorSummary resets all changes to the "error_summary" field.
+func (m *IQBenchmarkArtifactMutation) ResetErrorSummary() {
+	m.error_summary = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldErrorSummary)
+}
+
+// SetScore sets the "score" field.
+func (m *IQBenchmarkArtifactMutation) SetScore(f float64) {
+	m.score = &f
+	m.addscore = nil
+}
+
+// Score returns the value of the "score" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) Score() (r float64, exists bool) {
+	v := m.score
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScore returns the old "score" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldScore(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScore is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScore requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScore: %w", err)
+	}
+	return oldValue.Score, nil
+}
+
+// AddScore adds f to the "score" field.
+func (m *IQBenchmarkArtifactMutation) AddScore(f float64) {
+	if m.addscore != nil {
+		*m.addscore += f
+	} else {
+		m.addscore = &f
+	}
+}
+
+// AddedScore returns the value that was added to the "score" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedScore() (r float64, exists bool) {
+	v := m.addscore
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearScore clears the value of the "score" field.
+func (m *IQBenchmarkArtifactMutation) ClearScore() {
+	m.score = nil
+	m.addscore = nil
+	m.clearedFields[iqbenchmarkartifact.FieldScore] = struct{}{}
+}
+
+// ScoreCleared returns if the "score" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) ScoreCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldScore]
+	return ok
+}
+
+// ResetScore resets all changes to the "score" field.
+func (m *IQBenchmarkArtifactMutation) ResetScore() {
+	m.score = nil
+	m.addscore = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldScore)
+}
+
+// SetScoredBy sets the "scored_by" field.
+func (m *IQBenchmarkArtifactMutation) SetScoredBy(i int64) {
+	m.scored_by = &i
+	m.addscored_by = nil
+}
+
+// ScoredBy returns the value of the "scored_by" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) ScoredBy() (r int64, exists bool) {
+	v := m.scored_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScoredBy returns the old "scored_by" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldScoredBy(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScoredBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScoredBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScoredBy: %w", err)
+	}
+	return oldValue.ScoredBy, nil
+}
+
+// AddScoredBy adds i to the "scored_by" field.
+func (m *IQBenchmarkArtifactMutation) AddScoredBy(i int64) {
+	if m.addscored_by != nil {
+		*m.addscored_by += i
+	} else {
+		m.addscored_by = &i
+	}
+}
+
+// AddedScoredBy returns the value that was added to the "scored_by" field in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedScoredBy() (r int64, exists bool) {
+	v := m.addscored_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearScoredBy clears the value of the "scored_by" field.
+func (m *IQBenchmarkArtifactMutation) ClearScoredBy() {
+	m.scored_by = nil
+	m.addscored_by = nil
+	m.clearedFields[iqbenchmarkartifact.FieldScoredBy] = struct{}{}
+}
+
+// ScoredByCleared returns if the "scored_by" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) ScoredByCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldScoredBy]
+	return ok
+}
+
+// ResetScoredBy resets all changes to the "scored_by" field.
+func (m *IQBenchmarkArtifactMutation) ResetScoredBy() {
+	m.scored_by = nil
+	m.addscored_by = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldScoredBy)
+}
+
+// SetScoredAt sets the "scored_at" field.
+func (m *IQBenchmarkArtifactMutation) SetScoredAt(t time.Time) {
+	m.scored_at = &t
+}
+
+// ScoredAt returns the value of the "scored_at" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) ScoredAt() (r time.Time, exists bool) {
+	v := m.scored_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScoredAt returns the old "scored_at" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldScoredAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScoredAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScoredAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScoredAt: %w", err)
+	}
+	return oldValue.ScoredAt, nil
+}
+
+// ClearScoredAt clears the value of the "scored_at" field.
+func (m *IQBenchmarkArtifactMutation) ClearScoredAt() {
+	m.scored_at = nil
+	m.clearedFields[iqbenchmarkartifact.FieldScoredAt] = struct{}{}
+}
+
+// ScoredAtCleared returns if the "scored_at" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) ScoredAtCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldScoredAt]
+	return ok
+}
+
+// ResetScoredAt resets all changes to the "scored_at" field.
+func (m *IQBenchmarkArtifactMutation) ResetScoredAt() {
+	m.scored_at = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldScoredAt)
+}
+
+// SetBlobKey sets the "blob_key" field.
+func (m *IQBenchmarkArtifactMutation) SetBlobKey(s string) {
+	m.blob_key = &s
+}
+
+// BlobKey returns the value of the "blob_key" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) BlobKey() (r string, exists bool) {
+	v := m.blob_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBlobKey returns the old "blob_key" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldBlobKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBlobKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBlobKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBlobKey: %w", err)
+	}
+	return oldValue.BlobKey, nil
+}
+
+// ClearBlobKey clears the value of the "blob_key" field.
+func (m *IQBenchmarkArtifactMutation) ClearBlobKey() {
+	m.blob_key = nil
+	m.clearedFields[iqbenchmarkartifact.FieldBlobKey] = struct{}{}
+}
+
+// BlobKeyCleared returns if the "blob_key" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) BlobKeyCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldBlobKey]
+	return ok
+}
+
+// ResetBlobKey resets all changes to the "blob_key" field.
+func (m *IQBenchmarkArtifactMutation) ResetBlobKey() {
+	m.blob_key = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldBlobKey)
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *IQBenchmarkArtifactMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *IQBenchmarkArtifactMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the IQBenchmarkArtifact entity.
+// If the IQBenchmarkArtifact object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkArtifactMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *IQBenchmarkArtifactMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[iqbenchmarkartifact.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkartifact.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *IQBenchmarkArtifactMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, iqbenchmarkartifact.FieldDeletedAt)
+}
+
+// Where appends a list predicates to the IQBenchmarkArtifactMutation builder.
+func (m *IQBenchmarkArtifactMutation) Where(ps ...predicate.IQBenchmarkArtifact) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the IQBenchmarkArtifactMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *IQBenchmarkArtifactMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.IQBenchmarkArtifact, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *IQBenchmarkArtifactMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *IQBenchmarkArtifactMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (IQBenchmarkArtifact).
+func (m *IQBenchmarkArtifactMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *IQBenchmarkArtifactMutation) Fields() []string {
+	fields := make([]string, 0, 28)
+	if m.created_at != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldUpdatedAt)
+	}
+	if m.run_id != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldRunID)
+	}
+	if m.task_id != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldTaskID)
+	}
+	if m.case_id != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldCaseID)
+	}
+	if m.case_snapshot != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldCaseSnapshot)
+	}
+	if m.group_id != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldGroupID)
+	}
+	if m.model != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldModel)
+	}
+	if m.request_params != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldRequestParams)
+	}
+	if m.render_kind != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldRenderKind)
+	}
+	if m.image_url != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldImageURL)
+	}
+	if m.content != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldContent)
+	}
+	if m.content_truncated != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldContentTruncated)
+	}
+	if m.content_sha256 != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldContentSha256)
+	}
+	if m.unsafe_flags != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldUnsafeFlags)
+	}
+	if m.raw_response_ref != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldRawResponseRef)
+	}
+	if m.duration_ms != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldDurationMs)
+	}
+	if m.input_tokens != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldInputTokens)
+	}
+	if m.output_tokens != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldOutputTokens)
+	}
+	if m.cost != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldCost)
+	}
+	if m.status != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldStatus)
+	}
+	if m.error_code != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldErrorCode)
+	}
+	if m.error_summary != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldErrorSummary)
+	}
+	if m.score != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldScore)
+	}
+	if m.scored_by != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldScoredBy)
+	}
+	if m.scored_at != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldScoredAt)
+	}
+	if m.blob_key != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldBlobKey)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldDeletedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *IQBenchmarkArtifactMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case iqbenchmarkartifact.FieldCreatedAt:
+		return m.CreatedAt()
+	case iqbenchmarkartifact.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case iqbenchmarkartifact.FieldRunID:
+		return m.RunID()
+	case iqbenchmarkartifact.FieldTaskID:
+		return m.TaskID()
+	case iqbenchmarkartifact.FieldCaseID:
+		return m.CaseID()
+	case iqbenchmarkartifact.FieldCaseSnapshot:
+		return m.CaseSnapshot()
+	case iqbenchmarkartifact.FieldGroupID:
+		return m.GroupID()
+	case iqbenchmarkartifact.FieldModel:
+		return m.Model()
+	case iqbenchmarkartifact.FieldRequestParams:
+		return m.RequestParams()
+	case iqbenchmarkartifact.FieldRenderKind:
+		return m.RenderKind()
+	case iqbenchmarkartifact.FieldImageURL:
+		return m.ImageURL()
+	case iqbenchmarkartifact.FieldContent:
+		return m.Content()
+	case iqbenchmarkartifact.FieldContentTruncated:
+		return m.ContentTruncated()
+	case iqbenchmarkartifact.FieldContentSha256:
+		return m.ContentSha256()
+	case iqbenchmarkartifact.FieldUnsafeFlags:
+		return m.UnsafeFlags()
+	case iqbenchmarkartifact.FieldRawResponseRef:
+		return m.RawResponseRef()
+	case iqbenchmarkartifact.FieldDurationMs:
+		return m.DurationMs()
+	case iqbenchmarkartifact.FieldInputTokens:
+		return m.InputTokens()
+	case iqbenchmarkartifact.FieldOutputTokens:
+		return m.OutputTokens()
+	case iqbenchmarkartifact.FieldCost:
+		return m.Cost()
+	case iqbenchmarkartifact.FieldStatus:
+		return m.Status()
+	case iqbenchmarkartifact.FieldErrorCode:
+		return m.ErrorCode()
+	case iqbenchmarkartifact.FieldErrorSummary:
+		return m.ErrorSummary()
+	case iqbenchmarkartifact.FieldScore:
+		return m.Score()
+	case iqbenchmarkartifact.FieldScoredBy:
+		return m.ScoredBy()
+	case iqbenchmarkartifact.FieldScoredAt:
+		return m.ScoredAt()
+	case iqbenchmarkartifact.FieldBlobKey:
+		return m.BlobKey()
+	case iqbenchmarkartifact.FieldDeletedAt:
+		return m.DeletedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *IQBenchmarkArtifactMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case iqbenchmarkartifact.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case iqbenchmarkartifact.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case iqbenchmarkartifact.FieldRunID:
+		return m.OldRunID(ctx)
+	case iqbenchmarkartifact.FieldTaskID:
+		return m.OldTaskID(ctx)
+	case iqbenchmarkartifact.FieldCaseID:
+		return m.OldCaseID(ctx)
+	case iqbenchmarkartifact.FieldCaseSnapshot:
+		return m.OldCaseSnapshot(ctx)
+	case iqbenchmarkartifact.FieldGroupID:
+		return m.OldGroupID(ctx)
+	case iqbenchmarkartifact.FieldModel:
+		return m.OldModel(ctx)
+	case iqbenchmarkartifact.FieldRequestParams:
+		return m.OldRequestParams(ctx)
+	case iqbenchmarkartifact.FieldRenderKind:
+		return m.OldRenderKind(ctx)
+	case iqbenchmarkartifact.FieldImageURL:
+		return m.OldImageURL(ctx)
+	case iqbenchmarkartifact.FieldContent:
+		return m.OldContent(ctx)
+	case iqbenchmarkartifact.FieldContentTruncated:
+		return m.OldContentTruncated(ctx)
+	case iqbenchmarkartifact.FieldContentSha256:
+		return m.OldContentSha256(ctx)
+	case iqbenchmarkartifact.FieldUnsafeFlags:
+		return m.OldUnsafeFlags(ctx)
+	case iqbenchmarkartifact.FieldRawResponseRef:
+		return m.OldRawResponseRef(ctx)
+	case iqbenchmarkartifact.FieldDurationMs:
+		return m.OldDurationMs(ctx)
+	case iqbenchmarkartifact.FieldInputTokens:
+		return m.OldInputTokens(ctx)
+	case iqbenchmarkartifact.FieldOutputTokens:
+		return m.OldOutputTokens(ctx)
+	case iqbenchmarkartifact.FieldCost:
+		return m.OldCost(ctx)
+	case iqbenchmarkartifact.FieldStatus:
+		return m.OldStatus(ctx)
+	case iqbenchmarkartifact.FieldErrorCode:
+		return m.OldErrorCode(ctx)
+	case iqbenchmarkartifact.FieldErrorSummary:
+		return m.OldErrorSummary(ctx)
+	case iqbenchmarkartifact.FieldScore:
+		return m.OldScore(ctx)
+	case iqbenchmarkartifact.FieldScoredBy:
+		return m.OldScoredBy(ctx)
+	case iqbenchmarkartifact.FieldScoredAt:
+		return m.OldScoredAt(ctx)
+	case iqbenchmarkartifact.FieldBlobKey:
+		return m.OldBlobKey(ctx)
+	case iqbenchmarkartifact.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown IQBenchmarkArtifact field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IQBenchmarkArtifactMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case iqbenchmarkartifact.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case iqbenchmarkartifact.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case iqbenchmarkartifact.FieldRunID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRunID(v)
+		return nil
+	case iqbenchmarkartifact.FieldTaskID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaskID(v)
+		return nil
+	case iqbenchmarkartifact.FieldCaseID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCaseID(v)
+		return nil
+	case iqbenchmarkartifact.FieldCaseSnapshot:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCaseSnapshot(v)
+		return nil
+	case iqbenchmarkartifact.FieldGroupID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroupID(v)
+		return nil
+	case iqbenchmarkartifact.FieldModel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModel(v)
+		return nil
+	case iqbenchmarkartifact.FieldRequestParams:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequestParams(v)
+		return nil
+	case iqbenchmarkartifact.FieldRenderKind:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRenderKind(v)
+		return nil
+	case iqbenchmarkartifact.FieldImageURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetImageURL(v)
+		return nil
+	case iqbenchmarkartifact.FieldContent:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContent(v)
+		return nil
+	case iqbenchmarkartifact.FieldContentTruncated:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContentTruncated(v)
+		return nil
+	case iqbenchmarkartifact.FieldContentSha256:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContentSha256(v)
+		return nil
+	case iqbenchmarkartifact.FieldUnsafeFlags:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUnsafeFlags(v)
+		return nil
+	case iqbenchmarkartifact.FieldRawResponseRef:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRawResponseRef(v)
+		return nil
+	case iqbenchmarkartifact.FieldDurationMs:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDurationMs(v)
+		return nil
+	case iqbenchmarkartifact.FieldInputTokens:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInputTokens(v)
+		return nil
+	case iqbenchmarkartifact.FieldOutputTokens:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOutputTokens(v)
+		return nil
+	case iqbenchmarkartifact.FieldCost:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCost(v)
+		return nil
+	case iqbenchmarkartifact.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case iqbenchmarkartifact.FieldErrorCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetErrorCode(v)
+		return nil
+	case iqbenchmarkartifact.FieldErrorSummary:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetErrorSummary(v)
+		return nil
+	case iqbenchmarkartifact.FieldScore:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScore(v)
+		return nil
+	case iqbenchmarkartifact.FieldScoredBy:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScoredBy(v)
+		return nil
+	case iqbenchmarkartifact.FieldScoredAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScoredAt(v)
+		return nil
+	case iqbenchmarkartifact.FieldBlobKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBlobKey(v)
+		return nil
+	case iqbenchmarkartifact.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkArtifact field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedFields() []string {
+	var fields []string
+	if m.addrun_id != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldRunID)
+	}
+	if m.addtask_id != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldTaskID)
+	}
+	if m.addcase_id != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldCaseID)
+	}
+	if m.addgroup_id != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldGroupID)
+	}
+	if m.addduration_ms != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldDurationMs)
+	}
+	if m.addinput_tokens != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldInputTokens)
+	}
+	if m.addoutput_tokens != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldOutputTokens)
+	}
+	if m.addcost != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldCost)
+	}
+	if m.addscore != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldScore)
+	}
+	if m.addscored_by != nil {
+		fields = append(fields, iqbenchmarkartifact.FieldScoredBy)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *IQBenchmarkArtifactMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case iqbenchmarkartifact.FieldRunID:
+		return m.AddedRunID()
+	case iqbenchmarkartifact.FieldTaskID:
+		return m.AddedTaskID()
+	case iqbenchmarkartifact.FieldCaseID:
+		return m.AddedCaseID()
+	case iqbenchmarkartifact.FieldGroupID:
+		return m.AddedGroupID()
+	case iqbenchmarkartifact.FieldDurationMs:
+		return m.AddedDurationMs()
+	case iqbenchmarkartifact.FieldInputTokens:
+		return m.AddedInputTokens()
+	case iqbenchmarkartifact.FieldOutputTokens:
+		return m.AddedOutputTokens()
+	case iqbenchmarkartifact.FieldCost:
+		return m.AddedCost()
+	case iqbenchmarkartifact.FieldScore:
+		return m.AddedScore()
+	case iqbenchmarkartifact.FieldScoredBy:
+		return m.AddedScoredBy()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IQBenchmarkArtifactMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case iqbenchmarkartifact.FieldRunID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRunID(v)
+		return nil
+	case iqbenchmarkartifact.FieldTaskID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTaskID(v)
+		return nil
+	case iqbenchmarkartifact.FieldCaseID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCaseID(v)
+		return nil
+	case iqbenchmarkartifact.FieldGroupID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddGroupID(v)
+		return nil
+	case iqbenchmarkartifact.FieldDurationMs:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDurationMs(v)
+		return nil
+	case iqbenchmarkartifact.FieldInputTokens:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddInputTokens(v)
+		return nil
+	case iqbenchmarkartifact.FieldOutputTokens:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOutputTokens(v)
+		return nil
+	case iqbenchmarkartifact.FieldCost:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCost(v)
+		return nil
+	case iqbenchmarkartifact.FieldScore:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddScore(v)
+		return nil
+	case iqbenchmarkartifact.FieldScoredBy:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddScoredBy(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkArtifact numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *IQBenchmarkArtifactMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(iqbenchmarkartifact.FieldImageURL) {
+		fields = append(fields, iqbenchmarkartifact.FieldImageURL)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldContent) {
+		fields = append(fields, iqbenchmarkartifact.FieldContent)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldContentSha256) {
+		fields = append(fields, iqbenchmarkartifact.FieldContentSha256)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldRawResponseRef) {
+		fields = append(fields, iqbenchmarkartifact.FieldRawResponseRef)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldErrorCode) {
+		fields = append(fields, iqbenchmarkartifact.FieldErrorCode)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldErrorSummary) {
+		fields = append(fields, iqbenchmarkartifact.FieldErrorSummary)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldScore) {
+		fields = append(fields, iqbenchmarkartifact.FieldScore)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldScoredBy) {
+		fields = append(fields, iqbenchmarkartifact.FieldScoredBy)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldScoredAt) {
+		fields = append(fields, iqbenchmarkartifact.FieldScoredAt)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldBlobKey) {
+		fields = append(fields, iqbenchmarkartifact.FieldBlobKey)
+	}
+	if m.FieldCleared(iqbenchmarkartifact.FieldDeletedAt) {
+		fields = append(fields, iqbenchmarkartifact.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *IQBenchmarkArtifactMutation) ClearField(name string) error {
+	switch name {
+	case iqbenchmarkartifact.FieldImageURL:
+		m.ClearImageURL()
+		return nil
+	case iqbenchmarkartifact.FieldContent:
+		m.ClearContent()
+		return nil
+	case iqbenchmarkartifact.FieldContentSha256:
+		m.ClearContentSha256()
+		return nil
+	case iqbenchmarkartifact.FieldRawResponseRef:
+		m.ClearRawResponseRef()
+		return nil
+	case iqbenchmarkartifact.FieldErrorCode:
+		m.ClearErrorCode()
+		return nil
+	case iqbenchmarkartifact.FieldErrorSummary:
+		m.ClearErrorSummary()
+		return nil
+	case iqbenchmarkartifact.FieldScore:
+		m.ClearScore()
+		return nil
+	case iqbenchmarkartifact.FieldScoredBy:
+		m.ClearScoredBy()
+		return nil
+	case iqbenchmarkartifact.FieldScoredAt:
+		m.ClearScoredAt()
+		return nil
+	case iqbenchmarkartifact.FieldBlobKey:
+		m.ClearBlobKey()
+		return nil
+	case iqbenchmarkartifact.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkArtifact nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *IQBenchmarkArtifactMutation) ResetField(name string) error {
+	switch name {
+	case iqbenchmarkartifact.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case iqbenchmarkartifact.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case iqbenchmarkartifact.FieldRunID:
+		m.ResetRunID()
+		return nil
+	case iqbenchmarkartifact.FieldTaskID:
+		m.ResetTaskID()
+		return nil
+	case iqbenchmarkartifact.FieldCaseID:
+		m.ResetCaseID()
+		return nil
+	case iqbenchmarkartifact.FieldCaseSnapshot:
+		m.ResetCaseSnapshot()
+		return nil
+	case iqbenchmarkartifact.FieldGroupID:
+		m.ResetGroupID()
+		return nil
+	case iqbenchmarkartifact.FieldModel:
+		m.ResetModel()
+		return nil
+	case iqbenchmarkartifact.FieldRequestParams:
+		m.ResetRequestParams()
+		return nil
+	case iqbenchmarkartifact.FieldRenderKind:
+		m.ResetRenderKind()
+		return nil
+	case iqbenchmarkartifact.FieldImageURL:
+		m.ResetImageURL()
+		return nil
+	case iqbenchmarkartifact.FieldContent:
+		m.ResetContent()
+		return nil
+	case iqbenchmarkartifact.FieldContentTruncated:
+		m.ResetContentTruncated()
+		return nil
+	case iqbenchmarkartifact.FieldContentSha256:
+		m.ResetContentSha256()
+		return nil
+	case iqbenchmarkartifact.FieldUnsafeFlags:
+		m.ResetUnsafeFlags()
+		return nil
+	case iqbenchmarkartifact.FieldRawResponseRef:
+		m.ResetRawResponseRef()
+		return nil
+	case iqbenchmarkartifact.FieldDurationMs:
+		m.ResetDurationMs()
+		return nil
+	case iqbenchmarkartifact.FieldInputTokens:
+		m.ResetInputTokens()
+		return nil
+	case iqbenchmarkartifact.FieldOutputTokens:
+		m.ResetOutputTokens()
+		return nil
+	case iqbenchmarkartifact.FieldCost:
+		m.ResetCost()
+		return nil
+	case iqbenchmarkartifact.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case iqbenchmarkartifact.FieldErrorCode:
+		m.ResetErrorCode()
+		return nil
+	case iqbenchmarkartifact.FieldErrorSummary:
+		m.ResetErrorSummary()
+		return nil
+	case iqbenchmarkartifact.FieldScore:
+		m.ResetScore()
+		return nil
+	case iqbenchmarkartifact.FieldScoredBy:
+		m.ResetScoredBy()
+		return nil
+	case iqbenchmarkartifact.FieldScoredAt:
+		m.ResetScoredAt()
+		return nil
+	case iqbenchmarkartifact.FieldBlobKey:
+		m.ResetBlobKey()
+		return nil
+	case iqbenchmarkartifact.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkArtifact field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *IQBenchmarkArtifactMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *IQBenchmarkArtifactMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *IQBenchmarkArtifactMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *IQBenchmarkArtifactMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *IQBenchmarkArtifactMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown IQBenchmarkArtifact unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *IQBenchmarkArtifactMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown IQBenchmarkArtifact edge %s", name)
+}
+
+// IQBenchmarkCaseMutation represents an operation that mutates the IQBenchmarkCase nodes in the graph.
+type IQBenchmarkCaseMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *int64
+	created_at        *time.Time
+	updated_at        *time.Time
+	name              *string
+	kind              *string
+	prompt            *string
+	system_prompt     *string
+	params            *map[string]interface{}
+	expect_kind       *string
+	scoring           *string
+	llm_judge_enabled *bool
+	builtin           *bool
+	enabled           *bool
+	sort_order        *int
+	addsort_order     *int
+	clearedFields     map[string]struct{}
+	done              bool
+	oldValue          func(context.Context) (*IQBenchmarkCase, error)
+	predicates        []predicate.IQBenchmarkCase
+}
+
+var _ ent.Mutation = (*IQBenchmarkCaseMutation)(nil)
+
+// iqbenchmarkcaseOption allows management of the mutation configuration using functional options.
+type iqbenchmarkcaseOption func(*IQBenchmarkCaseMutation)
+
+// newIQBenchmarkCaseMutation creates new mutation for the IQBenchmarkCase entity.
+func newIQBenchmarkCaseMutation(c config, op Op, opts ...iqbenchmarkcaseOption) *IQBenchmarkCaseMutation {
+	m := &IQBenchmarkCaseMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeIQBenchmarkCase,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withIQBenchmarkCaseID sets the ID field of the mutation.
+func withIQBenchmarkCaseID(id int64) iqbenchmarkcaseOption {
+	return func(m *IQBenchmarkCaseMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *IQBenchmarkCase
+		)
+		m.oldValue = func(ctx context.Context) (*IQBenchmarkCase, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().IQBenchmarkCase.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withIQBenchmarkCase sets the old IQBenchmarkCase of the mutation.
+func withIQBenchmarkCase(node *IQBenchmarkCase) iqbenchmarkcaseOption {
+	return func(m *IQBenchmarkCaseMutation) {
+		m.oldValue = func(context.Context) (*IQBenchmarkCase, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m IQBenchmarkCaseMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m IQBenchmarkCaseMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *IQBenchmarkCaseMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *IQBenchmarkCaseMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().IQBenchmarkCase.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *IQBenchmarkCaseMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *IQBenchmarkCaseMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *IQBenchmarkCaseMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *IQBenchmarkCaseMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *IQBenchmarkCaseMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *IQBenchmarkCaseMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetName sets the "name" field.
+func (m *IQBenchmarkCaseMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *IQBenchmarkCaseMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *IQBenchmarkCaseMutation) ResetName() {
+	m.name = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *IQBenchmarkCaseMutation) SetKind(s string) {
+	m.kind = &s
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *IQBenchmarkCaseMutation) Kind() (r string, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldKind(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *IQBenchmarkCaseMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetPrompt sets the "prompt" field.
+func (m *IQBenchmarkCaseMutation) SetPrompt(s string) {
+	m.prompt = &s
+}
+
+// Prompt returns the value of the "prompt" field in the mutation.
+func (m *IQBenchmarkCaseMutation) Prompt() (r string, exists bool) {
+	v := m.prompt
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPrompt returns the old "prompt" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldPrompt(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPrompt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPrompt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPrompt: %w", err)
+	}
+	return oldValue.Prompt, nil
+}
+
+// ResetPrompt resets all changes to the "prompt" field.
+func (m *IQBenchmarkCaseMutation) ResetPrompt() {
+	m.prompt = nil
+}
+
+// SetSystemPrompt sets the "system_prompt" field.
+func (m *IQBenchmarkCaseMutation) SetSystemPrompt(s string) {
+	m.system_prompt = &s
+}
+
+// SystemPrompt returns the value of the "system_prompt" field in the mutation.
+func (m *IQBenchmarkCaseMutation) SystemPrompt() (r string, exists bool) {
+	v := m.system_prompt
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSystemPrompt returns the old "system_prompt" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldSystemPrompt(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSystemPrompt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSystemPrompt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSystemPrompt: %w", err)
+	}
+	return oldValue.SystemPrompt, nil
+}
+
+// ClearSystemPrompt clears the value of the "system_prompt" field.
+func (m *IQBenchmarkCaseMutation) ClearSystemPrompt() {
+	m.system_prompt = nil
+	m.clearedFields[iqbenchmarkcase.FieldSystemPrompt] = struct{}{}
+}
+
+// SystemPromptCleared returns if the "system_prompt" field was cleared in this mutation.
+func (m *IQBenchmarkCaseMutation) SystemPromptCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkcase.FieldSystemPrompt]
+	return ok
+}
+
+// ResetSystemPrompt resets all changes to the "system_prompt" field.
+func (m *IQBenchmarkCaseMutation) ResetSystemPrompt() {
+	m.system_prompt = nil
+	delete(m.clearedFields, iqbenchmarkcase.FieldSystemPrompt)
+}
+
+// SetParams sets the "params" field.
+func (m *IQBenchmarkCaseMutation) SetParams(value map[string]interface{}) {
+	m.params = &value
+}
+
+// Params returns the value of the "params" field in the mutation.
+func (m *IQBenchmarkCaseMutation) Params() (r map[string]interface{}, exists bool) {
+	v := m.params
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldParams returns the old "params" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldParams(ctx context.Context) (v map[string]interface{}, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldParams is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldParams requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldParams: %w", err)
+	}
+	return oldValue.Params, nil
+}
+
+// ResetParams resets all changes to the "params" field.
+func (m *IQBenchmarkCaseMutation) ResetParams() {
+	m.params = nil
+}
+
+// SetExpectKind sets the "expect_kind" field.
+func (m *IQBenchmarkCaseMutation) SetExpectKind(s string) {
+	m.expect_kind = &s
+}
+
+// ExpectKind returns the value of the "expect_kind" field in the mutation.
+func (m *IQBenchmarkCaseMutation) ExpectKind() (r string, exists bool) {
+	v := m.expect_kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpectKind returns the old "expect_kind" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldExpectKind(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpectKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpectKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpectKind: %w", err)
+	}
+	return oldValue.ExpectKind, nil
+}
+
+// ResetExpectKind resets all changes to the "expect_kind" field.
+func (m *IQBenchmarkCaseMutation) ResetExpectKind() {
+	m.expect_kind = nil
+}
+
+// SetScoring sets the "scoring" field.
+func (m *IQBenchmarkCaseMutation) SetScoring(s string) {
+	m.scoring = &s
+}
+
+// Scoring returns the value of the "scoring" field in the mutation.
+func (m *IQBenchmarkCaseMutation) Scoring() (r string, exists bool) {
+	v := m.scoring
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScoring returns the old "scoring" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldScoring(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScoring is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScoring requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScoring: %w", err)
+	}
+	return oldValue.Scoring, nil
+}
+
+// ResetScoring resets all changes to the "scoring" field.
+func (m *IQBenchmarkCaseMutation) ResetScoring() {
+	m.scoring = nil
+}
+
+// SetLlmJudgeEnabled sets the "llm_judge_enabled" field.
+func (m *IQBenchmarkCaseMutation) SetLlmJudgeEnabled(b bool) {
+	m.llm_judge_enabled = &b
+}
+
+// LlmJudgeEnabled returns the value of the "llm_judge_enabled" field in the mutation.
+func (m *IQBenchmarkCaseMutation) LlmJudgeEnabled() (r bool, exists bool) {
+	v := m.llm_judge_enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLlmJudgeEnabled returns the old "llm_judge_enabled" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldLlmJudgeEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLlmJudgeEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLlmJudgeEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLlmJudgeEnabled: %w", err)
+	}
+	return oldValue.LlmJudgeEnabled, nil
+}
+
+// ResetLlmJudgeEnabled resets all changes to the "llm_judge_enabled" field.
+func (m *IQBenchmarkCaseMutation) ResetLlmJudgeEnabled() {
+	m.llm_judge_enabled = nil
+}
+
+// SetBuiltin sets the "builtin" field.
+func (m *IQBenchmarkCaseMutation) SetBuiltin(b bool) {
+	m.builtin = &b
+}
+
+// Builtin returns the value of the "builtin" field in the mutation.
+func (m *IQBenchmarkCaseMutation) Builtin() (r bool, exists bool) {
+	v := m.builtin
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBuiltin returns the old "builtin" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldBuiltin(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBuiltin is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBuiltin requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBuiltin: %w", err)
+	}
+	return oldValue.Builtin, nil
+}
+
+// ResetBuiltin resets all changes to the "builtin" field.
+func (m *IQBenchmarkCaseMutation) ResetBuiltin() {
+	m.builtin = nil
+}
+
+// SetEnabled sets the "enabled" field.
+func (m *IQBenchmarkCaseMutation) SetEnabled(b bool) {
+	m.enabled = &b
+}
+
+// Enabled returns the value of the "enabled" field in the mutation.
+func (m *IQBenchmarkCaseMutation) Enabled() (r bool, exists bool) {
+	v := m.enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnabled returns the old "enabled" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnabled: %w", err)
+	}
+	return oldValue.Enabled, nil
+}
+
+// ResetEnabled resets all changes to the "enabled" field.
+func (m *IQBenchmarkCaseMutation) ResetEnabled() {
+	m.enabled = nil
+}
+
+// SetSortOrder sets the "sort_order" field.
+func (m *IQBenchmarkCaseMutation) SetSortOrder(i int) {
+	m.sort_order = &i
+	m.addsort_order = nil
+}
+
+// SortOrder returns the value of the "sort_order" field in the mutation.
+func (m *IQBenchmarkCaseMutation) SortOrder() (r int, exists bool) {
+	v := m.sort_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSortOrder returns the old "sort_order" field's value of the IQBenchmarkCase entity.
+// If the IQBenchmarkCase object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkCaseMutation) OldSortOrder(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSortOrder is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSortOrder requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSortOrder: %w", err)
+	}
+	return oldValue.SortOrder, nil
+}
+
+// AddSortOrder adds i to the "sort_order" field.
+func (m *IQBenchmarkCaseMutation) AddSortOrder(i int) {
+	if m.addsort_order != nil {
+		*m.addsort_order += i
+	} else {
+		m.addsort_order = &i
+	}
+}
+
+// AddedSortOrder returns the value that was added to the "sort_order" field in this mutation.
+func (m *IQBenchmarkCaseMutation) AddedSortOrder() (r int, exists bool) {
+	v := m.addsort_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSortOrder resets all changes to the "sort_order" field.
+func (m *IQBenchmarkCaseMutation) ResetSortOrder() {
+	m.sort_order = nil
+	m.addsort_order = nil
+}
+
+// Where appends a list predicates to the IQBenchmarkCaseMutation builder.
+func (m *IQBenchmarkCaseMutation) Where(ps ...predicate.IQBenchmarkCase) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the IQBenchmarkCaseMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *IQBenchmarkCaseMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.IQBenchmarkCase, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *IQBenchmarkCaseMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *IQBenchmarkCaseMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (IQBenchmarkCase).
+func (m *IQBenchmarkCaseMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *IQBenchmarkCaseMutation) Fields() []string {
+	fields := make([]string, 0, 13)
+	if m.created_at != nil {
+		fields = append(fields, iqbenchmarkcase.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, iqbenchmarkcase.FieldUpdatedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, iqbenchmarkcase.FieldName)
+	}
+	if m.kind != nil {
+		fields = append(fields, iqbenchmarkcase.FieldKind)
+	}
+	if m.prompt != nil {
+		fields = append(fields, iqbenchmarkcase.FieldPrompt)
+	}
+	if m.system_prompt != nil {
+		fields = append(fields, iqbenchmarkcase.FieldSystemPrompt)
+	}
+	if m.params != nil {
+		fields = append(fields, iqbenchmarkcase.FieldParams)
+	}
+	if m.expect_kind != nil {
+		fields = append(fields, iqbenchmarkcase.FieldExpectKind)
+	}
+	if m.scoring != nil {
+		fields = append(fields, iqbenchmarkcase.FieldScoring)
+	}
+	if m.llm_judge_enabled != nil {
+		fields = append(fields, iqbenchmarkcase.FieldLlmJudgeEnabled)
+	}
+	if m.builtin != nil {
+		fields = append(fields, iqbenchmarkcase.FieldBuiltin)
+	}
+	if m.enabled != nil {
+		fields = append(fields, iqbenchmarkcase.FieldEnabled)
+	}
+	if m.sort_order != nil {
+		fields = append(fields, iqbenchmarkcase.FieldSortOrder)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *IQBenchmarkCaseMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case iqbenchmarkcase.FieldCreatedAt:
+		return m.CreatedAt()
+	case iqbenchmarkcase.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case iqbenchmarkcase.FieldName:
+		return m.Name()
+	case iqbenchmarkcase.FieldKind:
+		return m.Kind()
+	case iqbenchmarkcase.FieldPrompt:
+		return m.Prompt()
+	case iqbenchmarkcase.FieldSystemPrompt:
+		return m.SystemPrompt()
+	case iqbenchmarkcase.FieldParams:
+		return m.Params()
+	case iqbenchmarkcase.FieldExpectKind:
+		return m.ExpectKind()
+	case iqbenchmarkcase.FieldScoring:
+		return m.Scoring()
+	case iqbenchmarkcase.FieldLlmJudgeEnabled:
+		return m.LlmJudgeEnabled()
+	case iqbenchmarkcase.FieldBuiltin:
+		return m.Builtin()
+	case iqbenchmarkcase.FieldEnabled:
+		return m.Enabled()
+	case iqbenchmarkcase.FieldSortOrder:
+		return m.SortOrder()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *IQBenchmarkCaseMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case iqbenchmarkcase.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case iqbenchmarkcase.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case iqbenchmarkcase.FieldName:
+		return m.OldName(ctx)
+	case iqbenchmarkcase.FieldKind:
+		return m.OldKind(ctx)
+	case iqbenchmarkcase.FieldPrompt:
+		return m.OldPrompt(ctx)
+	case iqbenchmarkcase.FieldSystemPrompt:
+		return m.OldSystemPrompt(ctx)
+	case iqbenchmarkcase.FieldParams:
+		return m.OldParams(ctx)
+	case iqbenchmarkcase.FieldExpectKind:
+		return m.OldExpectKind(ctx)
+	case iqbenchmarkcase.FieldScoring:
+		return m.OldScoring(ctx)
+	case iqbenchmarkcase.FieldLlmJudgeEnabled:
+		return m.OldLlmJudgeEnabled(ctx)
+	case iqbenchmarkcase.FieldBuiltin:
+		return m.OldBuiltin(ctx)
+	case iqbenchmarkcase.FieldEnabled:
+		return m.OldEnabled(ctx)
+	case iqbenchmarkcase.FieldSortOrder:
+		return m.OldSortOrder(ctx)
+	}
+	return nil, fmt.Errorf("unknown IQBenchmarkCase field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IQBenchmarkCaseMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case iqbenchmarkcase.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case iqbenchmarkcase.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case iqbenchmarkcase.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case iqbenchmarkcase.FieldKind:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case iqbenchmarkcase.FieldPrompt:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPrompt(v)
+		return nil
+	case iqbenchmarkcase.FieldSystemPrompt:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSystemPrompt(v)
+		return nil
+	case iqbenchmarkcase.FieldParams:
+		v, ok := value.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetParams(v)
+		return nil
+	case iqbenchmarkcase.FieldExpectKind:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpectKind(v)
+		return nil
+	case iqbenchmarkcase.FieldScoring:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScoring(v)
+		return nil
+	case iqbenchmarkcase.FieldLlmJudgeEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLlmJudgeEnabled(v)
+		return nil
+	case iqbenchmarkcase.FieldBuiltin:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBuiltin(v)
+		return nil
+	case iqbenchmarkcase.FieldEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnabled(v)
+		return nil
+	case iqbenchmarkcase.FieldSortOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSortOrder(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkCase field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *IQBenchmarkCaseMutation) AddedFields() []string {
+	var fields []string
+	if m.addsort_order != nil {
+		fields = append(fields, iqbenchmarkcase.FieldSortOrder)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *IQBenchmarkCaseMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case iqbenchmarkcase.FieldSortOrder:
+		return m.AddedSortOrder()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IQBenchmarkCaseMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case iqbenchmarkcase.FieldSortOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSortOrder(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkCase numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *IQBenchmarkCaseMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(iqbenchmarkcase.FieldSystemPrompt) {
+		fields = append(fields, iqbenchmarkcase.FieldSystemPrompt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *IQBenchmarkCaseMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *IQBenchmarkCaseMutation) ClearField(name string) error {
+	switch name {
+	case iqbenchmarkcase.FieldSystemPrompt:
+		m.ClearSystemPrompt()
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkCase nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *IQBenchmarkCaseMutation) ResetField(name string) error {
+	switch name {
+	case iqbenchmarkcase.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case iqbenchmarkcase.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case iqbenchmarkcase.FieldName:
+		m.ResetName()
+		return nil
+	case iqbenchmarkcase.FieldKind:
+		m.ResetKind()
+		return nil
+	case iqbenchmarkcase.FieldPrompt:
+		m.ResetPrompt()
+		return nil
+	case iqbenchmarkcase.FieldSystemPrompt:
+		m.ResetSystemPrompt()
+		return nil
+	case iqbenchmarkcase.FieldParams:
+		m.ResetParams()
+		return nil
+	case iqbenchmarkcase.FieldExpectKind:
+		m.ResetExpectKind()
+		return nil
+	case iqbenchmarkcase.FieldScoring:
+		m.ResetScoring()
+		return nil
+	case iqbenchmarkcase.FieldLlmJudgeEnabled:
+		m.ResetLlmJudgeEnabled()
+		return nil
+	case iqbenchmarkcase.FieldBuiltin:
+		m.ResetBuiltin()
+		return nil
+	case iqbenchmarkcase.FieldEnabled:
+		m.ResetEnabled()
+		return nil
+	case iqbenchmarkcase.FieldSortOrder:
+		m.ResetSortOrder()
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkCase field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *IQBenchmarkCaseMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *IQBenchmarkCaseMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *IQBenchmarkCaseMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *IQBenchmarkCaseMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *IQBenchmarkCaseMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *IQBenchmarkCaseMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *IQBenchmarkCaseMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown IQBenchmarkCase unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *IQBenchmarkCaseMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown IQBenchmarkCase edge %s", name)
+}
+
+// IQBenchmarkRunMutation represents an operation that mutates the IQBenchmarkRun nodes in the graph.
+type IQBenchmarkRunMutation struct {
+	config
+	op                     Op
+	typ                    string
+	id                     *int64
+	created_at             *time.Time
+	updated_at             *time.Time
+	task_id                *int64
+	addtask_id             *int64
+	group_id               *int64
+	addgroup_id            *int64
+	model                  *string
+	trigger                *string
+	started_at             *time.Time
+	finished_at            *time.Time
+	success_count          *int
+	addsuccess_count       *int
+	failed_count           *int
+	addfailed_count        *int
+	timeout_count          *int
+	addtimeout_count       *int
+	blocked_count          *int
+	addblocked_count       *int
+	total_duration_ms      *int64
+	addtotal_duration_ms   *int64
+	total_cost             *float64
+	addtotal_cost          *float64
+	total_input_tokens     *int64
+	addtotal_input_tokens  *int64
+	total_output_tokens    *int64
+	addtotal_output_tokens *int64
+	internal_user_id       *int64
+	addinternal_user_id    *int64
+	internal_api_key_id    *int64
+	addinternal_api_key_id *int64
+	status                 *string
+	cost_collected_at      *time.Time
+	deleted_at             *time.Time
+	clearedFields          map[string]struct{}
+	done                   bool
+	oldValue               func(context.Context) (*IQBenchmarkRun, error)
+	predicates             []predicate.IQBenchmarkRun
+}
+
+var _ ent.Mutation = (*IQBenchmarkRunMutation)(nil)
+
+// iqbenchmarkrunOption allows management of the mutation configuration using functional options.
+type iqbenchmarkrunOption func(*IQBenchmarkRunMutation)
+
+// newIQBenchmarkRunMutation creates new mutation for the IQBenchmarkRun entity.
+func newIQBenchmarkRunMutation(c config, op Op, opts ...iqbenchmarkrunOption) *IQBenchmarkRunMutation {
+	m := &IQBenchmarkRunMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeIQBenchmarkRun,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withIQBenchmarkRunID sets the ID field of the mutation.
+func withIQBenchmarkRunID(id int64) iqbenchmarkrunOption {
+	return func(m *IQBenchmarkRunMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *IQBenchmarkRun
+		)
+		m.oldValue = func(ctx context.Context) (*IQBenchmarkRun, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().IQBenchmarkRun.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withIQBenchmarkRun sets the old IQBenchmarkRun of the mutation.
+func withIQBenchmarkRun(node *IQBenchmarkRun) iqbenchmarkrunOption {
+	return func(m *IQBenchmarkRunMutation) {
+		m.oldValue = func(context.Context) (*IQBenchmarkRun, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m IQBenchmarkRunMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m IQBenchmarkRunMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *IQBenchmarkRunMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *IQBenchmarkRunMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().IQBenchmarkRun.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *IQBenchmarkRunMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *IQBenchmarkRunMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *IQBenchmarkRunMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *IQBenchmarkRunMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *IQBenchmarkRunMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *IQBenchmarkRunMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetTaskID sets the "task_id" field.
+func (m *IQBenchmarkRunMutation) SetTaskID(i int64) {
+	m.task_id = &i
+	m.addtask_id = nil
+}
+
+// TaskID returns the value of the "task_id" field in the mutation.
+func (m *IQBenchmarkRunMutation) TaskID() (r int64, exists bool) {
+	v := m.task_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTaskID returns the old "task_id" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldTaskID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTaskID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTaskID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTaskID: %w", err)
+	}
+	return oldValue.TaskID, nil
+}
+
+// AddTaskID adds i to the "task_id" field.
+func (m *IQBenchmarkRunMutation) AddTaskID(i int64) {
+	if m.addtask_id != nil {
+		*m.addtask_id += i
+	} else {
+		m.addtask_id = &i
+	}
+}
+
+// AddedTaskID returns the value that was added to the "task_id" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedTaskID() (r int64, exists bool) {
+	v := m.addtask_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTaskID resets all changes to the "task_id" field.
+func (m *IQBenchmarkRunMutation) ResetTaskID() {
+	m.task_id = nil
+	m.addtask_id = nil
+}
+
+// SetGroupID sets the "group_id" field.
+func (m *IQBenchmarkRunMutation) SetGroupID(i int64) {
+	m.group_id = &i
+	m.addgroup_id = nil
+}
+
+// GroupID returns the value of the "group_id" field in the mutation.
+func (m *IQBenchmarkRunMutation) GroupID() (r int64, exists bool) {
+	v := m.group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroupID returns the old "group_id" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldGroupID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroupID: %w", err)
+	}
+	return oldValue.GroupID, nil
+}
+
+// AddGroupID adds i to the "group_id" field.
+func (m *IQBenchmarkRunMutation) AddGroupID(i int64) {
+	if m.addgroup_id != nil {
+		*m.addgroup_id += i
+	} else {
+		m.addgroup_id = &i
+	}
+}
+
+// AddedGroupID returns the value that was added to the "group_id" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedGroupID() (r int64, exists bool) {
+	v := m.addgroup_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetGroupID resets all changes to the "group_id" field.
+func (m *IQBenchmarkRunMutation) ResetGroupID() {
+	m.group_id = nil
+	m.addgroup_id = nil
+}
+
+// SetModel sets the "model" field.
+func (m *IQBenchmarkRunMutation) SetModel(s string) {
+	m.model = &s
+}
+
+// Model returns the value of the "model" field in the mutation.
+func (m *IQBenchmarkRunMutation) Model() (r string, exists bool) {
+	v := m.model
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModel returns the old "model" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldModel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModel: %w", err)
+	}
+	return oldValue.Model, nil
+}
+
+// ResetModel resets all changes to the "model" field.
+func (m *IQBenchmarkRunMutation) ResetModel() {
+	m.model = nil
+}
+
+// SetTrigger sets the "trigger" field.
+func (m *IQBenchmarkRunMutation) SetTrigger(s string) {
+	m.trigger = &s
+}
+
+// Trigger returns the value of the "trigger" field in the mutation.
+func (m *IQBenchmarkRunMutation) Trigger() (r string, exists bool) {
+	v := m.trigger
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTrigger returns the old "trigger" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldTrigger(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTrigger is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTrigger requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTrigger: %w", err)
+	}
+	return oldValue.Trigger, nil
+}
+
+// ResetTrigger resets all changes to the "trigger" field.
+func (m *IQBenchmarkRunMutation) ResetTrigger() {
+	m.trigger = nil
+}
+
+// SetStartedAt sets the "started_at" field.
+func (m *IQBenchmarkRunMutation) SetStartedAt(t time.Time) {
+	m.started_at = &t
+}
+
+// StartedAt returns the value of the "started_at" field in the mutation.
+func (m *IQBenchmarkRunMutation) StartedAt() (r time.Time, exists bool) {
+	v := m.started_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartedAt returns the old "started_at" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldStartedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStartedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStartedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartedAt: %w", err)
+	}
+	return oldValue.StartedAt, nil
+}
+
+// ResetStartedAt resets all changes to the "started_at" field.
+func (m *IQBenchmarkRunMutation) ResetStartedAt() {
+	m.started_at = nil
+}
+
+// SetFinishedAt sets the "finished_at" field.
+func (m *IQBenchmarkRunMutation) SetFinishedAt(t time.Time) {
+	m.finished_at = &t
+}
+
+// FinishedAt returns the value of the "finished_at" field in the mutation.
+func (m *IQBenchmarkRunMutation) FinishedAt() (r time.Time, exists bool) {
+	v := m.finished_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFinishedAt returns the old "finished_at" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldFinishedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFinishedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFinishedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFinishedAt: %w", err)
+	}
+	return oldValue.FinishedAt, nil
+}
+
+// ClearFinishedAt clears the value of the "finished_at" field.
+func (m *IQBenchmarkRunMutation) ClearFinishedAt() {
+	m.finished_at = nil
+	m.clearedFields[iqbenchmarkrun.FieldFinishedAt] = struct{}{}
+}
+
+// FinishedAtCleared returns if the "finished_at" field was cleared in this mutation.
+func (m *IQBenchmarkRunMutation) FinishedAtCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkrun.FieldFinishedAt]
+	return ok
+}
+
+// ResetFinishedAt resets all changes to the "finished_at" field.
+func (m *IQBenchmarkRunMutation) ResetFinishedAt() {
+	m.finished_at = nil
+	delete(m.clearedFields, iqbenchmarkrun.FieldFinishedAt)
+}
+
+// SetSuccessCount sets the "success_count" field.
+func (m *IQBenchmarkRunMutation) SetSuccessCount(i int) {
+	m.success_count = &i
+	m.addsuccess_count = nil
+}
+
+// SuccessCount returns the value of the "success_count" field in the mutation.
+func (m *IQBenchmarkRunMutation) SuccessCount() (r int, exists bool) {
+	v := m.success_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSuccessCount returns the old "success_count" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldSuccessCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSuccessCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSuccessCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSuccessCount: %w", err)
+	}
+	return oldValue.SuccessCount, nil
+}
+
+// AddSuccessCount adds i to the "success_count" field.
+func (m *IQBenchmarkRunMutation) AddSuccessCount(i int) {
+	if m.addsuccess_count != nil {
+		*m.addsuccess_count += i
+	} else {
+		m.addsuccess_count = &i
+	}
+}
+
+// AddedSuccessCount returns the value that was added to the "success_count" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedSuccessCount() (r int, exists bool) {
+	v := m.addsuccess_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSuccessCount resets all changes to the "success_count" field.
+func (m *IQBenchmarkRunMutation) ResetSuccessCount() {
+	m.success_count = nil
+	m.addsuccess_count = nil
+}
+
+// SetFailedCount sets the "failed_count" field.
+func (m *IQBenchmarkRunMutation) SetFailedCount(i int) {
+	m.failed_count = &i
+	m.addfailed_count = nil
+}
+
+// FailedCount returns the value of the "failed_count" field in the mutation.
+func (m *IQBenchmarkRunMutation) FailedCount() (r int, exists bool) {
+	v := m.failed_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailedCount returns the old "failed_count" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldFailedCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailedCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailedCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailedCount: %w", err)
+	}
+	return oldValue.FailedCount, nil
+}
+
+// AddFailedCount adds i to the "failed_count" field.
+func (m *IQBenchmarkRunMutation) AddFailedCount(i int) {
+	if m.addfailed_count != nil {
+		*m.addfailed_count += i
+	} else {
+		m.addfailed_count = &i
+	}
+}
+
+// AddedFailedCount returns the value that was added to the "failed_count" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedFailedCount() (r int, exists bool) {
+	v := m.addfailed_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFailedCount resets all changes to the "failed_count" field.
+func (m *IQBenchmarkRunMutation) ResetFailedCount() {
+	m.failed_count = nil
+	m.addfailed_count = nil
+}
+
+// SetTimeoutCount sets the "timeout_count" field.
+func (m *IQBenchmarkRunMutation) SetTimeoutCount(i int) {
+	m.timeout_count = &i
+	m.addtimeout_count = nil
+}
+
+// TimeoutCount returns the value of the "timeout_count" field in the mutation.
+func (m *IQBenchmarkRunMutation) TimeoutCount() (r int, exists bool) {
+	v := m.timeout_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTimeoutCount returns the old "timeout_count" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldTimeoutCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTimeoutCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTimeoutCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTimeoutCount: %w", err)
+	}
+	return oldValue.TimeoutCount, nil
+}
+
+// AddTimeoutCount adds i to the "timeout_count" field.
+func (m *IQBenchmarkRunMutation) AddTimeoutCount(i int) {
+	if m.addtimeout_count != nil {
+		*m.addtimeout_count += i
+	} else {
+		m.addtimeout_count = &i
+	}
+}
+
+// AddedTimeoutCount returns the value that was added to the "timeout_count" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedTimeoutCount() (r int, exists bool) {
+	v := m.addtimeout_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTimeoutCount resets all changes to the "timeout_count" field.
+func (m *IQBenchmarkRunMutation) ResetTimeoutCount() {
+	m.timeout_count = nil
+	m.addtimeout_count = nil
+}
+
+// SetBlockedCount sets the "blocked_count" field.
+func (m *IQBenchmarkRunMutation) SetBlockedCount(i int) {
+	m.blocked_count = &i
+	m.addblocked_count = nil
+}
+
+// BlockedCount returns the value of the "blocked_count" field in the mutation.
+func (m *IQBenchmarkRunMutation) BlockedCount() (r int, exists bool) {
+	v := m.blocked_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBlockedCount returns the old "blocked_count" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldBlockedCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBlockedCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBlockedCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBlockedCount: %w", err)
+	}
+	return oldValue.BlockedCount, nil
+}
+
+// AddBlockedCount adds i to the "blocked_count" field.
+func (m *IQBenchmarkRunMutation) AddBlockedCount(i int) {
+	if m.addblocked_count != nil {
+		*m.addblocked_count += i
+	} else {
+		m.addblocked_count = &i
+	}
+}
+
+// AddedBlockedCount returns the value that was added to the "blocked_count" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedBlockedCount() (r int, exists bool) {
+	v := m.addblocked_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBlockedCount resets all changes to the "blocked_count" field.
+func (m *IQBenchmarkRunMutation) ResetBlockedCount() {
+	m.blocked_count = nil
+	m.addblocked_count = nil
+}
+
+// SetTotalDurationMs sets the "total_duration_ms" field.
+func (m *IQBenchmarkRunMutation) SetTotalDurationMs(i int64) {
+	m.total_duration_ms = &i
+	m.addtotal_duration_ms = nil
+}
+
+// TotalDurationMs returns the value of the "total_duration_ms" field in the mutation.
+func (m *IQBenchmarkRunMutation) TotalDurationMs() (r int64, exists bool) {
+	v := m.total_duration_ms
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTotalDurationMs returns the old "total_duration_ms" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldTotalDurationMs(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTotalDurationMs is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTotalDurationMs requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotalDurationMs: %w", err)
+	}
+	return oldValue.TotalDurationMs, nil
+}
+
+// AddTotalDurationMs adds i to the "total_duration_ms" field.
+func (m *IQBenchmarkRunMutation) AddTotalDurationMs(i int64) {
+	if m.addtotal_duration_ms != nil {
+		*m.addtotal_duration_ms += i
+	} else {
+		m.addtotal_duration_ms = &i
+	}
+}
+
+// AddedTotalDurationMs returns the value that was added to the "total_duration_ms" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedTotalDurationMs() (r int64, exists bool) {
+	v := m.addtotal_duration_ms
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTotalDurationMs resets all changes to the "total_duration_ms" field.
+func (m *IQBenchmarkRunMutation) ResetTotalDurationMs() {
+	m.total_duration_ms = nil
+	m.addtotal_duration_ms = nil
+}
+
+// SetTotalCost sets the "total_cost" field.
+func (m *IQBenchmarkRunMutation) SetTotalCost(f float64) {
+	m.total_cost = &f
+	m.addtotal_cost = nil
+}
+
+// TotalCost returns the value of the "total_cost" field in the mutation.
+func (m *IQBenchmarkRunMutation) TotalCost() (r float64, exists bool) {
+	v := m.total_cost
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTotalCost returns the old "total_cost" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldTotalCost(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTotalCost is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTotalCost requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotalCost: %w", err)
+	}
+	return oldValue.TotalCost, nil
+}
+
+// AddTotalCost adds f to the "total_cost" field.
+func (m *IQBenchmarkRunMutation) AddTotalCost(f float64) {
+	if m.addtotal_cost != nil {
+		*m.addtotal_cost += f
+	} else {
+		m.addtotal_cost = &f
+	}
+}
+
+// AddedTotalCost returns the value that was added to the "total_cost" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedTotalCost() (r float64, exists bool) {
+	v := m.addtotal_cost
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTotalCost resets all changes to the "total_cost" field.
+func (m *IQBenchmarkRunMutation) ResetTotalCost() {
+	m.total_cost = nil
+	m.addtotal_cost = nil
+}
+
+// SetTotalInputTokens sets the "total_input_tokens" field.
+func (m *IQBenchmarkRunMutation) SetTotalInputTokens(i int64) {
+	m.total_input_tokens = &i
+	m.addtotal_input_tokens = nil
+}
+
+// TotalInputTokens returns the value of the "total_input_tokens" field in the mutation.
+func (m *IQBenchmarkRunMutation) TotalInputTokens() (r int64, exists bool) {
+	v := m.total_input_tokens
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTotalInputTokens returns the old "total_input_tokens" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldTotalInputTokens(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTotalInputTokens is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTotalInputTokens requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotalInputTokens: %w", err)
+	}
+	return oldValue.TotalInputTokens, nil
+}
+
+// AddTotalInputTokens adds i to the "total_input_tokens" field.
+func (m *IQBenchmarkRunMutation) AddTotalInputTokens(i int64) {
+	if m.addtotal_input_tokens != nil {
+		*m.addtotal_input_tokens += i
+	} else {
+		m.addtotal_input_tokens = &i
+	}
+}
+
+// AddedTotalInputTokens returns the value that was added to the "total_input_tokens" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedTotalInputTokens() (r int64, exists bool) {
+	v := m.addtotal_input_tokens
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTotalInputTokens resets all changes to the "total_input_tokens" field.
+func (m *IQBenchmarkRunMutation) ResetTotalInputTokens() {
+	m.total_input_tokens = nil
+	m.addtotal_input_tokens = nil
+}
+
+// SetTotalOutputTokens sets the "total_output_tokens" field.
+func (m *IQBenchmarkRunMutation) SetTotalOutputTokens(i int64) {
+	m.total_output_tokens = &i
+	m.addtotal_output_tokens = nil
+}
+
+// TotalOutputTokens returns the value of the "total_output_tokens" field in the mutation.
+func (m *IQBenchmarkRunMutation) TotalOutputTokens() (r int64, exists bool) {
+	v := m.total_output_tokens
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTotalOutputTokens returns the old "total_output_tokens" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldTotalOutputTokens(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTotalOutputTokens is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTotalOutputTokens requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTotalOutputTokens: %w", err)
+	}
+	return oldValue.TotalOutputTokens, nil
+}
+
+// AddTotalOutputTokens adds i to the "total_output_tokens" field.
+func (m *IQBenchmarkRunMutation) AddTotalOutputTokens(i int64) {
+	if m.addtotal_output_tokens != nil {
+		*m.addtotal_output_tokens += i
+	} else {
+		m.addtotal_output_tokens = &i
+	}
+}
+
+// AddedTotalOutputTokens returns the value that was added to the "total_output_tokens" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedTotalOutputTokens() (r int64, exists bool) {
+	v := m.addtotal_output_tokens
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetTotalOutputTokens resets all changes to the "total_output_tokens" field.
+func (m *IQBenchmarkRunMutation) ResetTotalOutputTokens() {
+	m.total_output_tokens = nil
+	m.addtotal_output_tokens = nil
+}
+
+// SetInternalUserID sets the "internal_user_id" field.
+func (m *IQBenchmarkRunMutation) SetInternalUserID(i int64) {
+	m.internal_user_id = &i
+	m.addinternal_user_id = nil
+}
+
+// InternalUserID returns the value of the "internal_user_id" field in the mutation.
+func (m *IQBenchmarkRunMutation) InternalUserID() (r int64, exists bool) {
+	v := m.internal_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInternalUserID returns the old "internal_user_id" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldInternalUserID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInternalUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInternalUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInternalUserID: %w", err)
+	}
+	return oldValue.InternalUserID, nil
+}
+
+// AddInternalUserID adds i to the "internal_user_id" field.
+func (m *IQBenchmarkRunMutation) AddInternalUserID(i int64) {
+	if m.addinternal_user_id != nil {
+		*m.addinternal_user_id += i
+	} else {
+		m.addinternal_user_id = &i
+	}
+}
+
+// AddedInternalUserID returns the value that was added to the "internal_user_id" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedInternalUserID() (r int64, exists bool) {
+	v := m.addinternal_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetInternalUserID resets all changes to the "internal_user_id" field.
+func (m *IQBenchmarkRunMutation) ResetInternalUserID() {
+	m.internal_user_id = nil
+	m.addinternal_user_id = nil
+}
+
+// SetInternalAPIKeyID sets the "internal_api_key_id" field.
+func (m *IQBenchmarkRunMutation) SetInternalAPIKeyID(i int64) {
+	m.internal_api_key_id = &i
+	m.addinternal_api_key_id = nil
+}
+
+// InternalAPIKeyID returns the value of the "internal_api_key_id" field in the mutation.
+func (m *IQBenchmarkRunMutation) InternalAPIKeyID() (r int64, exists bool) {
+	v := m.internal_api_key_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInternalAPIKeyID returns the old "internal_api_key_id" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldInternalAPIKeyID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInternalAPIKeyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInternalAPIKeyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInternalAPIKeyID: %w", err)
+	}
+	return oldValue.InternalAPIKeyID, nil
+}
+
+// AddInternalAPIKeyID adds i to the "internal_api_key_id" field.
+func (m *IQBenchmarkRunMutation) AddInternalAPIKeyID(i int64) {
+	if m.addinternal_api_key_id != nil {
+		*m.addinternal_api_key_id += i
+	} else {
+		m.addinternal_api_key_id = &i
+	}
+}
+
+// AddedInternalAPIKeyID returns the value that was added to the "internal_api_key_id" field in this mutation.
+func (m *IQBenchmarkRunMutation) AddedInternalAPIKeyID() (r int64, exists bool) {
+	v := m.addinternal_api_key_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetInternalAPIKeyID resets all changes to the "internal_api_key_id" field.
+func (m *IQBenchmarkRunMutation) ResetInternalAPIKeyID() {
+	m.internal_api_key_id = nil
+	m.addinternal_api_key_id = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *IQBenchmarkRunMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *IQBenchmarkRunMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *IQBenchmarkRunMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetCostCollectedAt sets the "cost_collected_at" field.
+func (m *IQBenchmarkRunMutation) SetCostCollectedAt(t time.Time) {
+	m.cost_collected_at = &t
+}
+
+// CostCollectedAt returns the value of the "cost_collected_at" field in the mutation.
+func (m *IQBenchmarkRunMutation) CostCollectedAt() (r time.Time, exists bool) {
+	v := m.cost_collected_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCostCollectedAt returns the old "cost_collected_at" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldCostCollectedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCostCollectedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCostCollectedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCostCollectedAt: %w", err)
+	}
+	return oldValue.CostCollectedAt, nil
+}
+
+// ClearCostCollectedAt clears the value of the "cost_collected_at" field.
+func (m *IQBenchmarkRunMutation) ClearCostCollectedAt() {
+	m.cost_collected_at = nil
+	m.clearedFields[iqbenchmarkrun.FieldCostCollectedAt] = struct{}{}
+}
+
+// CostCollectedAtCleared returns if the "cost_collected_at" field was cleared in this mutation.
+func (m *IQBenchmarkRunMutation) CostCollectedAtCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkrun.FieldCostCollectedAt]
+	return ok
+}
+
+// ResetCostCollectedAt resets all changes to the "cost_collected_at" field.
+func (m *IQBenchmarkRunMutation) ResetCostCollectedAt() {
+	m.cost_collected_at = nil
+	delete(m.clearedFields, iqbenchmarkrun.FieldCostCollectedAt)
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (m *IQBenchmarkRunMutation) SetDeletedAt(t time.Time) {
+	m.deleted_at = &t
+}
+
+// DeletedAt returns the value of the "deleted_at" field in the mutation.
+func (m *IQBenchmarkRunMutation) DeletedAt() (r time.Time, exists bool) {
+	v := m.deleted_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeletedAt returns the old "deleted_at" field's value of the IQBenchmarkRun entity.
+// If the IQBenchmarkRun object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkRunMutation) OldDeletedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeletedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeletedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeletedAt: %w", err)
+	}
+	return oldValue.DeletedAt, nil
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (m *IQBenchmarkRunMutation) ClearDeletedAt() {
+	m.deleted_at = nil
+	m.clearedFields[iqbenchmarkrun.FieldDeletedAt] = struct{}{}
+}
+
+// DeletedAtCleared returns if the "deleted_at" field was cleared in this mutation.
+func (m *IQBenchmarkRunMutation) DeletedAtCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarkrun.FieldDeletedAt]
+	return ok
+}
+
+// ResetDeletedAt resets all changes to the "deleted_at" field.
+func (m *IQBenchmarkRunMutation) ResetDeletedAt() {
+	m.deleted_at = nil
+	delete(m.clearedFields, iqbenchmarkrun.FieldDeletedAt)
+}
+
+// Where appends a list predicates to the IQBenchmarkRunMutation builder.
+func (m *IQBenchmarkRunMutation) Where(ps ...predicate.IQBenchmarkRun) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the IQBenchmarkRunMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *IQBenchmarkRunMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.IQBenchmarkRun, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *IQBenchmarkRunMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *IQBenchmarkRunMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (IQBenchmarkRun).
+func (m *IQBenchmarkRunMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *IQBenchmarkRunMutation) Fields() []string {
+	fields := make([]string, 0, 21)
+	if m.created_at != nil {
+		fields = append(fields, iqbenchmarkrun.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, iqbenchmarkrun.FieldUpdatedAt)
+	}
+	if m.task_id != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTaskID)
+	}
+	if m.group_id != nil {
+		fields = append(fields, iqbenchmarkrun.FieldGroupID)
+	}
+	if m.model != nil {
+		fields = append(fields, iqbenchmarkrun.FieldModel)
+	}
+	if m.trigger != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTrigger)
+	}
+	if m.started_at != nil {
+		fields = append(fields, iqbenchmarkrun.FieldStartedAt)
+	}
+	if m.finished_at != nil {
+		fields = append(fields, iqbenchmarkrun.FieldFinishedAt)
+	}
+	if m.success_count != nil {
+		fields = append(fields, iqbenchmarkrun.FieldSuccessCount)
+	}
+	if m.failed_count != nil {
+		fields = append(fields, iqbenchmarkrun.FieldFailedCount)
+	}
+	if m.timeout_count != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTimeoutCount)
+	}
+	if m.blocked_count != nil {
+		fields = append(fields, iqbenchmarkrun.FieldBlockedCount)
+	}
+	if m.total_duration_ms != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTotalDurationMs)
+	}
+	if m.total_cost != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTotalCost)
+	}
+	if m.total_input_tokens != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTotalInputTokens)
+	}
+	if m.total_output_tokens != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTotalOutputTokens)
+	}
+	if m.internal_user_id != nil {
+		fields = append(fields, iqbenchmarkrun.FieldInternalUserID)
+	}
+	if m.internal_api_key_id != nil {
+		fields = append(fields, iqbenchmarkrun.FieldInternalAPIKeyID)
+	}
+	if m.status != nil {
+		fields = append(fields, iqbenchmarkrun.FieldStatus)
+	}
+	if m.cost_collected_at != nil {
+		fields = append(fields, iqbenchmarkrun.FieldCostCollectedAt)
+	}
+	if m.deleted_at != nil {
+		fields = append(fields, iqbenchmarkrun.FieldDeletedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *IQBenchmarkRunMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case iqbenchmarkrun.FieldCreatedAt:
+		return m.CreatedAt()
+	case iqbenchmarkrun.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case iqbenchmarkrun.FieldTaskID:
+		return m.TaskID()
+	case iqbenchmarkrun.FieldGroupID:
+		return m.GroupID()
+	case iqbenchmarkrun.FieldModel:
+		return m.Model()
+	case iqbenchmarkrun.FieldTrigger:
+		return m.Trigger()
+	case iqbenchmarkrun.FieldStartedAt:
+		return m.StartedAt()
+	case iqbenchmarkrun.FieldFinishedAt:
+		return m.FinishedAt()
+	case iqbenchmarkrun.FieldSuccessCount:
+		return m.SuccessCount()
+	case iqbenchmarkrun.FieldFailedCount:
+		return m.FailedCount()
+	case iqbenchmarkrun.FieldTimeoutCount:
+		return m.TimeoutCount()
+	case iqbenchmarkrun.FieldBlockedCount:
+		return m.BlockedCount()
+	case iqbenchmarkrun.FieldTotalDurationMs:
+		return m.TotalDurationMs()
+	case iqbenchmarkrun.FieldTotalCost:
+		return m.TotalCost()
+	case iqbenchmarkrun.FieldTotalInputTokens:
+		return m.TotalInputTokens()
+	case iqbenchmarkrun.FieldTotalOutputTokens:
+		return m.TotalOutputTokens()
+	case iqbenchmarkrun.FieldInternalUserID:
+		return m.InternalUserID()
+	case iqbenchmarkrun.FieldInternalAPIKeyID:
+		return m.InternalAPIKeyID()
+	case iqbenchmarkrun.FieldStatus:
+		return m.Status()
+	case iqbenchmarkrun.FieldCostCollectedAt:
+		return m.CostCollectedAt()
+	case iqbenchmarkrun.FieldDeletedAt:
+		return m.DeletedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *IQBenchmarkRunMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case iqbenchmarkrun.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case iqbenchmarkrun.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case iqbenchmarkrun.FieldTaskID:
+		return m.OldTaskID(ctx)
+	case iqbenchmarkrun.FieldGroupID:
+		return m.OldGroupID(ctx)
+	case iqbenchmarkrun.FieldModel:
+		return m.OldModel(ctx)
+	case iqbenchmarkrun.FieldTrigger:
+		return m.OldTrigger(ctx)
+	case iqbenchmarkrun.FieldStartedAt:
+		return m.OldStartedAt(ctx)
+	case iqbenchmarkrun.FieldFinishedAt:
+		return m.OldFinishedAt(ctx)
+	case iqbenchmarkrun.FieldSuccessCount:
+		return m.OldSuccessCount(ctx)
+	case iqbenchmarkrun.FieldFailedCount:
+		return m.OldFailedCount(ctx)
+	case iqbenchmarkrun.FieldTimeoutCount:
+		return m.OldTimeoutCount(ctx)
+	case iqbenchmarkrun.FieldBlockedCount:
+		return m.OldBlockedCount(ctx)
+	case iqbenchmarkrun.FieldTotalDurationMs:
+		return m.OldTotalDurationMs(ctx)
+	case iqbenchmarkrun.FieldTotalCost:
+		return m.OldTotalCost(ctx)
+	case iqbenchmarkrun.FieldTotalInputTokens:
+		return m.OldTotalInputTokens(ctx)
+	case iqbenchmarkrun.FieldTotalOutputTokens:
+		return m.OldTotalOutputTokens(ctx)
+	case iqbenchmarkrun.FieldInternalUserID:
+		return m.OldInternalUserID(ctx)
+	case iqbenchmarkrun.FieldInternalAPIKeyID:
+		return m.OldInternalAPIKeyID(ctx)
+	case iqbenchmarkrun.FieldStatus:
+		return m.OldStatus(ctx)
+	case iqbenchmarkrun.FieldCostCollectedAt:
+		return m.OldCostCollectedAt(ctx)
+	case iqbenchmarkrun.FieldDeletedAt:
+		return m.OldDeletedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown IQBenchmarkRun field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IQBenchmarkRunMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case iqbenchmarkrun.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case iqbenchmarkrun.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case iqbenchmarkrun.FieldTaskID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTaskID(v)
+		return nil
+	case iqbenchmarkrun.FieldGroupID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroupID(v)
+		return nil
+	case iqbenchmarkrun.FieldModel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModel(v)
+		return nil
+	case iqbenchmarkrun.FieldTrigger:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTrigger(v)
+		return nil
+	case iqbenchmarkrun.FieldStartedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartedAt(v)
+		return nil
+	case iqbenchmarkrun.FieldFinishedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFinishedAt(v)
+		return nil
+	case iqbenchmarkrun.FieldSuccessCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSuccessCount(v)
+		return nil
+	case iqbenchmarkrun.FieldFailedCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailedCount(v)
+		return nil
+	case iqbenchmarkrun.FieldTimeoutCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTimeoutCount(v)
+		return nil
+	case iqbenchmarkrun.FieldBlockedCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBlockedCount(v)
+		return nil
+	case iqbenchmarkrun.FieldTotalDurationMs:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTotalDurationMs(v)
+		return nil
+	case iqbenchmarkrun.FieldTotalCost:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTotalCost(v)
+		return nil
+	case iqbenchmarkrun.FieldTotalInputTokens:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTotalInputTokens(v)
+		return nil
+	case iqbenchmarkrun.FieldTotalOutputTokens:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTotalOutputTokens(v)
+		return nil
+	case iqbenchmarkrun.FieldInternalUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInternalUserID(v)
+		return nil
+	case iqbenchmarkrun.FieldInternalAPIKeyID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInternalAPIKeyID(v)
+		return nil
+	case iqbenchmarkrun.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case iqbenchmarkrun.FieldCostCollectedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCostCollectedAt(v)
+		return nil
+	case iqbenchmarkrun.FieldDeletedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeletedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkRun field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *IQBenchmarkRunMutation) AddedFields() []string {
+	var fields []string
+	if m.addtask_id != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTaskID)
+	}
+	if m.addgroup_id != nil {
+		fields = append(fields, iqbenchmarkrun.FieldGroupID)
+	}
+	if m.addsuccess_count != nil {
+		fields = append(fields, iqbenchmarkrun.FieldSuccessCount)
+	}
+	if m.addfailed_count != nil {
+		fields = append(fields, iqbenchmarkrun.FieldFailedCount)
+	}
+	if m.addtimeout_count != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTimeoutCount)
+	}
+	if m.addblocked_count != nil {
+		fields = append(fields, iqbenchmarkrun.FieldBlockedCount)
+	}
+	if m.addtotal_duration_ms != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTotalDurationMs)
+	}
+	if m.addtotal_cost != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTotalCost)
+	}
+	if m.addtotal_input_tokens != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTotalInputTokens)
+	}
+	if m.addtotal_output_tokens != nil {
+		fields = append(fields, iqbenchmarkrun.FieldTotalOutputTokens)
+	}
+	if m.addinternal_user_id != nil {
+		fields = append(fields, iqbenchmarkrun.FieldInternalUserID)
+	}
+	if m.addinternal_api_key_id != nil {
+		fields = append(fields, iqbenchmarkrun.FieldInternalAPIKeyID)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *IQBenchmarkRunMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case iqbenchmarkrun.FieldTaskID:
+		return m.AddedTaskID()
+	case iqbenchmarkrun.FieldGroupID:
+		return m.AddedGroupID()
+	case iqbenchmarkrun.FieldSuccessCount:
+		return m.AddedSuccessCount()
+	case iqbenchmarkrun.FieldFailedCount:
+		return m.AddedFailedCount()
+	case iqbenchmarkrun.FieldTimeoutCount:
+		return m.AddedTimeoutCount()
+	case iqbenchmarkrun.FieldBlockedCount:
+		return m.AddedBlockedCount()
+	case iqbenchmarkrun.FieldTotalDurationMs:
+		return m.AddedTotalDurationMs()
+	case iqbenchmarkrun.FieldTotalCost:
+		return m.AddedTotalCost()
+	case iqbenchmarkrun.FieldTotalInputTokens:
+		return m.AddedTotalInputTokens()
+	case iqbenchmarkrun.FieldTotalOutputTokens:
+		return m.AddedTotalOutputTokens()
+	case iqbenchmarkrun.FieldInternalUserID:
+		return m.AddedInternalUserID()
+	case iqbenchmarkrun.FieldInternalAPIKeyID:
+		return m.AddedInternalAPIKeyID()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IQBenchmarkRunMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case iqbenchmarkrun.FieldTaskID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTaskID(v)
+		return nil
+	case iqbenchmarkrun.FieldGroupID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddGroupID(v)
+		return nil
+	case iqbenchmarkrun.FieldSuccessCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSuccessCount(v)
+		return nil
+	case iqbenchmarkrun.FieldFailedCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFailedCount(v)
+		return nil
+	case iqbenchmarkrun.FieldTimeoutCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTimeoutCount(v)
+		return nil
+	case iqbenchmarkrun.FieldBlockedCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBlockedCount(v)
+		return nil
+	case iqbenchmarkrun.FieldTotalDurationMs:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTotalDurationMs(v)
+		return nil
+	case iqbenchmarkrun.FieldTotalCost:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTotalCost(v)
+		return nil
+	case iqbenchmarkrun.FieldTotalInputTokens:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTotalInputTokens(v)
+		return nil
+	case iqbenchmarkrun.FieldTotalOutputTokens:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTotalOutputTokens(v)
+		return nil
+	case iqbenchmarkrun.FieldInternalUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddInternalUserID(v)
+		return nil
+	case iqbenchmarkrun.FieldInternalAPIKeyID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddInternalAPIKeyID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkRun numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *IQBenchmarkRunMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(iqbenchmarkrun.FieldFinishedAt) {
+		fields = append(fields, iqbenchmarkrun.FieldFinishedAt)
+	}
+	if m.FieldCleared(iqbenchmarkrun.FieldCostCollectedAt) {
+		fields = append(fields, iqbenchmarkrun.FieldCostCollectedAt)
+	}
+	if m.FieldCleared(iqbenchmarkrun.FieldDeletedAt) {
+		fields = append(fields, iqbenchmarkrun.FieldDeletedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *IQBenchmarkRunMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *IQBenchmarkRunMutation) ClearField(name string) error {
+	switch name {
+	case iqbenchmarkrun.FieldFinishedAt:
+		m.ClearFinishedAt()
+		return nil
+	case iqbenchmarkrun.FieldCostCollectedAt:
+		m.ClearCostCollectedAt()
+		return nil
+	case iqbenchmarkrun.FieldDeletedAt:
+		m.ClearDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkRun nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *IQBenchmarkRunMutation) ResetField(name string) error {
+	switch name {
+	case iqbenchmarkrun.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case iqbenchmarkrun.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case iqbenchmarkrun.FieldTaskID:
+		m.ResetTaskID()
+		return nil
+	case iqbenchmarkrun.FieldGroupID:
+		m.ResetGroupID()
+		return nil
+	case iqbenchmarkrun.FieldModel:
+		m.ResetModel()
+		return nil
+	case iqbenchmarkrun.FieldTrigger:
+		m.ResetTrigger()
+		return nil
+	case iqbenchmarkrun.FieldStartedAt:
+		m.ResetStartedAt()
+		return nil
+	case iqbenchmarkrun.FieldFinishedAt:
+		m.ResetFinishedAt()
+		return nil
+	case iqbenchmarkrun.FieldSuccessCount:
+		m.ResetSuccessCount()
+		return nil
+	case iqbenchmarkrun.FieldFailedCount:
+		m.ResetFailedCount()
+		return nil
+	case iqbenchmarkrun.FieldTimeoutCount:
+		m.ResetTimeoutCount()
+		return nil
+	case iqbenchmarkrun.FieldBlockedCount:
+		m.ResetBlockedCount()
+		return nil
+	case iqbenchmarkrun.FieldTotalDurationMs:
+		m.ResetTotalDurationMs()
+		return nil
+	case iqbenchmarkrun.FieldTotalCost:
+		m.ResetTotalCost()
+		return nil
+	case iqbenchmarkrun.FieldTotalInputTokens:
+		m.ResetTotalInputTokens()
+		return nil
+	case iqbenchmarkrun.FieldTotalOutputTokens:
+		m.ResetTotalOutputTokens()
+		return nil
+	case iqbenchmarkrun.FieldInternalUserID:
+		m.ResetInternalUserID()
+		return nil
+	case iqbenchmarkrun.FieldInternalAPIKeyID:
+		m.ResetInternalAPIKeyID()
+		return nil
+	case iqbenchmarkrun.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case iqbenchmarkrun.FieldCostCollectedAt:
+		m.ResetCostCollectedAt()
+		return nil
+	case iqbenchmarkrun.FieldDeletedAt:
+		m.ResetDeletedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkRun field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *IQBenchmarkRunMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *IQBenchmarkRunMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *IQBenchmarkRunMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *IQBenchmarkRunMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *IQBenchmarkRunMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *IQBenchmarkRunMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *IQBenchmarkRunMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown IQBenchmarkRun unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *IQBenchmarkRunMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown IQBenchmarkRun edge %s", name)
+}
+
+// IQBenchmarkTaskMutation represents an operation that mutates the IQBenchmarkTask nodes in the graph.
+type IQBenchmarkTaskMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *int64
+	created_at          *time.Time
+	updated_at          *time.Time
+	name                *string
+	group_id            *int64
+	addgroup_id         *int64
+	model               *string
+	case_ids            *[]int64
+	appendcase_ids      []int64
+	interval_minutes    *int
+	addinterval_minutes *int
+	jitter_seconds      *int
+	addjitter_seconds   *int
+	enabled             *bool
+	status              *string
+	status_reason       *string
+	next_run_at         *time.Time
+	last_run_at         *time.Time
+	lease_owner         *string
+	lease_expires_at    *time.Time
+	clearedFields       map[string]struct{}
+	done                bool
+	oldValue            func(context.Context) (*IQBenchmarkTask, error)
+	predicates          []predicate.IQBenchmarkTask
+}
+
+var _ ent.Mutation = (*IQBenchmarkTaskMutation)(nil)
+
+// iqbenchmarktaskOption allows management of the mutation configuration using functional options.
+type iqbenchmarktaskOption func(*IQBenchmarkTaskMutation)
+
+// newIQBenchmarkTaskMutation creates new mutation for the IQBenchmarkTask entity.
+func newIQBenchmarkTaskMutation(c config, op Op, opts ...iqbenchmarktaskOption) *IQBenchmarkTaskMutation {
+	m := &IQBenchmarkTaskMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeIQBenchmarkTask,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withIQBenchmarkTaskID sets the ID field of the mutation.
+func withIQBenchmarkTaskID(id int64) iqbenchmarktaskOption {
+	return func(m *IQBenchmarkTaskMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *IQBenchmarkTask
+		)
+		m.oldValue = func(ctx context.Context) (*IQBenchmarkTask, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().IQBenchmarkTask.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withIQBenchmarkTask sets the old IQBenchmarkTask of the mutation.
+func withIQBenchmarkTask(node *IQBenchmarkTask) iqbenchmarktaskOption {
+	return func(m *IQBenchmarkTaskMutation) {
+		m.oldValue = func(context.Context) (*IQBenchmarkTask, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m IQBenchmarkTaskMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m IQBenchmarkTaskMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *IQBenchmarkTaskMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *IQBenchmarkTaskMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().IQBenchmarkTask.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *IQBenchmarkTaskMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *IQBenchmarkTaskMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *IQBenchmarkTaskMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *IQBenchmarkTaskMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *IQBenchmarkTaskMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *IQBenchmarkTaskMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetName sets the "name" field.
+func (m *IQBenchmarkTaskMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *IQBenchmarkTaskMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *IQBenchmarkTaskMutation) ResetName() {
+	m.name = nil
+}
+
+// SetGroupID sets the "group_id" field.
+func (m *IQBenchmarkTaskMutation) SetGroupID(i int64) {
+	m.group_id = &i
+	m.addgroup_id = nil
+}
+
+// GroupID returns the value of the "group_id" field in the mutation.
+func (m *IQBenchmarkTaskMutation) GroupID() (r int64, exists bool) {
+	v := m.group_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroupID returns the old "group_id" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldGroupID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroupID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroupID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroupID: %w", err)
+	}
+	return oldValue.GroupID, nil
+}
+
+// AddGroupID adds i to the "group_id" field.
+func (m *IQBenchmarkTaskMutation) AddGroupID(i int64) {
+	if m.addgroup_id != nil {
+		*m.addgroup_id += i
+	} else {
+		m.addgroup_id = &i
+	}
+}
+
+// AddedGroupID returns the value that was added to the "group_id" field in this mutation.
+func (m *IQBenchmarkTaskMutation) AddedGroupID() (r int64, exists bool) {
+	v := m.addgroup_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetGroupID resets all changes to the "group_id" field.
+func (m *IQBenchmarkTaskMutation) ResetGroupID() {
+	m.group_id = nil
+	m.addgroup_id = nil
+}
+
+// SetModel sets the "model" field.
+func (m *IQBenchmarkTaskMutation) SetModel(s string) {
+	m.model = &s
+}
+
+// Model returns the value of the "model" field in the mutation.
+func (m *IQBenchmarkTaskMutation) Model() (r string, exists bool) {
+	v := m.model
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModel returns the old "model" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldModel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModel: %w", err)
+	}
+	return oldValue.Model, nil
+}
+
+// ResetModel resets all changes to the "model" field.
+func (m *IQBenchmarkTaskMutation) ResetModel() {
+	m.model = nil
+}
+
+// SetCaseIds sets the "case_ids" field.
+func (m *IQBenchmarkTaskMutation) SetCaseIds(i []int64) {
+	m.case_ids = &i
+	m.appendcase_ids = nil
+}
+
+// CaseIds returns the value of the "case_ids" field in the mutation.
+func (m *IQBenchmarkTaskMutation) CaseIds() (r []int64, exists bool) {
+	v := m.case_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCaseIds returns the old "case_ids" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldCaseIds(ctx context.Context) (v []int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCaseIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCaseIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCaseIds: %w", err)
+	}
+	return oldValue.CaseIds, nil
+}
+
+// AppendCaseIds adds i to the "case_ids" field.
+func (m *IQBenchmarkTaskMutation) AppendCaseIds(i []int64) {
+	m.appendcase_ids = append(m.appendcase_ids, i...)
+}
+
+// AppendedCaseIds returns the list of values that were appended to the "case_ids" field in this mutation.
+func (m *IQBenchmarkTaskMutation) AppendedCaseIds() ([]int64, bool) {
+	if len(m.appendcase_ids) == 0 {
+		return nil, false
+	}
+	return m.appendcase_ids, true
+}
+
+// ResetCaseIds resets all changes to the "case_ids" field.
+func (m *IQBenchmarkTaskMutation) ResetCaseIds() {
+	m.case_ids = nil
+	m.appendcase_ids = nil
+}
+
+// SetIntervalMinutes sets the "interval_minutes" field.
+func (m *IQBenchmarkTaskMutation) SetIntervalMinutes(i int) {
+	m.interval_minutes = &i
+	m.addinterval_minutes = nil
+}
+
+// IntervalMinutes returns the value of the "interval_minutes" field in the mutation.
+func (m *IQBenchmarkTaskMutation) IntervalMinutes() (r int, exists bool) {
+	v := m.interval_minutes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIntervalMinutes returns the old "interval_minutes" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldIntervalMinutes(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIntervalMinutes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIntervalMinutes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIntervalMinutes: %w", err)
+	}
+	return oldValue.IntervalMinutes, nil
+}
+
+// AddIntervalMinutes adds i to the "interval_minutes" field.
+func (m *IQBenchmarkTaskMutation) AddIntervalMinutes(i int) {
+	if m.addinterval_minutes != nil {
+		*m.addinterval_minutes += i
+	} else {
+		m.addinterval_minutes = &i
+	}
+}
+
+// AddedIntervalMinutes returns the value that was added to the "interval_minutes" field in this mutation.
+func (m *IQBenchmarkTaskMutation) AddedIntervalMinutes() (r int, exists bool) {
+	v := m.addinterval_minutes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetIntervalMinutes resets all changes to the "interval_minutes" field.
+func (m *IQBenchmarkTaskMutation) ResetIntervalMinutes() {
+	m.interval_minutes = nil
+	m.addinterval_minutes = nil
+}
+
+// SetJitterSeconds sets the "jitter_seconds" field.
+func (m *IQBenchmarkTaskMutation) SetJitterSeconds(i int) {
+	m.jitter_seconds = &i
+	m.addjitter_seconds = nil
+}
+
+// JitterSeconds returns the value of the "jitter_seconds" field in the mutation.
+func (m *IQBenchmarkTaskMutation) JitterSeconds() (r int, exists bool) {
+	v := m.jitter_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldJitterSeconds returns the old "jitter_seconds" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldJitterSeconds(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldJitterSeconds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldJitterSeconds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldJitterSeconds: %w", err)
+	}
+	return oldValue.JitterSeconds, nil
+}
+
+// AddJitterSeconds adds i to the "jitter_seconds" field.
+func (m *IQBenchmarkTaskMutation) AddJitterSeconds(i int) {
+	if m.addjitter_seconds != nil {
+		*m.addjitter_seconds += i
+	} else {
+		m.addjitter_seconds = &i
+	}
+}
+
+// AddedJitterSeconds returns the value that was added to the "jitter_seconds" field in this mutation.
+func (m *IQBenchmarkTaskMutation) AddedJitterSeconds() (r int, exists bool) {
+	v := m.addjitter_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetJitterSeconds resets all changes to the "jitter_seconds" field.
+func (m *IQBenchmarkTaskMutation) ResetJitterSeconds() {
+	m.jitter_seconds = nil
+	m.addjitter_seconds = nil
+}
+
+// SetEnabled sets the "enabled" field.
+func (m *IQBenchmarkTaskMutation) SetEnabled(b bool) {
+	m.enabled = &b
+}
+
+// Enabled returns the value of the "enabled" field in the mutation.
+func (m *IQBenchmarkTaskMutation) Enabled() (r bool, exists bool) {
+	v := m.enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnabled returns the old "enabled" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnabled: %w", err)
+	}
+	return oldValue.Enabled, nil
+}
+
+// ResetEnabled resets all changes to the "enabled" field.
+func (m *IQBenchmarkTaskMutation) ResetEnabled() {
+	m.enabled = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *IQBenchmarkTaskMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *IQBenchmarkTaskMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *IQBenchmarkTaskMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetStatusReason sets the "status_reason" field.
+func (m *IQBenchmarkTaskMutation) SetStatusReason(s string) {
+	m.status_reason = &s
+}
+
+// StatusReason returns the value of the "status_reason" field in the mutation.
+func (m *IQBenchmarkTaskMutation) StatusReason() (r string, exists bool) {
+	v := m.status_reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatusReason returns the old "status_reason" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldStatusReason(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatusReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatusReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatusReason: %w", err)
+	}
+	return oldValue.StatusReason, nil
+}
+
+// ClearStatusReason clears the value of the "status_reason" field.
+func (m *IQBenchmarkTaskMutation) ClearStatusReason() {
+	m.status_reason = nil
+	m.clearedFields[iqbenchmarktask.FieldStatusReason] = struct{}{}
+}
+
+// StatusReasonCleared returns if the "status_reason" field was cleared in this mutation.
+func (m *IQBenchmarkTaskMutation) StatusReasonCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarktask.FieldStatusReason]
+	return ok
+}
+
+// ResetStatusReason resets all changes to the "status_reason" field.
+func (m *IQBenchmarkTaskMutation) ResetStatusReason() {
+	m.status_reason = nil
+	delete(m.clearedFields, iqbenchmarktask.FieldStatusReason)
+}
+
+// SetNextRunAt sets the "next_run_at" field.
+func (m *IQBenchmarkTaskMutation) SetNextRunAt(t time.Time) {
+	m.next_run_at = &t
+}
+
+// NextRunAt returns the value of the "next_run_at" field in the mutation.
+func (m *IQBenchmarkTaskMutation) NextRunAt() (r time.Time, exists bool) {
+	v := m.next_run_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextRunAt returns the old "next_run_at" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldNextRunAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextRunAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextRunAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextRunAt: %w", err)
+	}
+	return oldValue.NextRunAt, nil
+}
+
+// ClearNextRunAt clears the value of the "next_run_at" field.
+func (m *IQBenchmarkTaskMutation) ClearNextRunAt() {
+	m.next_run_at = nil
+	m.clearedFields[iqbenchmarktask.FieldNextRunAt] = struct{}{}
+}
+
+// NextRunAtCleared returns if the "next_run_at" field was cleared in this mutation.
+func (m *IQBenchmarkTaskMutation) NextRunAtCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarktask.FieldNextRunAt]
+	return ok
+}
+
+// ResetNextRunAt resets all changes to the "next_run_at" field.
+func (m *IQBenchmarkTaskMutation) ResetNextRunAt() {
+	m.next_run_at = nil
+	delete(m.clearedFields, iqbenchmarktask.FieldNextRunAt)
+}
+
+// SetLastRunAt sets the "last_run_at" field.
+func (m *IQBenchmarkTaskMutation) SetLastRunAt(t time.Time) {
+	m.last_run_at = &t
+}
+
+// LastRunAt returns the value of the "last_run_at" field in the mutation.
+func (m *IQBenchmarkTaskMutation) LastRunAt() (r time.Time, exists bool) {
+	v := m.last_run_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastRunAt returns the old "last_run_at" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldLastRunAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastRunAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastRunAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastRunAt: %w", err)
+	}
+	return oldValue.LastRunAt, nil
+}
+
+// ClearLastRunAt clears the value of the "last_run_at" field.
+func (m *IQBenchmarkTaskMutation) ClearLastRunAt() {
+	m.last_run_at = nil
+	m.clearedFields[iqbenchmarktask.FieldLastRunAt] = struct{}{}
+}
+
+// LastRunAtCleared returns if the "last_run_at" field was cleared in this mutation.
+func (m *IQBenchmarkTaskMutation) LastRunAtCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarktask.FieldLastRunAt]
+	return ok
+}
+
+// ResetLastRunAt resets all changes to the "last_run_at" field.
+func (m *IQBenchmarkTaskMutation) ResetLastRunAt() {
+	m.last_run_at = nil
+	delete(m.clearedFields, iqbenchmarktask.FieldLastRunAt)
+}
+
+// SetLeaseOwner sets the "lease_owner" field.
+func (m *IQBenchmarkTaskMutation) SetLeaseOwner(s string) {
+	m.lease_owner = &s
+}
+
+// LeaseOwner returns the value of the "lease_owner" field in the mutation.
+func (m *IQBenchmarkTaskMutation) LeaseOwner() (r string, exists bool) {
+	v := m.lease_owner
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLeaseOwner returns the old "lease_owner" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldLeaseOwner(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLeaseOwner is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLeaseOwner requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLeaseOwner: %w", err)
+	}
+	return oldValue.LeaseOwner, nil
+}
+
+// ClearLeaseOwner clears the value of the "lease_owner" field.
+func (m *IQBenchmarkTaskMutation) ClearLeaseOwner() {
+	m.lease_owner = nil
+	m.clearedFields[iqbenchmarktask.FieldLeaseOwner] = struct{}{}
+}
+
+// LeaseOwnerCleared returns if the "lease_owner" field was cleared in this mutation.
+func (m *IQBenchmarkTaskMutation) LeaseOwnerCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarktask.FieldLeaseOwner]
+	return ok
+}
+
+// ResetLeaseOwner resets all changes to the "lease_owner" field.
+func (m *IQBenchmarkTaskMutation) ResetLeaseOwner() {
+	m.lease_owner = nil
+	delete(m.clearedFields, iqbenchmarktask.FieldLeaseOwner)
+}
+
+// SetLeaseExpiresAt sets the "lease_expires_at" field.
+func (m *IQBenchmarkTaskMutation) SetLeaseExpiresAt(t time.Time) {
+	m.lease_expires_at = &t
+}
+
+// LeaseExpiresAt returns the value of the "lease_expires_at" field in the mutation.
+func (m *IQBenchmarkTaskMutation) LeaseExpiresAt() (r time.Time, exists bool) {
+	v := m.lease_expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLeaseExpiresAt returns the old "lease_expires_at" field's value of the IQBenchmarkTask entity.
+// If the IQBenchmarkTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *IQBenchmarkTaskMutation) OldLeaseExpiresAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLeaseExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLeaseExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLeaseExpiresAt: %w", err)
+	}
+	return oldValue.LeaseExpiresAt, nil
+}
+
+// ClearLeaseExpiresAt clears the value of the "lease_expires_at" field.
+func (m *IQBenchmarkTaskMutation) ClearLeaseExpiresAt() {
+	m.lease_expires_at = nil
+	m.clearedFields[iqbenchmarktask.FieldLeaseExpiresAt] = struct{}{}
+}
+
+// LeaseExpiresAtCleared returns if the "lease_expires_at" field was cleared in this mutation.
+func (m *IQBenchmarkTaskMutation) LeaseExpiresAtCleared() bool {
+	_, ok := m.clearedFields[iqbenchmarktask.FieldLeaseExpiresAt]
+	return ok
+}
+
+// ResetLeaseExpiresAt resets all changes to the "lease_expires_at" field.
+func (m *IQBenchmarkTaskMutation) ResetLeaseExpiresAt() {
+	m.lease_expires_at = nil
+	delete(m.clearedFields, iqbenchmarktask.FieldLeaseExpiresAt)
+}
+
+// Where appends a list predicates to the IQBenchmarkTaskMutation builder.
+func (m *IQBenchmarkTaskMutation) Where(ps ...predicate.IQBenchmarkTask) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the IQBenchmarkTaskMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *IQBenchmarkTaskMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.IQBenchmarkTask, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *IQBenchmarkTaskMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *IQBenchmarkTaskMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (IQBenchmarkTask).
+func (m *IQBenchmarkTaskMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *IQBenchmarkTaskMutation) Fields() []string {
+	fields := make([]string, 0, 15)
+	if m.created_at != nil {
+		fields = append(fields, iqbenchmarktask.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, iqbenchmarktask.FieldUpdatedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, iqbenchmarktask.FieldName)
+	}
+	if m.group_id != nil {
+		fields = append(fields, iqbenchmarktask.FieldGroupID)
+	}
+	if m.model != nil {
+		fields = append(fields, iqbenchmarktask.FieldModel)
+	}
+	if m.case_ids != nil {
+		fields = append(fields, iqbenchmarktask.FieldCaseIds)
+	}
+	if m.interval_minutes != nil {
+		fields = append(fields, iqbenchmarktask.FieldIntervalMinutes)
+	}
+	if m.jitter_seconds != nil {
+		fields = append(fields, iqbenchmarktask.FieldJitterSeconds)
+	}
+	if m.enabled != nil {
+		fields = append(fields, iqbenchmarktask.FieldEnabled)
+	}
+	if m.status != nil {
+		fields = append(fields, iqbenchmarktask.FieldStatus)
+	}
+	if m.status_reason != nil {
+		fields = append(fields, iqbenchmarktask.FieldStatusReason)
+	}
+	if m.next_run_at != nil {
+		fields = append(fields, iqbenchmarktask.FieldNextRunAt)
+	}
+	if m.last_run_at != nil {
+		fields = append(fields, iqbenchmarktask.FieldLastRunAt)
+	}
+	if m.lease_owner != nil {
+		fields = append(fields, iqbenchmarktask.FieldLeaseOwner)
+	}
+	if m.lease_expires_at != nil {
+		fields = append(fields, iqbenchmarktask.FieldLeaseExpiresAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *IQBenchmarkTaskMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case iqbenchmarktask.FieldCreatedAt:
+		return m.CreatedAt()
+	case iqbenchmarktask.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case iqbenchmarktask.FieldName:
+		return m.Name()
+	case iqbenchmarktask.FieldGroupID:
+		return m.GroupID()
+	case iqbenchmarktask.FieldModel:
+		return m.Model()
+	case iqbenchmarktask.FieldCaseIds:
+		return m.CaseIds()
+	case iqbenchmarktask.FieldIntervalMinutes:
+		return m.IntervalMinutes()
+	case iqbenchmarktask.FieldJitterSeconds:
+		return m.JitterSeconds()
+	case iqbenchmarktask.FieldEnabled:
+		return m.Enabled()
+	case iqbenchmarktask.FieldStatus:
+		return m.Status()
+	case iqbenchmarktask.FieldStatusReason:
+		return m.StatusReason()
+	case iqbenchmarktask.FieldNextRunAt:
+		return m.NextRunAt()
+	case iqbenchmarktask.FieldLastRunAt:
+		return m.LastRunAt()
+	case iqbenchmarktask.FieldLeaseOwner:
+		return m.LeaseOwner()
+	case iqbenchmarktask.FieldLeaseExpiresAt:
+		return m.LeaseExpiresAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *IQBenchmarkTaskMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case iqbenchmarktask.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case iqbenchmarktask.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case iqbenchmarktask.FieldName:
+		return m.OldName(ctx)
+	case iqbenchmarktask.FieldGroupID:
+		return m.OldGroupID(ctx)
+	case iqbenchmarktask.FieldModel:
+		return m.OldModel(ctx)
+	case iqbenchmarktask.FieldCaseIds:
+		return m.OldCaseIds(ctx)
+	case iqbenchmarktask.FieldIntervalMinutes:
+		return m.OldIntervalMinutes(ctx)
+	case iqbenchmarktask.FieldJitterSeconds:
+		return m.OldJitterSeconds(ctx)
+	case iqbenchmarktask.FieldEnabled:
+		return m.OldEnabled(ctx)
+	case iqbenchmarktask.FieldStatus:
+		return m.OldStatus(ctx)
+	case iqbenchmarktask.FieldStatusReason:
+		return m.OldStatusReason(ctx)
+	case iqbenchmarktask.FieldNextRunAt:
+		return m.OldNextRunAt(ctx)
+	case iqbenchmarktask.FieldLastRunAt:
+		return m.OldLastRunAt(ctx)
+	case iqbenchmarktask.FieldLeaseOwner:
+		return m.OldLeaseOwner(ctx)
+	case iqbenchmarktask.FieldLeaseExpiresAt:
+		return m.OldLeaseExpiresAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown IQBenchmarkTask field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IQBenchmarkTaskMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case iqbenchmarktask.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case iqbenchmarktask.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case iqbenchmarktask.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case iqbenchmarktask.FieldGroupID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroupID(v)
+		return nil
+	case iqbenchmarktask.FieldModel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModel(v)
+		return nil
+	case iqbenchmarktask.FieldCaseIds:
+		v, ok := value.([]int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCaseIds(v)
+		return nil
+	case iqbenchmarktask.FieldIntervalMinutes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIntervalMinutes(v)
+		return nil
+	case iqbenchmarktask.FieldJitterSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetJitterSeconds(v)
+		return nil
+	case iqbenchmarktask.FieldEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnabled(v)
+		return nil
+	case iqbenchmarktask.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case iqbenchmarktask.FieldStatusReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatusReason(v)
+		return nil
+	case iqbenchmarktask.FieldNextRunAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextRunAt(v)
+		return nil
+	case iqbenchmarktask.FieldLastRunAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastRunAt(v)
+		return nil
+	case iqbenchmarktask.FieldLeaseOwner:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLeaseOwner(v)
+		return nil
+	case iqbenchmarktask.FieldLeaseExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLeaseExpiresAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkTask field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *IQBenchmarkTaskMutation) AddedFields() []string {
+	var fields []string
+	if m.addgroup_id != nil {
+		fields = append(fields, iqbenchmarktask.FieldGroupID)
+	}
+	if m.addinterval_minutes != nil {
+		fields = append(fields, iqbenchmarktask.FieldIntervalMinutes)
+	}
+	if m.addjitter_seconds != nil {
+		fields = append(fields, iqbenchmarktask.FieldJitterSeconds)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *IQBenchmarkTaskMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case iqbenchmarktask.FieldGroupID:
+		return m.AddedGroupID()
+	case iqbenchmarktask.FieldIntervalMinutes:
+		return m.AddedIntervalMinutes()
+	case iqbenchmarktask.FieldJitterSeconds:
+		return m.AddedJitterSeconds()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *IQBenchmarkTaskMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case iqbenchmarktask.FieldGroupID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddGroupID(v)
+		return nil
+	case iqbenchmarktask.FieldIntervalMinutes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddIntervalMinutes(v)
+		return nil
+	case iqbenchmarktask.FieldJitterSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddJitterSeconds(v)
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkTask numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *IQBenchmarkTaskMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(iqbenchmarktask.FieldStatusReason) {
+		fields = append(fields, iqbenchmarktask.FieldStatusReason)
+	}
+	if m.FieldCleared(iqbenchmarktask.FieldNextRunAt) {
+		fields = append(fields, iqbenchmarktask.FieldNextRunAt)
+	}
+	if m.FieldCleared(iqbenchmarktask.FieldLastRunAt) {
+		fields = append(fields, iqbenchmarktask.FieldLastRunAt)
+	}
+	if m.FieldCleared(iqbenchmarktask.FieldLeaseOwner) {
+		fields = append(fields, iqbenchmarktask.FieldLeaseOwner)
+	}
+	if m.FieldCleared(iqbenchmarktask.FieldLeaseExpiresAt) {
+		fields = append(fields, iqbenchmarktask.FieldLeaseExpiresAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *IQBenchmarkTaskMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *IQBenchmarkTaskMutation) ClearField(name string) error {
+	switch name {
+	case iqbenchmarktask.FieldStatusReason:
+		m.ClearStatusReason()
+		return nil
+	case iqbenchmarktask.FieldNextRunAt:
+		m.ClearNextRunAt()
+		return nil
+	case iqbenchmarktask.FieldLastRunAt:
+		m.ClearLastRunAt()
+		return nil
+	case iqbenchmarktask.FieldLeaseOwner:
+		m.ClearLeaseOwner()
+		return nil
+	case iqbenchmarktask.FieldLeaseExpiresAt:
+		m.ClearLeaseExpiresAt()
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkTask nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *IQBenchmarkTaskMutation) ResetField(name string) error {
+	switch name {
+	case iqbenchmarktask.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case iqbenchmarktask.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case iqbenchmarktask.FieldName:
+		m.ResetName()
+		return nil
+	case iqbenchmarktask.FieldGroupID:
+		m.ResetGroupID()
+		return nil
+	case iqbenchmarktask.FieldModel:
+		m.ResetModel()
+		return nil
+	case iqbenchmarktask.FieldCaseIds:
+		m.ResetCaseIds()
+		return nil
+	case iqbenchmarktask.FieldIntervalMinutes:
+		m.ResetIntervalMinutes()
+		return nil
+	case iqbenchmarktask.FieldJitterSeconds:
+		m.ResetJitterSeconds()
+		return nil
+	case iqbenchmarktask.FieldEnabled:
+		m.ResetEnabled()
+		return nil
+	case iqbenchmarktask.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case iqbenchmarktask.FieldStatusReason:
+		m.ResetStatusReason()
+		return nil
+	case iqbenchmarktask.FieldNextRunAt:
+		m.ResetNextRunAt()
+		return nil
+	case iqbenchmarktask.FieldLastRunAt:
+		m.ResetLastRunAt()
+		return nil
+	case iqbenchmarktask.FieldLeaseOwner:
+		m.ResetLeaseOwner()
+		return nil
+	case iqbenchmarktask.FieldLeaseExpiresAt:
+		m.ResetLeaseExpiresAt()
+		return nil
+	}
+	return fmt.Errorf("unknown IQBenchmarkTask field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *IQBenchmarkTaskMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *IQBenchmarkTaskMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *IQBenchmarkTaskMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *IQBenchmarkTaskMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *IQBenchmarkTaskMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *IQBenchmarkTaskMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *IQBenchmarkTaskMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown IQBenchmarkTask unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *IQBenchmarkTaskMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown IQBenchmarkTask edge %s", name)
 }
 
 // IdempotencyRecordMutation represents an operation that mutates the IdempotencyRecord nodes in the graph.

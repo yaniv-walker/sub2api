@@ -57,6 +57,18 @@ type ErrorPassthroughRule func(*sql.Selector)
 // Group is the predicate function for group builders.
 type Group func(*sql.Selector)
 
+// IQBenchmarkArtifact is the predicate function for iqbenchmarkartifact builders.
+type IQBenchmarkArtifact func(*sql.Selector)
+
+// IQBenchmarkCase is the predicate function for iqbenchmarkcase builders.
+type IQBenchmarkCase func(*sql.Selector)
+
+// IQBenchmarkRun is the predicate function for iqbenchmarkrun builders.
+type IQBenchmarkRun func(*sql.Selector)
+
+// IQBenchmarkTask is the predicate function for iqbenchmarktask builders.
+type IQBenchmarkTask func(*sql.Selector)
+
 // IdempotencyRecord is the predicate function for idempotencyrecord builders.
 type IdempotencyRecord func(*sql.Selector)
 

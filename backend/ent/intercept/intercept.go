@@ -27,6 +27,10 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkartifact"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkcase"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkrun"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarktask"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -566,6 +570,114 @@ func (f TraverseGroup) Traverse(ctx context.Context, q ent.Query) error {
 		return f(ctx, q)
 	}
 	return fmt.Errorf("unexpected query type %T. expect *ent.GroupQuery", q)
+}
+
+// The IQBenchmarkArtifactFunc type is an adapter to allow the use of ordinary function as a Querier.
+type IQBenchmarkArtifactFunc func(context.Context, *ent.IQBenchmarkArtifactQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f IQBenchmarkArtifactFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.IQBenchmarkArtifactQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.IQBenchmarkArtifactQuery", q)
+}
+
+// The TraverseIQBenchmarkArtifact type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseIQBenchmarkArtifact func(context.Context, *ent.IQBenchmarkArtifactQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseIQBenchmarkArtifact) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseIQBenchmarkArtifact) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.IQBenchmarkArtifactQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.IQBenchmarkArtifactQuery", q)
+}
+
+// The IQBenchmarkCaseFunc type is an adapter to allow the use of ordinary function as a Querier.
+type IQBenchmarkCaseFunc func(context.Context, *ent.IQBenchmarkCaseQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f IQBenchmarkCaseFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.IQBenchmarkCaseQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.IQBenchmarkCaseQuery", q)
+}
+
+// The TraverseIQBenchmarkCase type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseIQBenchmarkCase func(context.Context, *ent.IQBenchmarkCaseQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseIQBenchmarkCase) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseIQBenchmarkCase) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.IQBenchmarkCaseQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.IQBenchmarkCaseQuery", q)
+}
+
+// The IQBenchmarkRunFunc type is an adapter to allow the use of ordinary function as a Querier.
+type IQBenchmarkRunFunc func(context.Context, *ent.IQBenchmarkRunQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f IQBenchmarkRunFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.IQBenchmarkRunQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.IQBenchmarkRunQuery", q)
+}
+
+// The TraverseIQBenchmarkRun type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseIQBenchmarkRun func(context.Context, *ent.IQBenchmarkRunQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseIQBenchmarkRun) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseIQBenchmarkRun) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.IQBenchmarkRunQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.IQBenchmarkRunQuery", q)
+}
+
+// The IQBenchmarkTaskFunc type is an adapter to allow the use of ordinary function as a Querier.
+type IQBenchmarkTaskFunc func(context.Context, *ent.IQBenchmarkTaskQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f IQBenchmarkTaskFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.IQBenchmarkTaskQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.IQBenchmarkTaskQuery", q)
+}
+
+// The TraverseIQBenchmarkTask type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseIQBenchmarkTask func(context.Context, *ent.IQBenchmarkTaskQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseIQBenchmarkTask) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseIQBenchmarkTask) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.IQBenchmarkTaskQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.IQBenchmarkTaskQuery", q)
 }
 
 // The IdempotencyRecordFunc type is an adapter to allow the use of ordinary function as a Querier.
@@ -1280,6 +1392,14 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.ErrorPassthroughRuleQuery, predicate.ErrorPassthroughRule, errorpassthroughrule.OrderOption]{typ: ent.TypeErrorPassthroughRule, tq: q}, nil
 	case *ent.GroupQuery:
 		return &query[*ent.GroupQuery, predicate.Group, group.OrderOption]{typ: ent.TypeGroup, tq: q}, nil
+	case *ent.IQBenchmarkArtifactQuery:
+		return &query[*ent.IQBenchmarkArtifactQuery, predicate.IQBenchmarkArtifact, iqbenchmarkartifact.OrderOption]{typ: ent.TypeIQBenchmarkArtifact, tq: q}, nil
+	case *ent.IQBenchmarkCaseQuery:
+		return &query[*ent.IQBenchmarkCaseQuery, predicate.IQBenchmarkCase, iqbenchmarkcase.OrderOption]{typ: ent.TypeIQBenchmarkCase, tq: q}, nil
+	case *ent.IQBenchmarkRunQuery:
+		return &query[*ent.IQBenchmarkRunQuery, predicate.IQBenchmarkRun, iqbenchmarkrun.OrderOption]{typ: ent.TypeIQBenchmarkRun, tq: q}, nil
+	case *ent.IQBenchmarkTaskQuery:
+		return &query[*ent.IQBenchmarkTaskQuery, predicate.IQBenchmarkTask, iqbenchmarktask.OrderOption]{typ: ent.TypeIQBenchmarkTask, tq: q}, nil
 	case *ent.IdempotencyRecordQuery:
 		return &query[*ent.IdempotencyRecordQuery, predicate.IdempotencyRecord, idempotencyrecord.OrderOption]{typ: ent.TypeIdempotencyRecord, tq: q}, nil
 	case *ent.IdentityAdoptionDecisionQuery:

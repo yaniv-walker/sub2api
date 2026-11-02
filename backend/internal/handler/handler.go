@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/Wei-Shaw/sub2api/internal/handler/admin"
+	iqbenchmarkhandler "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/handler"
 	"github.com/Wei-Shaw/sub2api/internal/securityaudit"
 )
 
@@ -71,6 +72,9 @@ type Handlers struct {
 	AsyncImage       *AsyncImageHandler
 	BatchImage       *BatchImageHandler
 	Tutorial         *TutorialCenterHandler
+	// IQBenchmark 是「模型智商检测作品展」的处理器集合（独立垂直模块）。
+	// 本包只持有指针，不展开其内部结构：新模块细节不外泄到上游 handler 包。
+	IQBenchmark *iqbenchmarkhandler.Handlers
 }
 
 // BuildInfo contains build-time information

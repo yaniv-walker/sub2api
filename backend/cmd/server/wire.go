@@ -14,6 +14,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
+	iqmodule "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/module"
+	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/scheduler"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	"github.com/Wei-Shaw/sub2api/internal/plugin"
 	"github.com/Wei-Shaw/sub2api/internal/repository"
@@ -44,6 +46,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		repository.ProviderSet,
 		service.ProviderSet,
 		securityaudit.ProviderSet,
+		iqmodule.ProviderSet,
 		payment.ProviderSet,
 		middleware.ProviderSet,
 		handler.ProviderSet,
@@ -155,6 +158,7 @@ func provideCleanup(
 	promptAudit *securityaudit.PromptService,
 	pluginManager *service.PluginManager,
 	internalPluginManager *plugin.Manager,
+	iqScheduler *scheduler.Scheduler,
 ) func() {
 	return func() {
 		if checkinService != nil {
@@ -215,6 +219,12 @@ func provideCleanup(
 			{"PromptAuditService", func() error {
 				if promptAudit != nil {
 					return promptAudit.Shutdown(ctx)
+				}
+				return nil
+			}},
+			{"IQBenchmarkScheduler", func() error {
+				if iqScheduler != nil {
+					return iqScheduler.Shutdown(ctx)
 				}
 				return nil
 			}},

@@ -12,6 +12,13 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	"github.com/Wei-Shaw/sub2api/internal/handler/admin"
+	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark"
+	handler2 "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/handler"
+	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/module"
+	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/ratelimit"
+	repository2 "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository"
+	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/scheduler"
+	service2 "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	"github.com/Wei-Shaw/sub2api/internal/plugin"
 	"github.com/Wei-Shaw/sub2api/internal/repository"
@@ -20,9 +27,9 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor"
-	handler2 "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/handler"
-	repository2 "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/repository"
-	service2 "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/service"
+	handler3 "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/handler"
+	repository3 "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/repository"
+	service3 "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/service"
 	"github.com/redis/go-redis/v9"
 	"log"
 	"log/slog"
@@ -339,37 +346,58 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	batchImageDownloadService := service.NewBatchImageDownloadService(batchImageRepository, accountRepository, batchImageDownloadLimiter, configConfig)
 	batchImageCleanupService := service.ProvideBatchImageCleanupService(batchImageRepository, accountRepository, configConfig)
 	batchImageHandler := handler.ProvideBatchImageHandler(batchImagePublicService, batchImageDownloadService, batchImageCleanupService, openAIGatewayHandler)
+	repositoryRepository := repository2.New(client, db)
+	logger := provideInternalPluginLogger()
+	galleryService := service2.NewGalleryService(repositoryRepository, logger)
+	settingsStore, err := module.ProvideSettingsStore(settingRepository)
+	if err != nil {
+		return nil, err
+	}
+	settingsProvider := iqbenchmark.NewSettingsProvider(settingsStore, logger)
+	gatewayClient, err := module.ProvideGatewayClient(configConfig, settingsProvider, logger)
+	if err != nil {
+		return nil, err
+	}
+	blobDeleter := module.ProvideBlobDeleter()
+	artifactService := service2.NewArtifactService(repositoryRepository, settingsProvider, blobDeleter, logger)
+	guard := service2.NewGuard(repositoryRepository, logger)
+	runService := service2.NewRunService(repositoryRepository, gatewayClient, artifactService, guard, settingsProvider, logger)
+	activeDirectory := iqbenchmark.NewActiveDirectory()
+	adminHandler := handler2.NewAdminHandler(galleryService, runService, artifactService, settingsProvider, activeDirectory)
+	handlerUserHandler := handler2.NewUserHandler(galleryService, settingsProvider)
+	redisCounter := ratelimit.NewRedisCounter(redisClient)
+	galleryRateLimiter := module.ProvideGalleryRateLimiter(redisCounter, settingsProvider, logger)
+	handlers := module.ProvideHandlers(adminHandler, handlerUserHandler, galleryRateLimiter, settingsProvider)
 	idempotencyCleanupService := service.ProvideIdempotencyCleanupService(idempotencyRepository, configConfig)
 	openAIQuotaAutoResetService := service.ProvideOpenAIQuotaAutoResetService(accountRepository, openAIQuotaService, rateLimitService, idempotencyCoordinator, auditLogService, settingService, leaderLockCache)
-	handlers := handler.ProvideHandlers(checkinHandler, authHandler, userHandler, apiKeyHandler, usageHandler, redeemHandler, subscriptionHandler, announcementHandler, tutorialCenterHandler, channelMonitorUserHandler, channelMonitorV2Handler, adminHandlers, gatewayHandler, openAIGatewayHandler, handlerSettingHandler, totpHandler, passkeyHandler, handlerPaymentHandler, paymentWebhookHandler, availableChannelHandler, modelPlazaHandler, asyncImageHandler, batchImageHandler, idempotencyCoordinator, idempotencyCleanupService, openAIQuotaAutoResetService)
+	handlerHandlers := handler.ProvideHandlers(checkinHandler, authHandler, userHandler, apiKeyHandler, usageHandler, redeemHandler, subscriptionHandler, announcementHandler, tutorialCenterHandler, channelMonitorUserHandler, channelMonitorV2Handler, adminHandlers, gatewayHandler, openAIGatewayHandler, handlerSettingHandler, totpHandler, passkeyHandler, handlerPaymentHandler, paymentWebhookHandler, availableChannelHandler, modelPlazaHandler, asyncImageHandler, batchImageHandler, handlers, idempotencyCoordinator, idempotencyCleanupService, openAIQuotaAutoResetService)
 	jwtAuthMiddleware := middleware.NewJWTAuthMiddleware(authService, userService, settingService, auditLogService)
 	optionalJWTAuthMiddleware := middleware.NewOptionalJWTAuthMiddleware(authService, userService, settingService, auditLogService)
 	adminAuthMiddleware := middleware.NewAdminAuthMiddleware(authService, userService, settingService, auditLogService)
 	apiKeyAuthMiddleware := middleware.NewAPIKeyAuthMiddleware(apiKeyService, subscriptionService, configConfig)
 	auditLogMiddleware := middleware.NewAuditLogMiddleware(auditLogService)
 	stepUpAuthMiddleware := middleware.NewStepUpAuthMiddleware(totpService, userService, settingService)
-	logger := provideInternalPluginLogger()
 	upstreamMonitorPluginConfig := upstreammonitor.ProvidePluginConfig(configConfig)
-	upstreamInfoFetcher := service2.NewUpstreamInfoFetcher(logger)
-	balanceSnapshotRepository := repository2.NewBalanceSnapshotRepository(client)
-	balanceAggregator := service2.NewBalanceAggregator(upstreamInfoFetcher, balanceSnapshotRepository, logger)
-	errorRecordRepository := repository2.NewErrorRecordRepository(client)
-	errorAnalyzer := service2.NewErrorAnalyzer(errorRecordRepository, logger)
+	upstreamInfoFetcher := service3.NewUpstreamInfoFetcher(logger)
+	balanceSnapshotRepository := repository3.NewBalanceSnapshotRepository(client)
+	balanceAggregator := service3.NewBalanceAggregator(upstreamInfoFetcher, balanceSnapshotRepository, logger)
+	errorRecordRepository := repository3.NewErrorRecordRepository(client)
+	errorAnalyzer := service3.NewErrorAnalyzer(errorRecordRepository, logger)
 	usagePredictor := upstreammonitor.ProvideUsagePredictor(upstreamMonitorPluginConfig, balanceSnapshotRepository)
 	accountProvider := upstreammonitor.ProvideAccountProvider(accountRepository)
-	upstreamRepository := repository2.NewUpstreamRepository(client)
-	credentialCipher := repository2.NewCredentialCipher(client)
-	monitorHandler := handler2.NewMonitorHandler(upstreamInfoFetcher, balanceAggregator, errorAnalyzer, usagePredictor, accountProvider, upstreamRepository, credentialCipher, upstreamMonitorPluginConfig)
-	balanceAlertRepository := repository2.NewBalanceAlertRepository(client)
-	balanceAlertHandler := handler2.NewBalanceAlertHandler(balanceAlertRepository, upstreamRepository)
+	upstreamRepository := repository3.NewUpstreamRepository(client)
+	credentialCipher := repository3.NewCredentialCipher(client)
+	monitorHandler := handler3.NewMonitorHandler(upstreamInfoFetcher, balanceAggregator, errorAnalyzer, usagePredictor, accountProvider, upstreamRepository, credentialCipher, upstreamMonitorPluginConfig)
+	balanceAlertRepository := repository3.NewBalanceAlertRepository(client)
+	balanceAlertHandler := handler3.NewBalanceAlertHandler(balanceAlertRepository, upstreamRepository)
 	balanceAlertSender := upstreammonitor.ProvideBalanceAlertSender(notificationEmailService)
-	balanceAlertChecker := service2.NewBalanceAlertChecker(balanceAlertRepository, monitorHandler, balanceAlertSender, settingService)
+	balanceAlertChecker := service3.NewBalanceAlertChecker(balanceAlertRepository, monitorHandler, balanceAlertSender, settingService)
 	plugin := upstreammonitor.NewPluginWithHandler(upstreamMonitorPluginConfig, redisClient, client, logger, monitorHandler, errorRecordRepository, balanceSnapshotRepository, settingService, balanceAlertHandler, balanceAlertChecker)
 	manager, err := provideInternalPluginManager(logger, plugin)
 	if err != nil {
 		return nil, err
 	}
-	engine := server.ProvideRouter(configConfig, handlers, jwtAuthMiddleware, optionalJWTAuthMiddleware, adminAuthMiddleware, apiKeyAuthMiddleware, auditLogMiddleware, stepUpAuthMiddleware, apiKeyService, subscriptionService, opsService, settingService, compositeRouteResolver, redisClient, manager)
+	engine := server.ProvideRouter(configConfig, handlerHandlers, jwtAuthMiddleware, optionalJWTAuthMiddleware, adminAuthMiddleware, apiKeyAuthMiddleware, auditLogMiddleware, stepUpAuthMiddleware, apiKeyService, subscriptionService, opsService, settingService, compositeRouteResolver, redisClient, manager)
 	httpServer := server.ProvideHTTPServer(configConfig, engine)
 	opsMetricsCollector := service.ProvideOpsMetricsCollector(opsRepository, settingRepository, accountRepository, concurrencyService, db, redisClient, configConfig)
 	opsAggregationService := service.ProvideOpsAggregationService(opsRepository, settingRepository, db, redisClient, configConfig)
@@ -390,7 +418,8 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	channelMonitorRunner := service.ProvideChannelMonitorRunner(channelMonitorService, settingService, channelMonitorQuotaFetcher)
 	channelMonitorV2Aggregator := service.ProvideChannelMonitorV2Aggregator(channelMonitorV2Repository, db, settingService)
 	userPlatformQuotaUsageFlusher := service.ProvideUserPlatformQuotaUsageFlusher(configConfig, billingCache, serviceUserPlatformQuotaRepository, timingWheelService)
-	v := provideCleanup(checkinService, client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, opsService, opsIngressRejectAggregator, apiKeyService, authCacheInvalidationWorker, schedulerSnapshotService, tokenRefreshService, accountExpiryService, cnProviderBalanceCheckService, openAICodexVersionSyncService, claudeCodeVersionSyncService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, geminiCachedContentService, batchImageCleanupService, batchImageWorkerRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, subscriptionService, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, grokOAuthService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, channelMonitorV2Aggregator, userPlatformQuotaUsageFlusher, upstreamBillingProbeService, ollamaCloudUsageService, openCodeGoUsageService, auditLogService, openAIQuotaAutoResetService, promptService, pluginManager, manager)
+	scheduler := module.ProvideScheduler(repositoryRepository, runService, guard, settingsProvider, activeDirectory, artifactService, logger)
+	v := provideCleanup(checkinService, client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, opsService, opsIngressRejectAggregator, apiKeyService, authCacheInvalidationWorker, schedulerSnapshotService, tokenRefreshService, accountExpiryService, cnProviderBalanceCheckService, openAICodexVersionSyncService, claudeCodeVersionSyncService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, geminiCachedContentService, batchImageCleanupService, batchImageWorkerRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, subscriptionService, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, grokOAuthService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, channelMonitorV2Aggregator, userPlatformQuotaUsageFlusher, upstreamBillingProbeService, ollamaCloudUsageService, openCodeGoUsageService, auditLogService, openAIQuotaAutoResetService, promptService, pluginManager, manager, scheduler)
 	application := &Application{
 		Server:                httpServer,
 		PromptAudit:           promptService,
@@ -494,6 +523,7 @@ func provideCleanup(
 	promptAudit *securityaudit.PromptService,
 	pluginManager *service.PluginManager,
 	internalPluginManager *plugin.Manager,
+	iqScheduler *scheduler.Scheduler,
 ) func() {
 	return func() {
 		if checkinService != nil {
@@ -553,6 +583,12 @@ func provideCleanup(
 			{"PromptAuditService", func() error {
 				if promptAudit != nil {
 					return promptAudit.Shutdown(ctx)
+				}
+				return nil
+			}},
+			{"IQBenchmarkScheduler", func() error {
+				if iqScheduler != nil {
+					return iqScheduler.Shutdown(ctx)
 				}
 				return nil
 			}},

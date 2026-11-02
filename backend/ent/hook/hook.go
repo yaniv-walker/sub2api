@@ -213,6 +213,54 @@ func (f GroupFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GroupMutation", m)
 }
 
+// The IQBenchmarkArtifactFunc type is an adapter to allow the use of ordinary
+// function as IQBenchmarkArtifact mutator.
+type IQBenchmarkArtifactFunc func(context.Context, *ent.IQBenchmarkArtifactMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IQBenchmarkArtifactFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.IQBenchmarkArtifactMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IQBenchmarkArtifactMutation", m)
+}
+
+// The IQBenchmarkCaseFunc type is an adapter to allow the use of ordinary
+// function as IQBenchmarkCase mutator.
+type IQBenchmarkCaseFunc func(context.Context, *ent.IQBenchmarkCaseMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IQBenchmarkCaseFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.IQBenchmarkCaseMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IQBenchmarkCaseMutation", m)
+}
+
+// The IQBenchmarkRunFunc type is an adapter to allow the use of ordinary
+// function as IQBenchmarkRun mutator.
+type IQBenchmarkRunFunc func(context.Context, *ent.IQBenchmarkRunMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IQBenchmarkRunFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.IQBenchmarkRunMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IQBenchmarkRunMutation", m)
+}
+
+// The IQBenchmarkTaskFunc type is an adapter to allow the use of ordinary
+// function as IQBenchmarkTask mutator.
+type IQBenchmarkTaskFunc func(context.Context, *ent.IQBenchmarkTaskMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IQBenchmarkTaskFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.IQBenchmarkTaskMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IQBenchmarkTaskMutation", m)
+}
+
 // The IdempotencyRecordFunc type is an adapter to allow the use of ordinary
 // function as IdempotencyRecord mutator.
 type IdempotencyRecordFunc func(context.Context, *ent.IdempotencyRecordMutation) (ent.Value, error)

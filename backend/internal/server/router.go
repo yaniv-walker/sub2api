@@ -138,6 +138,8 @@ func registerRoutes(
 	routes.RegisterAdminRoutes(v1, h, adminAuth, auditLog, stepUpAuth, settingService, panelRateLimiter)
 	routes.RegisterGatewayRoutes(r, h, apiKeyAuth, apiKeyService, subscriptionService, opsService, settingService, compositeResolver, cfg)
 	routes.RegisterPaymentRoutes(v1, h.Payment, h.PaymentWebhook, h.Admin.Payment, jwtAuth, adminAuth, auditLog, settingService, panelRateLimiter, redisClient)
+	// 模型智商检测作品展（独立垂直模块）：enabled=false 时用户侧不注册，管理侧仅 settings 可用。
+	routes.RegisterIQBenchmarkRoutes(v1, h.IQBenchmark, adminAuth, jwtAuth, auditLog)
 
 	handler.RegisterPageRoutes(v1, cfg.Pricing.DataDir, gin.HandlerFunc(jwtAuth), gin.HandlerFunc(adminAuth), settingService)
 }

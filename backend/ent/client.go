@@ -34,6 +34,10 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkartifact"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkcase"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkrun"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarktask"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -100,6 +104,14 @@ type Client struct {
 	ErrorPassthroughRule *ErrorPassthroughRuleClient
 	// Group is the client for interacting with the Group builders.
 	Group *GroupClient
+	// IQBenchmarkArtifact is the client for interacting with the IQBenchmarkArtifact builders.
+	IQBenchmarkArtifact *IQBenchmarkArtifactClient
+	// IQBenchmarkCase is the client for interacting with the IQBenchmarkCase builders.
+	IQBenchmarkCase *IQBenchmarkCaseClient
+	// IQBenchmarkRun is the client for interacting with the IQBenchmarkRun builders.
+	IQBenchmarkRun *IQBenchmarkRunClient
+	// IQBenchmarkTask is the client for interacting with the IQBenchmarkTask builders.
+	IQBenchmarkTask *IQBenchmarkTaskClient
 	// IdempotencyRecord is the client for interacting with the IdempotencyRecord builders.
 	IdempotencyRecord *IdempotencyRecordClient
 	// IdentityAdoptionDecision is the client for interacting with the IdentityAdoptionDecision builders.
@@ -178,6 +190,10 @@ func (c *Client) init() {
 	c.CompositeModelRoute = NewCompositeModelRouteClient(c.config)
 	c.ErrorPassthroughRule = NewErrorPassthroughRuleClient(c.config)
 	c.Group = NewGroupClient(c.config)
+	c.IQBenchmarkArtifact = NewIQBenchmarkArtifactClient(c.config)
+	c.IQBenchmarkCase = NewIQBenchmarkCaseClient(c.config)
+	c.IQBenchmarkRun = NewIQBenchmarkRunClient(c.config)
+	c.IQBenchmarkTask = NewIQBenchmarkTaskClient(c.config)
 	c.IdempotencyRecord = NewIdempotencyRecordClient(c.config)
 	c.IdentityAdoptionDecision = NewIdentityAdoptionDecisionClient(c.config)
 	c.PaymentAuditLog = NewPaymentAuditLogClient(c.config)
@@ -312,6 +328,10 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		CompositeModelRoute:           NewCompositeModelRouteClient(cfg),
 		ErrorPassthroughRule:          NewErrorPassthroughRuleClient(cfg),
 		Group:                         NewGroupClient(cfg),
+		IQBenchmarkArtifact:           NewIQBenchmarkArtifactClient(cfg),
+		IQBenchmarkCase:               NewIQBenchmarkCaseClient(cfg),
+		IQBenchmarkRun:                NewIQBenchmarkRunClient(cfg),
+		IQBenchmarkTask:               NewIQBenchmarkTaskClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
 		PaymentAuditLog:               NewPaymentAuditLogClient(cfg),
@@ -373,6 +393,10 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		CompositeModelRoute:           NewCompositeModelRouteClient(cfg),
 		ErrorPassthroughRule:          NewErrorPassthroughRuleClient(cfg),
 		Group:                         NewGroupClient(cfg),
+		IQBenchmarkArtifact:           NewIQBenchmarkArtifactClient(cfg),
+		IQBenchmarkCase:               NewIQBenchmarkCaseClient(cfg),
+		IQBenchmarkRun:                NewIQBenchmarkRunClient(cfg),
+		IQBenchmarkTask:               NewIQBenchmarkTaskClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
 		PaymentAuditLog:               NewPaymentAuditLogClient(cfg),
@@ -431,7 +455,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
 		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
 		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate,
-		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
+		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IQBenchmarkArtifact,
+		c.IQBenchmarkCase, c.IQBenchmarkRun, c.IQBenchmarkTask, c.IdempotencyRecord,
 		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
 		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
 		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
@@ -452,7 +477,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.AuthIdentity, c.AuthIdentityChannel, c.BatchImageEvent, c.BatchImageItem,
 		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
 		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate,
-		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IdempotencyRecord,
+		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IQBenchmarkArtifact,
+		c.IQBenchmarkCase, c.IQBenchmarkRun, c.IQBenchmarkTask, c.IdempotencyRecord,
 		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
 		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
 		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
@@ -502,6 +528,14 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.ErrorPassthroughRule.mutate(ctx, m)
 	case *GroupMutation:
 		return c.Group.mutate(ctx, m)
+	case *IQBenchmarkArtifactMutation:
+		return c.IQBenchmarkArtifact.mutate(ctx, m)
+	case *IQBenchmarkCaseMutation:
+		return c.IQBenchmarkCase.mutate(ctx, m)
+	case *IQBenchmarkRunMutation:
+		return c.IQBenchmarkRun.mutate(ctx, m)
+	case *IQBenchmarkTaskMutation:
+		return c.IQBenchmarkTask.mutate(ctx, m)
 	case *IdempotencyRecordMutation:
 		return c.IdempotencyRecord.mutate(ctx, m)
 	case *IdentityAdoptionDecisionMutation:
@@ -3302,6 +3336,538 @@ func (c *GroupClient) mutate(ctx context.Context, m *GroupMutation) (Value, erro
 		return (&GroupDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Group mutation op: %q", m.Op())
+	}
+}
+
+// IQBenchmarkArtifactClient is a client for the IQBenchmarkArtifact schema.
+type IQBenchmarkArtifactClient struct {
+	config
+}
+
+// NewIQBenchmarkArtifactClient returns a client for the IQBenchmarkArtifact from the given config.
+func NewIQBenchmarkArtifactClient(c config) *IQBenchmarkArtifactClient {
+	return &IQBenchmarkArtifactClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `iqbenchmarkartifact.Hooks(f(g(h())))`.
+func (c *IQBenchmarkArtifactClient) Use(hooks ...Hook) {
+	c.hooks.IQBenchmarkArtifact = append(c.hooks.IQBenchmarkArtifact, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `iqbenchmarkartifact.Intercept(f(g(h())))`.
+func (c *IQBenchmarkArtifactClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IQBenchmarkArtifact = append(c.inters.IQBenchmarkArtifact, interceptors...)
+}
+
+// Create returns a builder for creating a IQBenchmarkArtifact entity.
+func (c *IQBenchmarkArtifactClient) Create() *IQBenchmarkArtifactCreate {
+	mutation := newIQBenchmarkArtifactMutation(c.config, OpCreate)
+	return &IQBenchmarkArtifactCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IQBenchmarkArtifact entities.
+func (c *IQBenchmarkArtifactClient) CreateBulk(builders ...*IQBenchmarkArtifactCreate) *IQBenchmarkArtifactCreateBulk {
+	return &IQBenchmarkArtifactCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IQBenchmarkArtifactClient) MapCreateBulk(slice any, setFunc func(*IQBenchmarkArtifactCreate, int)) *IQBenchmarkArtifactCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IQBenchmarkArtifactCreateBulk{err: fmt.Errorf("calling to IQBenchmarkArtifactClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IQBenchmarkArtifactCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IQBenchmarkArtifactCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IQBenchmarkArtifact.
+func (c *IQBenchmarkArtifactClient) Update() *IQBenchmarkArtifactUpdate {
+	mutation := newIQBenchmarkArtifactMutation(c.config, OpUpdate)
+	return &IQBenchmarkArtifactUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IQBenchmarkArtifactClient) UpdateOne(_m *IQBenchmarkArtifact) *IQBenchmarkArtifactUpdateOne {
+	mutation := newIQBenchmarkArtifactMutation(c.config, OpUpdateOne, withIQBenchmarkArtifact(_m))
+	return &IQBenchmarkArtifactUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IQBenchmarkArtifactClient) UpdateOneID(id int64) *IQBenchmarkArtifactUpdateOne {
+	mutation := newIQBenchmarkArtifactMutation(c.config, OpUpdateOne, withIQBenchmarkArtifactID(id))
+	return &IQBenchmarkArtifactUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IQBenchmarkArtifact.
+func (c *IQBenchmarkArtifactClient) Delete() *IQBenchmarkArtifactDelete {
+	mutation := newIQBenchmarkArtifactMutation(c.config, OpDelete)
+	return &IQBenchmarkArtifactDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IQBenchmarkArtifactClient) DeleteOne(_m *IQBenchmarkArtifact) *IQBenchmarkArtifactDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IQBenchmarkArtifactClient) DeleteOneID(id int64) *IQBenchmarkArtifactDeleteOne {
+	builder := c.Delete().Where(iqbenchmarkartifact.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IQBenchmarkArtifactDeleteOne{builder}
+}
+
+// Query returns a query builder for IQBenchmarkArtifact.
+func (c *IQBenchmarkArtifactClient) Query() *IQBenchmarkArtifactQuery {
+	return &IQBenchmarkArtifactQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIQBenchmarkArtifact},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IQBenchmarkArtifact entity by its id.
+func (c *IQBenchmarkArtifactClient) Get(ctx context.Context, id int64) (*IQBenchmarkArtifact, error) {
+	return c.Query().Where(iqbenchmarkartifact.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IQBenchmarkArtifactClient) GetX(ctx context.Context, id int64) *IQBenchmarkArtifact {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IQBenchmarkArtifactClient) Hooks() []Hook {
+	return c.hooks.IQBenchmarkArtifact
+}
+
+// Interceptors returns the client interceptors.
+func (c *IQBenchmarkArtifactClient) Interceptors() []Interceptor {
+	return c.inters.IQBenchmarkArtifact
+}
+
+func (c *IQBenchmarkArtifactClient) mutate(ctx context.Context, m *IQBenchmarkArtifactMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IQBenchmarkArtifactCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IQBenchmarkArtifactUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IQBenchmarkArtifactUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IQBenchmarkArtifactDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown IQBenchmarkArtifact mutation op: %q", m.Op())
+	}
+}
+
+// IQBenchmarkCaseClient is a client for the IQBenchmarkCase schema.
+type IQBenchmarkCaseClient struct {
+	config
+}
+
+// NewIQBenchmarkCaseClient returns a client for the IQBenchmarkCase from the given config.
+func NewIQBenchmarkCaseClient(c config) *IQBenchmarkCaseClient {
+	return &IQBenchmarkCaseClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `iqbenchmarkcase.Hooks(f(g(h())))`.
+func (c *IQBenchmarkCaseClient) Use(hooks ...Hook) {
+	c.hooks.IQBenchmarkCase = append(c.hooks.IQBenchmarkCase, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `iqbenchmarkcase.Intercept(f(g(h())))`.
+func (c *IQBenchmarkCaseClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IQBenchmarkCase = append(c.inters.IQBenchmarkCase, interceptors...)
+}
+
+// Create returns a builder for creating a IQBenchmarkCase entity.
+func (c *IQBenchmarkCaseClient) Create() *IQBenchmarkCaseCreate {
+	mutation := newIQBenchmarkCaseMutation(c.config, OpCreate)
+	return &IQBenchmarkCaseCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IQBenchmarkCase entities.
+func (c *IQBenchmarkCaseClient) CreateBulk(builders ...*IQBenchmarkCaseCreate) *IQBenchmarkCaseCreateBulk {
+	return &IQBenchmarkCaseCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IQBenchmarkCaseClient) MapCreateBulk(slice any, setFunc func(*IQBenchmarkCaseCreate, int)) *IQBenchmarkCaseCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IQBenchmarkCaseCreateBulk{err: fmt.Errorf("calling to IQBenchmarkCaseClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IQBenchmarkCaseCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IQBenchmarkCaseCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IQBenchmarkCase.
+func (c *IQBenchmarkCaseClient) Update() *IQBenchmarkCaseUpdate {
+	mutation := newIQBenchmarkCaseMutation(c.config, OpUpdate)
+	return &IQBenchmarkCaseUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IQBenchmarkCaseClient) UpdateOne(_m *IQBenchmarkCase) *IQBenchmarkCaseUpdateOne {
+	mutation := newIQBenchmarkCaseMutation(c.config, OpUpdateOne, withIQBenchmarkCase(_m))
+	return &IQBenchmarkCaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IQBenchmarkCaseClient) UpdateOneID(id int64) *IQBenchmarkCaseUpdateOne {
+	mutation := newIQBenchmarkCaseMutation(c.config, OpUpdateOne, withIQBenchmarkCaseID(id))
+	return &IQBenchmarkCaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IQBenchmarkCase.
+func (c *IQBenchmarkCaseClient) Delete() *IQBenchmarkCaseDelete {
+	mutation := newIQBenchmarkCaseMutation(c.config, OpDelete)
+	return &IQBenchmarkCaseDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IQBenchmarkCaseClient) DeleteOne(_m *IQBenchmarkCase) *IQBenchmarkCaseDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IQBenchmarkCaseClient) DeleteOneID(id int64) *IQBenchmarkCaseDeleteOne {
+	builder := c.Delete().Where(iqbenchmarkcase.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IQBenchmarkCaseDeleteOne{builder}
+}
+
+// Query returns a query builder for IQBenchmarkCase.
+func (c *IQBenchmarkCaseClient) Query() *IQBenchmarkCaseQuery {
+	return &IQBenchmarkCaseQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIQBenchmarkCase},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IQBenchmarkCase entity by its id.
+func (c *IQBenchmarkCaseClient) Get(ctx context.Context, id int64) (*IQBenchmarkCase, error) {
+	return c.Query().Where(iqbenchmarkcase.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IQBenchmarkCaseClient) GetX(ctx context.Context, id int64) *IQBenchmarkCase {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IQBenchmarkCaseClient) Hooks() []Hook {
+	return c.hooks.IQBenchmarkCase
+}
+
+// Interceptors returns the client interceptors.
+func (c *IQBenchmarkCaseClient) Interceptors() []Interceptor {
+	return c.inters.IQBenchmarkCase
+}
+
+func (c *IQBenchmarkCaseClient) mutate(ctx context.Context, m *IQBenchmarkCaseMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IQBenchmarkCaseCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IQBenchmarkCaseUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IQBenchmarkCaseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IQBenchmarkCaseDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown IQBenchmarkCase mutation op: %q", m.Op())
+	}
+}
+
+// IQBenchmarkRunClient is a client for the IQBenchmarkRun schema.
+type IQBenchmarkRunClient struct {
+	config
+}
+
+// NewIQBenchmarkRunClient returns a client for the IQBenchmarkRun from the given config.
+func NewIQBenchmarkRunClient(c config) *IQBenchmarkRunClient {
+	return &IQBenchmarkRunClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `iqbenchmarkrun.Hooks(f(g(h())))`.
+func (c *IQBenchmarkRunClient) Use(hooks ...Hook) {
+	c.hooks.IQBenchmarkRun = append(c.hooks.IQBenchmarkRun, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `iqbenchmarkrun.Intercept(f(g(h())))`.
+func (c *IQBenchmarkRunClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IQBenchmarkRun = append(c.inters.IQBenchmarkRun, interceptors...)
+}
+
+// Create returns a builder for creating a IQBenchmarkRun entity.
+func (c *IQBenchmarkRunClient) Create() *IQBenchmarkRunCreate {
+	mutation := newIQBenchmarkRunMutation(c.config, OpCreate)
+	return &IQBenchmarkRunCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IQBenchmarkRun entities.
+func (c *IQBenchmarkRunClient) CreateBulk(builders ...*IQBenchmarkRunCreate) *IQBenchmarkRunCreateBulk {
+	return &IQBenchmarkRunCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IQBenchmarkRunClient) MapCreateBulk(slice any, setFunc func(*IQBenchmarkRunCreate, int)) *IQBenchmarkRunCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IQBenchmarkRunCreateBulk{err: fmt.Errorf("calling to IQBenchmarkRunClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IQBenchmarkRunCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IQBenchmarkRunCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IQBenchmarkRun.
+func (c *IQBenchmarkRunClient) Update() *IQBenchmarkRunUpdate {
+	mutation := newIQBenchmarkRunMutation(c.config, OpUpdate)
+	return &IQBenchmarkRunUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IQBenchmarkRunClient) UpdateOne(_m *IQBenchmarkRun) *IQBenchmarkRunUpdateOne {
+	mutation := newIQBenchmarkRunMutation(c.config, OpUpdateOne, withIQBenchmarkRun(_m))
+	return &IQBenchmarkRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IQBenchmarkRunClient) UpdateOneID(id int64) *IQBenchmarkRunUpdateOne {
+	mutation := newIQBenchmarkRunMutation(c.config, OpUpdateOne, withIQBenchmarkRunID(id))
+	return &IQBenchmarkRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IQBenchmarkRun.
+func (c *IQBenchmarkRunClient) Delete() *IQBenchmarkRunDelete {
+	mutation := newIQBenchmarkRunMutation(c.config, OpDelete)
+	return &IQBenchmarkRunDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IQBenchmarkRunClient) DeleteOne(_m *IQBenchmarkRun) *IQBenchmarkRunDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IQBenchmarkRunClient) DeleteOneID(id int64) *IQBenchmarkRunDeleteOne {
+	builder := c.Delete().Where(iqbenchmarkrun.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IQBenchmarkRunDeleteOne{builder}
+}
+
+// Query returns a query builder for IQBenchmarkRun.
+func (c *IQBenchmarkRunClient) Query() *IQBenchmarkRunQuery {
+	return &IQBenchmarkRunQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIQBenchmarkRun},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IQBenchmarkRun entity by its id.
+func (c *IQBenchmarkRunClient) Get(ctx context.Context, id int64) (*IQBenchmarkRun, error) {
+	return c.Query().Where(iqbenchmarkrun.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IQBenchmarkRunClient) GetX(ctx context.Context, id int64) *IQBenchmarkRun {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IQBenchmarkRunClient) Hooks() []Hook {
+	return c.hooks.IQBenchmarkRun
+}
+
+// Interceptors returns the client interceptors.
+func (c *IQBenchmarkRunClient) Interceptors() []Interceptor {
+	return c.inters.IQBenchmarkRun
+}
+
+func (c *IQBenchmarkRunClient) mutate(ctx context.Context, m *IQBenchmarkRunMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IQBenchmarkRunCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IQBenchmarkRunUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IQBenchmarkRunUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IQBenchmarkRunDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown IQBenchmarkRun mutation op: %q", m.Op())
+	}
+}
+
+// IQBenchmarkTaskClient is a client for the IQBenchmarkTask schema.
+type IQBenchmarkTaskClient struct {
+	config
+}
+
+// NewIQBenchmarkTaskClient returns a client for the IQBenchmarkTask from the given config.
+func NewIQBenchmarkTaskClient(c config) *IQBenchmarkTaskClient {
+	return &IQBenchmarkTaskClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `iqbenchmarktask.Hooks(f(g(h())))`.
+func (c *IQBenchmarkTaskClient) Use(hooks ...Hook) {
+	c.hooks.IQBenchmarkTask = append(c.hooks.IQBenchmarkTask, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `iqbenchmarktask.Intercept(f(g(h())))`.
+func (c *IQBenchmarkTaskClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IQBenchmarkTask = append(c.inters.IQBenchmarkTask, interceptors...)
+}
+
+// Create returns a builder for creating a IQBenchmarkTask entity.
+func (c *IQBenchmarkTaskClient) Create() *IQBenchmarkTaskCreate {
+	mutation := newIQBenchmarkTaskMutation(c.config, OpCreate)
+	return &IQBenchmarkTaskCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IQBenchmarkTask entities.
+func (c *IQBenchmarkTaskClient) CreateBulk(builders ...*IQBenchmarkTaskCreate) *IQBenchmarkTaskCreateBulk {
+	return &IQBenchmarkTaskCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IQBenchmarkTaskClient) MapCreateBulk(slice any, setFunc func(*IQBenchmarkTaskCreate, int)) *IQBenchmarkTaskCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IQBenchmarkTaskCreateBulk{err: fmt.Errorf("calling to IQBenchmarkTaskClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IQBenchmarkTaskCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IQBenchmarkTaskCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IQBenchmarkTask.
+func (c *IQBenchmarkTaskClient) Update() *IQBenchmarkTaskUpdate {
+	mutation := newIQBenchmarkTaskMutation(c.config, OpUpdate)
+	return &IQBenchmarkTaskUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IQBenchmarkTaskClient) UpdateOne(_m *IQBenchmarkTask) *IQBenchmarkTaskUpdateOne {
+	mutation := newIQBenchmarkTaskMutation(c.config, OpUpdateOne, withIQBenchmarkTask(_m))
+	return &IQBenchmarkTaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IQBenchmarkTaskClient) UpdateOneID(id int64) *IQBenchmarkTaskUpdateOne {
+	mutation := newIQBenchmarkTaskMutation(c.config, OpUpdateOne, withIQBenchmarkTaskID(id))
+	return &IQBenchmarkTaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IQBenchmarkTask.
+func (c *IQBenchmarkTaskClient) Delete() *IQBenchmarkTaskDelete {
+	mutation := newIQBenchmarkTaskMutation(c.config, OpDelete)
+	return &IQBenchmarkTaskDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IQBenchmarkTaskClient) DeleteOne(_m *IQBenchmarkTask) *IQBenchmarkTaskDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IQBenchmarkTaskClient) DeleteOneID(id int64) *IQBenchmarkTaskDeleteOne {
+	builder := c.Delete().Where(iqbenchmarktask.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IQBenchmarkTaskDeleteOne{builder}
+}
+
+// Query returns a query builder for IQBenchmarkTask.
+func (c *IQBenchmarkTaskClient) Query() *IQBenchmarkTaskQuery {
+	return &IQBenchmarkTaskQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIQBenchmarkTask},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IQBenchmarkTask entity by its id.
+func (c *IQBenchmarkTaskClient) Get(ctx context.Context, id int64) (*IQBenchmarkTask, error) {
+	return c.Query().Where(iqbenchmarktask.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IQBenchmarkTaskClient) GetX(ctx context.Context, id int64) *IQBenchmarkTask {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IQBenchmarkTaskClient) Hooks() []Hook {
+	return c.hooks.IQBenchmarkTask
+}
+
+// Interceptors returns the client interceptors.
+func (c *IQBenchmarkTaskClient) Interceptors() []Interceptor {
+	return c.inters.IQBenchmarkTask
+}
+
+func (c *IQBenchmarkTaskClient) mutate(ctx context.Context, m *IQBenchmarkTaskMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IQBenchmarkTaskCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IQBenchmarkTaskUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IQBenchmarkTaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IQBenchmarkTaskDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown IQBenchmarkTask mutation op: %q", m.Op())
 	}
 }
 
@@ -7270,26 +7836,26 @@ type (
 		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
 		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
 		ChannelMonitorRequestTemplate, CompositeModelRoute, ErrorPassthroughRule,
-		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
-		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
-		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
-		TLSFingerprintProfile, UpstreamBalanceSnapshot, UpstreamErrorRecord,
-		UpstreamMonitorUpstream, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
-		UserAttributeDefinition, UserAttributeValue, UserPlatformQuota,
-		UserSubscription []ent.Hook
+		Group, IQBenchmarkArtifact, IQBenchmarkCase, IQBenchmarkRun, IQBenchmarkTask,
+		IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog, PaymentOrder,
+		PaymentProviderInstance, PendingAuthSession, PromoCode, PromoCodeUsage, Proxy,
+		RedeemCode, SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
+		UpstreamBalanceSnapshot, UpstreamErrorRecord, UpstreamMonitorUpstream,
+		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
+		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Hook
 	}
 	inters struct {
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
 		AuthIdentityChannel, BatchImageEvent, BatchImageItem, BatchImageJob,
 		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
 		ChannelMonitorRequestTemplate, CompositeModelRoute, ErrorPassthroughRule,
-		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
-		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
-		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
-		TLSFingerprintProfile, UpstreamBalanceSnapshot, UpstreamErrorRecord,
-		UpstreamMonitorUpstream, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
-		UserAttributeDefinition, UserAttributeValue, UserPlatformQuota,
-		UserSubscription []ent.Interceptor
+		Group, IQBenchmarkArtifact, IQBenchmarkCase, IQBenchmarkRun, IQBenchmarkTask,
+		IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog, PaymentOrder,
+		PaymentProviderInstance, PendingAuthSession, PromoCode, PromoCodeUsage, Proxy,
+		RedeemCode, SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
+		UpstreamBalanceSnapshot, UpstreamErrorRecord, UpstreamMonitorUpstream,
+		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
+		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Interceptor
 	}
 )
 

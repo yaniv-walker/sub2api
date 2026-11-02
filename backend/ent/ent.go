@@ -31,6 +31,10 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/group"
 	"github.com/Wei-Shaw/sub2api/ent/idempotencyrecord"
 	"github.com/Wei-Shaw/sub2api/ent/identityadoptiondecision"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkartifact"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkcase"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkrun"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarktask"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -131,6 +135,10 @@ func checkColumn(t, c string) error {
 			compositemodelroute.Table:           compositemodelroute.ValidColumn,
 			errorpassthroughrule.Table:          errorpassthroughrule.ValidColumn,
 			group.Table:                         group.ValidColumn,
+			iqbenchmarkartifact.Table:           iqbenchmarkartifact.ValidColumn,
+			iqbenchmarkcase.Table:               iqbenchmarkcase.ValidColumn,
+			iqbenchmarkrun.Table:                iqbenchmarkrun.ValidColumn,
+			iqbenchmarktask.Table:               iqbenchmarktask.ValidColumn,
 			idempotencyrecord.Table:             idempotencyrecord.ValidColumn,
 			identityadoptiondecision.Table:      identityadoptiondecision.ValidColumn,
 			paymentauditlog.Table:               paymentauditlog.ValidColumn,
