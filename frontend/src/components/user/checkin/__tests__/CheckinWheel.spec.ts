@@ -40,6 +40,8 @@ describe('CheckinWheel', () => {
     expect(view.get('[data-testid=checkin-wheel]').attributes('style')).not.toContain('transform 3s')
     await view.setProps({ spinning: false })
     expect(view.get('[data-testid=checkin-wheel]').attributes('data-spin-phase')).toBe('settling')
+    expect(view.get('[data-testid=wheel-amount]').text()).not.toContain('+$')
+    expect(view.emitted('settled')).toBeUndefined()
     callback(300); callback(1800)
     await view.vm.$nextTick()
     expect(view.get('[data-testid=checkin-wheel]').attributes('style')).not.toContain('rotate(72deg)')
@@ -51,6 +53,7 @@ describe('CheckinWheel', () => {
     // Fourth sector centre is 210 degrees clockwise from the top.
     // Final rotation 1950 modulo 360 is 150: 210 + 150 = 360.
     expect(style).toContain('rotate(1950deg)')
+    expect(view.emitted('settled')).toHaveLength(1)
     expect(view.text()).toContain('+$0.30')
     view.unmount()
     expect(cancel).toHaveBeenCalled()
@@ -61,6 +64,16 @@ describe('CheckinWheel', () => {
     const style = view.get('[data-testid=checkin-wheel]').attributes('style')
     expect(style).toContain('rotate(150deg)')
     expect(style).toContain('transition: none')
+    view.unmount()
+  })
+
+  it('retains the recorded prize as a sector if the current rules no longer contain it', () => {
+    const view = mount(CheckinWheel, { props: { options: options.slice(0, 2), result: record } })
+    expect(view.get('[data-testid=checkin-wheel]').text()).toContain('$0.30')
+    // Recorded prize becomes the third sector: 300 + 60 = 360 degrees.
+    expect(view.get('[data-testid=checkin-wheel]').attributes('style')).toContain('rotate(60deg)')
+    expect(view.get('[data-testid=wheel-amount]').text()).toBe('+$0.30')
+    expect(view.emitted('settled')).toBeUndefined()
     view.unmount()
   })
 
@@ -78,6 +91,7 @@ describe('CheckinWheel', () => {
     const view = mount(CheckinWheel, { props: { options, result: null, spinning: true, animate: false } })
     await view.setProps({ spinning: false, result: record })
     expect(raf).not.toHaveBeenCalled()
+    expect(view.emitted('settled')).toHaveLength(1)
     expect(view.get('[data-testid=checkin-wheel]').attributes('style')).toContain('rotate(150deg)')
     expect(view.get('[data-testid=checkin-wheel]').attributes('style')).toContain('transition: none')
     view.unmount()
