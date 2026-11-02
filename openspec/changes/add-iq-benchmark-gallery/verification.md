@@ -200,16 +200,20 @@ baseline_exit=1
 
 **新增包的单元测试（全绿，同一命令的子集）**：
 
+> 修正（2026-11-02，阶段 6 复验）：下方首次回填时 `module` 包尚无测试文件
+> （显示 `[no test files]`）。`4a5a7c414e` 新增 `module/runtime_test.go` 后该行
+> 已变为 `ok`，此处按**重跑的真实输出**更新，与 §3.8 的 5 个用例一致。
+
 ```
 $ go test -tags=unit -count=1 ./internal/iqbenchmark/...
 ?   	github.com/Wei-Shaw/sub2api/internal/iqbenchmark	[no test files]
-ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/handler	0.881s
-?   	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/module	[no test files]
-ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/ratelimit	0.681s
-ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository	0.628s
-ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/sanitize	0.778s
-ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/scheduler	0.929s
-ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service	7.880s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/handler	0.542s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/module	0.877s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/ratelimit	0.663s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository	0.748s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/sanitize	0.635s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/scheduler	0.493s
+ok  	github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service	7.208s
 exit=0
 ```
 
