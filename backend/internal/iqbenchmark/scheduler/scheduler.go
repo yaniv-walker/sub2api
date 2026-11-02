@@ -31,8 +31,6 @@ const (
 	leaseRenewInterval = 30 * time.Second
 	// shutdownGrace 是 Shutdown 等待在途执行收敛的上限。
 	shutdownGrace = 30 * time.Second
-	// maxTicksHistory 只用于日志采样。
-	maxTicksHistory = 8
 )
 
 // TaskStore 是调度器需要的任务读写能力。

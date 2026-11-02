@@ -113,14 +113,13 @@ type (
 	OverviewBucketRow   = iqbenchmark.OverviewBucketRow
 
 	// 配置类型同样集中在主包，service 侧只做别名，避免两套同构结构漂移。
-	Settings                    = iqbenchmark.Settings
-	SettingsProvider            = iqbenchmark.SettingsProvider
-	IQGalleryRateLimitSettings  = iqbenchmark.IQGalleryRateLimitSettings
+	Settings                   = iqbenchmark.Settings
+	SettingsProvider           = iqbenchmark.SettingsProvider
+	IQGalleryRateLimitSettings = iqbenchmark.IQGalleryRateLimitSettings
 )
 
 // DefaultSettings 转发主包默认配置。
 func DefaultSettings() Settings { return iqbenchmark.DefaultSettings() }
-
 
 // validateInterval 校验间隔与抖动。
 //

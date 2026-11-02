@@ -131,22 +131,22 @@ type AdminArtifactDTO struct {
 // cost / input_tokens / output_tokens 仅在 settings 显式开启时下发，
 // 由 toPublicArtifact 依据配置决定是否置零。
 type PublicArtifactDTO struct {
-	ID           int64          `json:"id"`
-	CaseID       int64          `json:"case_id"`
-	CaseName     string         `json:"case_name"`
-	CaseKind     string         `json:"case_kind"`
-	Model        string         `json:"model"`
-	RenderKind   string         `json:"render_kind"`
-	ImageURL     string         `json:"image_url,omitempty"`
-	Content      string         `json:"content,omitempty"`
-	Truncated    bool           `json:"truncated"`
-	Status       string         `json:"status"`
+	ID         int64  `json:"id"`
+	CaseID     int64  `json:"case_id"`
+	CaseName   string `json:"case_name"`
+	CaseKind   string `json:"case_kind"`
+	Model      string `json:"model"`
+	RenderKind string `json:"render_kind"`
+	ImageURL   string `json:"image_url,omitempty"`
+	Content    string `json:"content,omitempty"`
+	Truncated  bool   `json:"truncated"`
+	Status     string `json:"status"`
 	// ErrorSummary 是脱敏后的失败描述（绝不回显内部错误码）。
-	ErrorSummary string     `json:"error_summary,omitempty"`
-	Score        *float64   `json:"score,omitempty"`
-	DurationMS   int        `json:"duration_ms"`
-	IsUnsafe     bool       `json:"is_unsafe"`
-	CreatedAt    time.Time  `json:"created_at"`
+	ErrorSummary string    `json:"error_summary,omitempty"`
+	Score        *float64  `json:"score,omitempty"`
+	DurationMS   int       `json:"duration_ms"`
+	IsUnsafe     bool      `json:"is_unsafe"`
+	CreatedAt    time.Time `json:"created_at"`
 	// 以下三个字段按配置开关决定是否填充。
 	Cost         *float64 `json:"cost,omitempty"`
 	InputTokens  *int     `json:"input_tokens,omitempty"`
@@ -167,10 +167,10 @@ type PublicCaseDTO struct {
 
 // PublicOverviewDTO 是公开侧的作品展总览。
 type PublicOverviewDTO struct {
-	TotalArtifacts int64                    `json:"total_artifacts"`
-	ImageArtifacts int64                    `json:"image_artifacts"`
-	TextArtifacts  int64                    `json:"text_artifacts"`
-	CaseCount      int64                    `json:"case_count"`
+	TotalArtifacts int64                     `json:"total_artifacts"`
+	ImageArtifacts int64                     `json:"image_artifacts"`
+	TextArtifacts  int64                     `json:"text_artifacts"`
+	CaseCount      int64                     `json:"case_count"`
 	Buckets        []PublicOverviewBucketDTO `json:"buckets"`
 }
 

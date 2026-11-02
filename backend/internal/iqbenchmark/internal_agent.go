@@ -212,12 +212,8 @@ func loadInternalAgent(ctx context.Context, deps InternalAgentDeps, logger *slog
 		logger.Warn("iqbenchmark: list internal agent keys failed", "user_id", user.ID, "error", err)
 		return agent, nil
 	}
-	for i := range keys {
-		if keys[i].Name == InternalAgentKeyName && keys[i].IsActive() {
-			agent.Key = &keys[i]
-			break
-		}
-	}
+	// 复用与建路径相同的判定（名称匹配 + active），避免两处结论不一致。
+	agent.Key = PickInternalKey(keys, InternalAgentKeyName)
 	return agent, nil
 }
 

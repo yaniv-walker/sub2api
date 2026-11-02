@@ -98,9 +98,9 @@ func newTestArtifactService(t *testing.T, store Store, blobs BlobDeleter) *Artif
 
 func baseArtifactInput() ArtifactCreateInput {
 	return ArtifactCreateInput{
-		RunID:  1,
-		TaskID: 2,
-		CaseID: 3,
+		RunID:   1,
+		TaskID:  2,
+		CaseID:  3,
 		GroupID: 4,
 		Model:   "gpt-4o",
 	}

@@ -198,12 +198,12 @@ func (s *RunService) executeCase(ctx context.Context, run *iqbenchmark.Run, task
 	started := s.now()
 
 	base := ArtifactCreateInput{
-		RunID:        run.ID,
-		TaskID:       task.ID,
-		CaseID:       c.ID,
-		CaseSnapshot: snapshot,
-		GroupID:      task.GroupID,
-		Model:        task.Model,
+		RunID:         run.ID,
+		TaskID:        task.ID,
+		CaseID:        c.ID,
+		CaseSnapshot:  snapshot,
+		GroupID:       task.GroupID,
+		Model:         task.Model,
 		RequestParams: DecodeSafeJSON(c.Params),
 	}
 
@@ -434,14 +434,6 @@ func (s *RunService) ReleaseSlot() {
 	case <-s.Concurrency:
 	default:
 	}
-}
-
-// newSemaphore 构造容量为 n 的信号量通道。
-func newSemaphore(n int) chan struct{} {
-	if n <= 0 {
-		return nil
-	}
-	return make(chan struct{}, n)
 }
 
 // RecoverCosts 回采未收集成本的 run。

@@ -60,9 +60,10 @@ func (s *ArtifactService) SaveTextArtifact(ctx context.Context, in ArtifactCreat
 	}
 
 	scan := sanitize.ScanText(content)
-	if renderKind == iqbenchmark.RenderKindSVG {
+	switch renderKind {
+	case iqbenchmark.RenderKindSVG:
 		scan = sanitize.ScanSVG(content)
-	} else if renderKind == iqbenchmark.RenderKindMarkdown {
+	case iqbenchmark.RenderKindMarkdown:
 		scan = sanitize.ScanHTML(content)
 	}
 

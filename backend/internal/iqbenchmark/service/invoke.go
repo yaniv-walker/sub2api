@@ -399,7 +399,8 @@ func extractContent(raw json.RawMessage) string {
 		var sb strings.Builder
 		for _, part := range parts {
 			if part.Text != "" {
-				sb.WriteString(part.Text)
+				// strings.Builder.WriteString 永远返回 nil error；显式丢弃以免 errcheck 报错。
+				_, _ = sb.WriteString(part.Text)
 			}
 		}
 		return sb.String()

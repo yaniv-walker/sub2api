@@ -19,18 +19,18 @@ import (
 type fakeTaskStore struct {
 	mu sync.Mutex
 
-	claimCalls   []string
-	claimResult  []ClaimedTask
-	claimErr     error
-	released     []int64
-	releasedAll  int
-	advanced     map[int64]time.Time
-	renewErr     error
-	finished     map[int64]string
-	statusCalls  []statusCall
-	listTasks    []iqbenchmark.Task
-	advanceErr   error
-	releaseErr   error
+	claimCalls  []string
+	claimResult []ClaimedTask
+	claimErr    error
+	released    []int64
+	releasedAll int
+	advanced    map[int64]time.Time
+	renewErr    error
+	finished    map[int64]string
+	statusCalls []statusCall
+	listTasks   []iqbenchmark.Task
+	advanceErr  error
+	releaseErr  error
 }
 
 type statusCall struct {

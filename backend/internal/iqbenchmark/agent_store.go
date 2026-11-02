@@ -159,12 +159,19 @@ func (s *AgentKeyStore) FindByID(ctx context.Context, id int64) (*service.APIKey
 	return s.Repo.GetByID(ctx, id)
 }
 
-// pickInternalKey 在 Key 列表里挑选内部专用 Key。
+// PickInternalKey 在 Key 列表里挑选内部专用 Key。
 //
 // 只按名称判定，不要求分组匹配：管理员可能为内部账号改绑分组，
 // 按名称识别可避免改绑后旧 Key 变成孤儿、又新建一把重复 Key。
-func pickInternalKey(keys []service.APIKey, name string) *service.APIKey {
+//
+// 跳过非 active 的 Key：`ValidateKey` 会拒绝 disabled/过期 Key，
+// 选中它等于让检测流量必然 401。导出以便 internal_agent.go 复用同一判定，
+// 避免「读路径」和「建路径」对同一个 Key 得出不同结论。
+func PickInternalKey(keys []service.APIKey, name string) *service.APIKey {
 	for i := range keys {
+		if !keys[i].IsActive() {
+			continue
+		}
 		if strings.EqualFold(strings.TrimSpace(keys[i].Name), name) {
 			return &keys[i]
 		}
