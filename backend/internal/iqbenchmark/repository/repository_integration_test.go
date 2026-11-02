@@ -93,6 +93,18 @@ func iqTestDB(t *testing.T) *sql.DB {
 	// 幂等性：DROP ... IF EXISTS + ADD，重复执行必须安全。
 	_, err = db.Exec(string(migration250))
 	require.NoError(t, err, "migration 250 must be safely repeatable")
+
+	// 251 依赖 249 建出的 artifacts/cases，必须按序应用。
+	// 它把 run_id/task_id 放宽为可空（用户自测无 run/task），并新增
+	// source / triggered_by_user_id / moderation_status 与 user_tests 表。
+	migration251, err := migrations.FS.ReadFile("251_iq_benchmark_user_test.sql")
+	require.NoError(t, err)
+	_, err = db.Exec(string(migration251))
+	require.NoError(t, err, "migration 251 must apply on top of 250")
+	// 幂等性：ADD COLUMN IF NOT EXISTS + DROP CONSTRAINT IF EXISTS + CREATE TABLE/INDEX
+	// IF NOT EXISTS，重复执行必须安全（这也是迁移器「每个文件一个事务」的前提）。
+	_, err = db.Exec(string(migration251))
+	require.NoError(t, err, "migration 251 must be safely repeatable")
 	return db
 }
 
@@ -253,10 +265,11 @@ func TestIQBenchmarkEntSchemaMatchesMigration(t *testing.T) {
 	ctx := context.Background()
 
 	expected := map[string][]string{
-		"iq_benchmark_cases":     {"idx_iq_case_listing"},
-		"iq_benchmark_tasks":     {"uq_iq_task_group_model_enabled", "idx_iq_task_due", "idx_iq_task_group_model"},
-		"iq_benchmark_runs":      {"idx_iq_run_task", "idx_iq_run_pending_cost"},
-		"iq_benchmark_artifacts": {"idx_iq_artifact_run", "idx_iq_artifact_feed", "idx_iq_artifact_filters", "idx_iq_artifact_status", "idx_iq_artifact_task_live"},
+		"iq_benchmark_cases":      {"idx_iq_case_listing"},
+		"iq_benchmark_tasks":      {"uq_iq_task_group_model_enabled", "idx_iq_task_due", "idx_iq_task_group_model"},
+		"iq_benchmark_runs":       {"idx_iq_run_task", "idx_iq_run_pending_cost"},
+		"iq_benchmark_artifacts":  {"idx_iq_artifact_run", "idx_iq_artifact_feed", "idx_iq_artifact_filters", "idx_iq_artifact_status", "idx_iq_artifact_task_live", "idx_iq_artifact_source_feed"},
+		"iq_benchmark_user_tests": {"idx_iq_usertest_user", "idx_iq_usertest_dedupe", "idx_iq_usertest_pending", "idx_iq_usertest_artifact"},
 	}
 	for table, indexes := range expected {
 		for _, index := range indexes {
@@ -268,6 +281,136 @@ func TestIQBenchmarkEntSchemaMatchesMigration(t *testing.T) {
 			require.True(t, exists, "index %s on %s must exist", index, table)
 		}
 	}
+}
+
+// TestIQBenchmarkUserTestArtifactKeepsNullRunAndTask 覆盖迁移 251 的核心语义：
+// 用户自测的产出**没有** run/task，两列必须真的是 NULL 而不是被伪造成 0。
+//
+// 这是「领域层用 0 表示不存在、数据库用 NULL 表示不存在」这一映射的
+// 端到端证明：写入时传 0，读回时仍为 0，而库里实际存的是 NULL。
+func TestIQBenchmarkUserTestArtifactKeepsNullRunAndTask(t *testing.T) {
+	db := iqTestDB(t)
+	ctx := context.Background()
+	repo := iqTestRepo(db)
+
+	created, err := repo.CreateArtifact(ctx, iqbenchmark.ArtifactCreateInput{
+		// RunID / TaskID 刻意为 0：仓库层必须把它们写成 NULL。
+		RunID:             0,
+		TaskID:            0,
+		CaseID:            1,
+		CaseSnapshot:      map[string]any{"name": "selftest"},
+		GroupID:           7,
+		Model:             "gpt-4o",
+		RenderKind:        iqbenchmark.RenderKindMarkdown,
+		Status:            iqbenchmark.ArtifactStatusSuccess,
+		Source:            iqbenchmark.SourceUserTest,
+		TriggeredByUserID: 42,
+	})
+	require.NoError(t, err)
+
+	// 数据库里必须是 NULL，而不是 0。
+	var runID, taskID sql.NullInt64
+	var triggeredBy sql.NullInt64
+	var source, moderation string
+	require.NoError(t, db.QueryRowContext(ctx,
+		`SELECT run_id, task_id, triggered_by_user_id, source, moderation_status
+		   FROM iq_benchmark_artifacts WHERE id = $1`, created.ID).
+		Scan(&runID, &taskID, &triggeredBy, &source, &moderation))
+	require.False(t, runID.Valid, "run_id must be SQL NULL for a user self-test artifact")
+	require.False(t, taskID.Valid, "task_id must be SQL NULL for a user self-test artifact")
+	require.True(t, triggeredBy.Valid)
+	require.Equal(t, int64(42), triggeredBy.Int64)
+	require.Equal(t, iqbenchmark.SourceUserTest, source)
+	require.Equal(t, iqbenchmark.ModerationApproved, moderation,
+		"moderation_status must default to approved when not specified")
+
+	// 读回领域对象时折叠为 0（而不是报错或返回假 ID）。
+	got, err := repo.GetArtifact(ctx, created.ID)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), got.RunID)
+	require.Equal(t, int64(0), got.TaskID)
+	require.Equal(t, int64(42), got.TriggeredByUserID)
+	require.Equal(t, iqbenchmark.SourceUserTest, got.Source)
+}
+
+// TestIQBenchmarkArtifactSourceConsistencyCheck 保证 source 与 triggered_by_user_id
+// 的自洽约束在库层面生效 —— 这条不变量是「按来源统计」可信的前提。
+func TestIQBenchmarkArtifactSourceConsistencyCheck(t *testing.T) {
+	db := iqTestDB(t)
+	ctx := context.Background()
+
+	// scheduled 却带了触发用户：必须被拒。
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO iq_benchmark_artifacts
+			(case_id, case_snapshot, group_id, model, render_kind, status, source, triggered_by_user_id)
+		VALUES (1, '{}'::jsonb, 1, 'm', 'markdown', 'success', 'scheduled', 42)`)
+	require.Error(t, err, "scheduled + triggering user must violate iq_artifact_source_consistent")
+
+	// user_test 却没有触发用户：必须被拒。
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO iq_benchmark_artifacts
+			(case_id, case_snapshot, group_id, model, render_kind, status, source, triggered_by_user_id)
+		VALUES (1, '{}'::jsonb, 1, 'm', 'markdown', 'success', 'user_test', NULL)`)
+	require.Error(t, err, "user_test without a triggering user must violate iq_artifact_source_consistent")
+
+	// 非法来源值：必须被拒。
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO iq_benchmark_artifacts
+			(case_id, case_snapshot, group_id, model, render_kind, status, source)
+		VALUES (1, '{}'::jsonb, 1, 'm', 'markdown', 'success', 'all')`)
+	require.Error(t, err, "'all' is a query filter, never a storable source")
+
+	// 合法的定时产出：NULL 触发用户 + scheduled 必须被接受。
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO iq_benchmark_artifacts
+			(case_id, case_snapshot, group_id, model, render_kind, status, source, triggered_by_user_id)
+		VALUES (1, '{}'::jsonb, 1, 'm', 'markdown', 'success', 'scheduled', NULL)`)
+	require.NoError(t, err, "scheduled without a triggering user must be accepted")
+}
+
+// TestIQBenchmarkListArtifactsFiltersBySource 保证来源过滤真的下推到 SQL：
+// 默认口径（scheduled）绝不能把用户自测混进「模型排行」。
+func TestIQBenchmarkListArtifactsFiltersBySource(t *testing.T) {
+	db := iqTestDB(t)
+	ctx := context.Background()
+	repo := iqTestRepo(db)
+
+	mk := func(source string, userID int64) {
+		_, err := repo.CreateArtifact(ctx, iqbenchmark.ArtifactCreateInput{
+			RunID:             0,
+			TaskID:            0,
+			CaseID:            1,
+			CaseSnapshot:      map[string]any{"name": "s"},
+			GroupID:           3,
+			Model:             "gpt-4o",
+			RenderKind:        iqbenchmark.RenderKindMarkdown,
+			Status:            iqbenchmark.ArtifactStatusSuccess,
+			Source:            source,
+			TriggeredByUserID: userID,
+		})
+		require.NoError(t, err)
+	}
+	mk(iqbenchmark.SourceScheduled, 0)
+	mk(iqbenchmark.SourceUserTest, 42)
+	mk(iqbenchmark.SourceUserTest, 43)
+
+	scheduled, err := repo.ListArtifacts(ctx, iqbenchmark.ArtifactListFilter{
+		Source: iqbenchmark.SourceScheduled, Page: 1, PageSize: 10,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), scheduled.Total, "scheduled scope must exclude user self-tests")
+
+	userTests, err := repo.ListArtifacts(ctx, iqbenchmark.ArtifactListFilter{
+		Source: iqbenchmark.SourceUserTest, Page: 1, PageSize: 10,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(2), userTests.Total)
+
+	all, err := repo.ListArtifacts(ctx, iqbenchmark.ArtifactListFilter{
+		Source: "", Page: 1, PageSize: 10,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(3), all.Total, "an empty source filter must return the full set")
 }
 
 // TestIQBenchmarkTaskStatusCheck 保证 status 的 CHECK 约束确实生效

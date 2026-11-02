@@ -261,6 +261,18 @@ func (f IQBenchmarkTaskFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IQBenchmarkTaskMutation", m)
 }
 
+// The IQBenchmarkUserTestFunc type is an adapter to allow the use of ordinary
+// function as IQBenchmarkUserTest mutator.
+type IQBenchmarkUserTestFunc func(context.Context, *ent.IQBenchmarkUserTestMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f IQBenchmarkUserTestFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.IQBenchmarkUserTestMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.IQBenchmarkUserTestMutation", m)
+}
+
 // The IdempotencyRecordFunc type is an adapter to allow the use of ordinary
 // function as IdempotencyRecord mutator.
 type IdempotencyRecordFunc func(context.Context, *ent.IdempotencyRecordMutation) (ent.Value, error)

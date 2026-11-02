@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -79,6 +80,75 @@ const (
 	RunTriggerSchedule = "schedule"
 	RunTriggerManual   = "manual"
 	RunTriggerRetry    = "retry"
+)
+
+// 产出来源。决定统计口径与作品展上的「用户自测」标记。
+const (
+	// SourceScheduled 是定时检测链路（内部账号）。
+	SourceScheduled = "scheduled"
+	// SourceUserTest 是用户用自己本站 API Key 发起的单次自测。
+	SourceUserTest = "user_test"
+	// SourceAll 只用于**查询参数**表示「不过滤」，不是合法的存储值。
+	SourceAll = "all"
+)
+
+// ValidStoredSource 判断某个来源是否可以作为**存储值**。
+//
+// 刻意排除 SourceAll：它只在查询参数里有意义，若被写进数据库，
+// 按来源统计将无法区分真实链路。
+func ValidStoredSource(source string) bool {
+	switch source {
+	case SourceScheduled, SourceUserTest:
+		return true
+	default:
+		return false
+	}
+}
+
+// NormalizeSourceFilter 把查询参数归一化为三值词汇：scheduled / user_test / all。
+//
+// 空值与非法值都归一化为 scheduled（默认口径、fail-closed）：
+// 旧链接里可能带着过期参数，让它静默降级比给用户 400 更友好，
+// 但**绝不会**降级成全量 —— 那会让统计口径被意外放大。
+//
+// 注意返回值不是「仓储层的过滤值」：all 需要由调用方翻译成空字符串
+// （空 = 不过滤）。刻意不在这里折叠成 ""，否则「没传参」与「传了 all」
+// 将无法区分，而它们的语义正好相反。
+func NormalizeSourceFilter(source string) string {
+	switch strings.TrimSpace(strings.ToLower(source)) {
+	case SourceUserTest:
+		return SourceUserTest
+	case SourceAll:
+		return SourceAll
+	default:
+		return SourceScheduled
+	}
+}
+
+// SourceFilterToRepo 把三值词汇翻译成仓储层的过滤值：all -> ""（不过滤）。
+func SourceFilterToRepo(source string) string {
+	if NormalizeSourceFilter(source) == SourceAll {
+		return ""
+	}
+	return NormalizeSourceFilter(source)
+}
+
+// 内容审核状态。定时检测默认 approved（内部账号可信），
+// 自测按配置写 pending。
+const (
+	ModerationApproved = "approved"
+	ModerationPending  = "pending"
+	ModerationRejected = "rejected"
+)
+
+// 自测请求状态。
+const (
+	UserTestStatusPending  = "pending"
+	UserTestStatusRunning  = "running"
+	UserTestStatusSuccess  = "success"
+	UserTestStatusFailed   = "failed"
+	UserTestStatusBlocked  = "blocked"
+	UserTestStatusRejected = "rejected"
 )
 
 // Run 状态。
@@ -254,7 +324,9 @@ type Run struct {
 
 // Artifact 是单次执行的产出。
 type Artifact struct {
-	ID               int64          `json:"id"`
+	ID int64 `json:"id"`
+	// RunID / TaskID 对用户自测为 0（对应数据库 NULL）：
+	// 自测既不是定时任务，也没有 run。用 0 而不是伪造值表达「不存在」。
 	RunID            int64          `json:"run_id"`
 	TaskID           int64          `json:"task_id"`
 	CaseID           int64          `json:"case_id"`
@@ -281,6 +353,11 @@ type Artifact struct {
 	ScoredAt         *time.Time     `json:"-"`
 	BlobKey          string         `json:"-"`
 	CreatedAt        time.Time      `json:"created_at"`
+	// Source 是来源标记（scheduled / user_test）。
+	Source string `json:"source"`
+	// TriggeredByUserID 是触发自测的用户；定时检测为 0（对应 NULL）。
+	TriggeredByUserID int64  `json:"-"`
+	ModerationStatus  string `json:"-"`
 }
 
 // ArtifactListFilter 是作品列表的筛选条件。
@@ -292,8 +369,12 @@ type ArtifactListFilter struct {
 	Kind     string
 	Since    *time.Time
 	Until    *time.Time
-	Page     int
-	PageSize int
+	// Source 为空表示不过滤（对应查询参数 source=all）。
+	Source string
+	// ModerationStatus 为空表示不过滤；公开侧传 approved。
+	ModerationStatus string
+	Page             int
+	PageSize         int
 }
 
 // ArtifactListResult 是作品列表的分页结果。

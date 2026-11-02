@@ -39,6 +39,8 @@ const (
 	FieldEnabled = "enabled"
 	// FieldSortOrder holds the string denoting the sort_order field in the database.
 	FieldSortOrder = "sort_order"
+	// FieldAllowUserTest holds the string denoting the allow_user_test field in the database.
+	FieldAllowUserTest = "allow_user_test"
 	// Table holds the table name of the iqbenchmarkcase in the database.
 	Table = "iq_benchmark_cases"
 )
@@ -59,6 +61,7 @@ var Columns = []string{
 	FieldBuiltin,
 	FieldEnabled,
 	FieldSortOrder,
+	FieldAllowUserTest,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -100,6 +103,8 @@ var (
 	DefaultEnabled bool
 	// DefaultSortOrder holds the default value on creation for the "sort_order" field.
 	DefaultSortOrder int
+	// DefaultAllowUserTest holds the default value on creation for the "allow_user_test" field.
+	DefaultAllowUserTest bool
 )
 
 // OrderOption defines the ordering options for the IQBenchmarkCase queries.
@@ -168,4 +173,9 @@ func ByEnabled(opts ...sql.OrderTermOption) OrderOption {
 // BySortOrder orders the results by the sort_order field.
 func BySortOrder(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSortOrder, opts...).ToFunc()
+}
+
+// ByAllowUserTest orders the results by the allow_user_test field.
+func ByAllowUserTest(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAllowUserTest, opts...).ToFunc()
 }

@@ -564,8 +564,6 @@ func (r *Repository) CreateArtifact(ctx context.Context, in ArtifactCreateInput)
 		flags = []string{}
 	}
 	builder := r.client0().IQBenchmarkArtifact.Create().
-		SetRunID(in.RunID).
-		SetTaskID(in.TaskID).
 		SetCaseID(in.CaseID).
 		SetCaseSnapshot(snapshot).
 		SetGroupID(in.GroupID).
@@ -579,6 +577,23 @@ func (r *Repository) CreateArtifact(ctx context.Context, in ArtifactCreateInput)
 		SetOutputTokens(in.OutputTokens).
 		SetCost(in.Cost).
 		SetStatus(in.Status)
+	// run_id / task_id 对用户自测为空：传 0 即写 NULL。
+	// 这样调用方不需要为两条链路构造不同的输入类型。
+	if in.RunID > 0 {
+		builder = builder.SetRunID(in.RunID)
+	}
+	if in.TaskID > 0 {
+		builder = builder.SetTaskID(in.TaskID)
+	}
+	if in.TriggeredByUserID > 0 {
+		builder = builder.SetTriggeredByUserID(in.TriggeredByUserID)
+	}
+	// source 必须在所有写入点显式给出：数据库列 NOT NULL 且无 DEFAULT，
+	// 漏写会在这里直接报错（而不是被静默标成 scheduled）。
+	builder = builder.SetSource(defaultString(in.Source, iqbenchmark.SourceScheduled))
+	if strings.TrimSpace(in.ModerationStatus) != "" {
+		builder = builder.SetModerationStatus(in.ModerationStatus)
+	}
 	if strings.TrimSpace(in.ImageURL) != "" {
 		builder = builder.SetImageURL(in.ImageURL)
 	}
@@ -660,6 +675,15 @@ func (r *Repository) ListArtifacts(ctx context.Context, f iqbenchmark.ArtifactLi
 	}
 	if f.Until != nil {
 		query = query.Where(iqbenchmarkartifact.CreatedAtLT(*f.Until))
+	}
+	// 来源过滤：空字符串表示不过滤（SourceAll）。
+	// 非空时只查该来源 —— 这是统计口径的正确性基础，不能靠上层「记得传」。
+	if src := strings.TrimSpace(f.Source); src != "" {
+		query = query.Where(iqbenchmarkartifact.SourceEQ(src))
+	}
+	// 审核状态过滤：公开侧只查 approved。
+	if st := strings.TrimSpace(f.ModerationStatus); st != "" {
+		query = query.Where(iqbenchmarkartifact.ModerationStatusEQ(st))
 	}
 	total, err := query.Count(ctx)
 	if err != nil {
@@ -855,17 +879,24 @@ func (r *Repository) HardDeleteRunsSoftDeletedBefore(ctx context.Context, cutoff
 // ---------- Overview ----------
 
 // GetOverviewCounts 读取总览计数。
-func (r *Repository) GetOverviewCounts(ctx context.Context) (OverviewCounts, error) {
+//
+// source 为空表示不过滤（全量口径）；非空时只统计该来源。
+// 用 $1 参数直接拼进 WHERE 的写法（NULLIF）保持「一条 SQL 同时支持
+// 过滤与不过滤」，避免为每种口径准备一份几乎相同的查询。
+func (r *Repository) GetOverviewCounts(ctx context.Context, source string) (OverviewCounts, error) {
 	var out OverviewCounts
 	err := r.db.QueryRowContext(ctx, `
 		SELECT
-			(SELECT COUNT(*) FROM iq_benchmark_artifacts WHERE deleted_at IS NULL),
-			(SELECT COUNT(*) FROM iq_benchmark_artifacts WHERE deleted_at IS NULL AND render_kind = 'image_url'),
-			(SELECT COUNT(*) FROM iq_benchmark_artifacts WHERE deleted_at IS NULL AND render_kind <> 'image_url'),
+			(SELECT COUNT(*) FROM iq_benchmark_artifacts
+			  WHERE deleted_at IS NULL AND ($1 = '' OR source = $1)),
+			(SELECT COUNT(*) FROM iq_benchmark_artifacts
+			  WHERE deleted_at IS NULL AND render_kind = 'image_url' AND ($1 = '' OR source = $1)),
+			(SELECT COUNT(*) FROM iq_benchmark_artifacts
+			  WHERE deleted_at IS NULL AND render_kind <> 'image_url' AND ($1 = '' OR source = $1)),
 			(SELECT COUNT(*) FROM iq_benchmark_cases WHERE enabled = TRUE),
 			(SELECT COUNT(*) FROM iq_benchmark_tasks),
 			(SELECT COUNT(*) FROM iq_benchmark_tasks WHERE enabled = TRUE)
-	`).Scan(&out.TotalArtifacts, &out.ImageArtifacts, &out.TextArtifacts, &out.CaseCount, &out.TaskCount, &out.RunningTasks)
+	`, source).Scan(&out.TotalArtifacts, &out.ImageArtifacts, &out.TextArtifacts, &out.CaseCount, &out.TaskCount, &out.RunningTasks)
 	if err != nil {
 		return out, err
 	}
@@ -873,7 +904,7 @@ func (r *Repository) GetOverviewCounts(ctx context.Context) (OverviewCounts, err
 }
 
 // GetOverviewBuckets 按「分组 × 模型」聚合产出。
-func (r *Repository) GetOverviewBuckets(ctx context.Context, limit int) ([]OverviewBucketRow, error) {
+func (r *Repository) GetOverviewBuckets(ctx context.Context, limit int, source string) ([]OverviewBucketRow, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -886,11 +917,11 @@ func (r *Repository) GetOverviewBuckets(ctx context.Context, limit int) ([]Overv
 		       COALESCE(AVG(duration_ms), 0) AS avg_duration_ms,
 		       MAX(created_at) AS last_run_at
 		FROM iq_benchmark_artifacts
-		WHERE deleted_at IS NULL
+		WHERE deleted_at IS NULL AND ($2 = '' OR source = $2)
 		GROUP BY group_id, model
 		ORDER BY MAX(created_at) DESC
 		LIMIT $1
-	`, limit)
+	`, limit, source)
 	if err != nil {
 		return nil, err
 	}
@@ -1034,34 +1065,57 @@ func artifactFromEntity(e *dbent.IQBenchmarkArtifact) *iqbenchmark.Artifact {
 		return *p
 	}
 	return &iqbenchmark.Artifact{
-		ID:               e.ID,
-		RunID:            e.RunID,
-		TaskID:           e.TaskID,
-		CaseID:           e.CaseID,
-		CaseSnapshot:     snapshot,
-		GroupID:          e.GroupID,
-		Model:            e.Model,
-		RequestParams:    params,
-		RenderKind:       e.RenderKind,
-		ImageURL:         str(e.ImageURL),
-		Content:          str(e.Content),
-		ContentTruncated: e.ContentTruncated,
-		ContentSHA256:    str(e.ContentSha256),
-		UnsafeFlags:      flags,
-		RawResponseRef:   str(e.RawResponseRef),
-		DurationMS:       e.DurationMs,
-		InputTokens:      e.InputTokens,
-		OutputTokens:     e.OutputTokens,
-		Cost:             e.Cost,
-		Status:           e.Status,
-		ErrorCode:        str(e.ErrorCode),
-		ErrorSummary:     str(e.ErrorSummary),
-		Score:            e.Score,
-		ScoredBy:         e.ScoredBy,
-		ScoredAt:         e.ScoredAt,
-		BlobKey:          str(e.BlobKey),
-		CreatedAt:        e.CreatedAt,
+		ID:                e.ID,
+		RunID:             derefInt64(e.RunID),
+		TaskID:            derefInt64(e.TaskID),
+		CaseID:            e.CaseID,
+		CaseSnapshot:      snapshot,
+		GroupID:           e.GroupID,
+		Model:             e.Model,
+		RequestParams:     params,
+		RenderKind:        e.RenderKind,
+		ImageURL:          str(e.ImageURL),
+		Content:           str(e.Content),
+		ContentTruncated:  e.ContentTruncated,
+		ContentSHA256:     str(e.ContentSha256),
+		UnsafeFlags:       flags,
+		RawResponseRef:    str(e.RawResponseRef),
+		DurationMS:        e.DurationMs,
+		InputTokens:       e.InputTokens,
+		OutputTokens:      e.OutputTokens,
+		Cost:              e.Cost,
+		Status:            e.Status,
+		ErrorCode:         str(e.ErrorCode),
+		ErrorSummary:      str(e.ErrorSummary),
+		Score:             e.Score,
+		ScoredBy:          e.ScoredBy,
+		ScoredAt:          e.ScoredAt,
+		BlobKey:           str(e.BlobKey),
+		CreatedAt:         e.CreatedAt,
+		Source:            e.Source,
+		TriggeredByUserID: derefInt64(e.TriggeredByUserID),
+		ModerationStatus:  e.ModerationStatus,
 	}
+}
+
+// derefInt64 把可空 int64 折叠为 0：领域层用 0 表示「不存在」。
+//
+// 为什么不用 *int64 贯穿领域层：Artifact 会被大量读写路径消费（列表、详情、
+// 对比、统计），把指针扩散到每一处只会让每个调用点都要判空，
+// 而 0 在所有实际场景里都不是合法主键（BIGSERIAL 从 1 开始）。
+func derefInt64(p *int64) int64 {
+	if p == nil {
+		return 0
+	}
+	return *p
+}
+
+// ptrInt64OrNil 把 0 折叠回 NULL：写入时用 0 表示「该列应为空」。
+func ptrInt64OrNil(v int64) *int64 {
+	if v <= 0 {
+		return nil
+	}
+	return &v
 }
 
 func defaultString(value, fallback string) string {

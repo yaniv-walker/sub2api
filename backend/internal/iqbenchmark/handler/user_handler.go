@@ -44,8 +44,11 @@ func (h *UserHandler) options(c *gin.Context) PublicArtifactOptions {
 // GetOverview 返回作品展总览。
 //
 // 公开侧不下发分组名与分组 ID（暴露内部路由拓扑），只给模型名与统计数字。
+//
+// 统计口径（用户裁决）：默认 scheduled，可通过 ?source= 查询其他口径。
+// 默认值刻意**不含**用户自测 —— 否则一次自测刷量就能让「模型排行」失真。
 func (h *UserHandler) GetOverview(c *gin.Context) {
-	overview, err := h.Gallery.GetOverview(c.Request.Context(), 50)
+	overview, err := h.Gallery.GetOverview(c.Request.Context(), 50, publicSource(c))
 	if err != nil {
 		writeError(c, err)
 		return
@@ -165,9 +168,21 @@ func publicListQuery(c *gin.Context) (service.ArtifactListQuery, bool) {
 		CaseID:   parseOptionalInt64(c.Query("case_id")),
 		Status:   c.Query("status"),
 		Kind:     c.Query("kind"),
+		Source:   publicSource(c),
 		Since:    since,
 		Until:    until,
 		Page:     page,
 		PageSize: pageSize,
+		// 公开侧只展示审核通过的作品：待审/被拒的产出绝不出现在公开页面。
+		ModeratedOnly: true,
 	}, true
+}
+
+// publicSource 解析公开侧的来源口径参数。
+//
+// 公开侧默认 scheduled（用户裁决）：一次自测刷量不应拉偏模型排行。
+// 传 ?source=all 可查全量，?source=user_test 只看自测。
+// 归一化在 service 层统一做（fail-closed 到 scheduled），这里只做去空白。
+func publicSource(c *gin.Context) string {
+	return strings.TrimSpace(c.Query("source"))
 }

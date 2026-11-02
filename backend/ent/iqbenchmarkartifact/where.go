@@ -179,6 +179,21 @@ func DeletedAt(v time.Time) predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldDeletedAt, v))
 }
 
+// Source applies equality check predicate on the "source" field. It's identical to SourceEQ.
+func Source(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldSource, v))
+}
+
+// TriggeredByUserID applies equality check predicate on the "triggered_by_user_id" field. It's identical to TriggeredByUserIDEQ.
+func TriggeredByUserID(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldTriggeredByUserID, v))
+}
+
+// ModerationStatus applies equality check predicate on the "moderation_status" field. It's identical to ModerationStatusEQ.
+func ModerationStatus(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldModerationStatus, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldCreatedAt, v))
@@ -299,6 +314,16 @@ func RunIDLTE(v int64) predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldLTE(FieldRunID, v))
 }
 
+// RunIDIsNil applies the IsNil predicate on the "run_id" field.
+func RunIDIsNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIsNull(FieldRunID))
+}
+
+// RunIDNotNil applies the NotNil predicate on the "run_id" field.
+func RunIDNotNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotNull(FieldRunID))
+}
+
 // TaskIDEQ applies the EQ predicate on the "task_id" field.
 func TaskIDEQ(v int64) predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldTaskID, v))
@@ -337,6 +362,16 @@ func TaskIDLT(v int64) predicate.IQBenchmarkArtifact {
 // TaskIDLTE applies the LTE predicate on the "task_id" field.
 func TaskIDLTE(v int64) predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldLTE(FieldTaskID, v))
+}
+
+// TaskIDIsNil applies the IsNil predicate on the "task_id" field.
+func TaskIDIsNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIsNull(FieldTaskID))
+}
+
+// TaskIDNotNil applies the NotNil predicate on the "task_id" field.
+func TaskIDNotNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotNull(FieldTaskID))
 }
 
 // CaseIDEQ applies the EQ predicate on the "case_id" field.
@@ -1507,6 +1542,186 @@ func DeletedAtIsNil() predicate.IQBenchmarkArtifact {
 // DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
 func DeletedAtNotNil() predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldNotNull(FieldDeletedAt))
+}
+
+// SourceEQ applies the EQ predicate on the "source" field.
+func SourceEQ(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldSource, v))
+}
+
+// SourceNEQ applies the NEQ predicate on the "source" field.
+func SourceNEQ(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNEQ(FieldSource, v))
+}
+
+// SourceIn applies the In predicate on the "source" field.
+func SourceIn(vs ...string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIn(FieldSource, vs...))
+}
+
+// SourceNotIn applies the NotIn predicate on the "source" field.
+func SourceNotIn(vs ...string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotIn(FieldSource, vs...))
+}
+
+// SourceGT applies the GT predicate on the "source" field.
+func SourceGT(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGT(FieldSource, v))
+}
+
+// SourceGTE applies the GTE predicate on the "source" field.
+func SourceGTE(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGTE(FieldSource, v))
+}
+
+// SourceLT applies the LT predicate on the "source" field.
+func SourceLT(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLT(FieldSource, v))
+}
+
+// SourceLTE applies the LTE predicate on the "source" field.
+func SourceLTE(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLTE(FieldSource, v))
+}
+
+// SourceContains applies the Contains predicate on the "source" field.
+func SourceContains(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldContains(FieldSource, v))
+}
+
+// SourceHasPrefix applies the HasPrefix predicate on the "source" field.
+func SourceHasPrefix(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldHasPrefix(FieldSource, v))
+}
+
+// SourceHasSuffix applies the HasSuffix predicate on the "source" field.
+func SourceHasSuffix(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldHasSuffix(FieldSource, v))
+}
+
+// SourceEqualFold applies the EqualFold predicate on the "source" field.
+func SourceEqualFold(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEqualFold(FieldSource, v))
+}
+
+// SourceContainsFold applies the ContainsFold predicate on the "source" field.
+func SourceContainsFold(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldContainsFold(FieldSource, v))
+}
+
+// TriggeredByUserIDEQ applies the EQ predicate on the "triggered_by_user_id" field.
+func TriggeredByUserIDEQ(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldTriggeredByUserID, v))
+}
+
+// TriggeredByUserIDNEQ applies the NEQ predicate on the "triggered_by_user_id" field.
+func TriggeredByUserIDNEQ(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNEQ(FieldTriggeredByUserID, v))
+}
+
+// TriggeredByUserIDIn applies the In predicate on the "triggered_by_user_id" field.
+func TriggeredByUserIDIn(vs ...int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIn(FieldTriggeredByUserID, vs...))
+}
+
+// TriggeredByUserIDNotIn applies the NotIn predicate on the "triggered_by_user_id" field.
+func TriggeredByUserIDNotIn(vs ...int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotIn(FieldTriggeredByUserID, vs...))
+}
+
+// TriggeredByUserIDGT applies the GT predicate on the "triggered_by_user_id" field.
+func TriggeredByUserIDGT(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGT(FieldTriggeredByUserID, v))
+}
+
+// TriggeredByUserIDGTE applies the GTE predicate on the "triggered_by_user_id" field.
+func TriggeredByUserIDGTE(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGTE(FieldTriggeredByUserID, v))
+}
+
+// TriggeredByUserIDLT applies the LT predicate on the "triggered_by_user_id" field.
+func TriggeredByUserIDLT(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLT(FieldTriggeredByUserID, v))
+}
+
+// TriggeredByUserIDLTE applies the LTE predicate on the "triggered_by_user_id" field.
+func TriggeredByUserIDLTE(v int64) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLTE(FieldTriggeredByUserID, v))
+}
+
+// TriggeredByUserIDIsNil applies the IsNil predicate on the "triggered_by_user_id" field.
+func TriggeredByUserIDIsNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIsNull(FieldTriggeredByUserID))
+}
+
+// TriggeredByUserIDNotNil applies the NotNil predicate on the "triggered_by_user_id" field.
+func TriggeredByUserIDNotNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotNull(FieldTriggeredByUserID))
+}
+
+// ModerationStatusEQ applies the EQ predicate on the "moderation_status" field.
+func ModerationStatusEQ(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldModerationStatus, v))
+}
+
+// ModerationStatusNEQ applies the NEQ predicate on the "moderation_status" field.
+func ModerationStatusNEQ(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNEQ(FieldModerationStatus, v))
+}
+
+// ModerationStatusIn applies the In predicate on the "moderation_status" field.
+func ModerationStatusIn(vs ...string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIn(FieldModerationStatus, vs...))
+}
+
+// ModerationStatusNotIn applies the NotIn predicate on the "moderation_status" field.
+func ModerationStatusNotIn(vs ...string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotIn(FieldModerationStatus, vs...))
+}
+
+// ModerationStatusGT applies the GT predicate on the "moderation_status" field.
+func ModerationStatusGT(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGT(FieldModerationStatus, v))
+}
+
+// ModerationStatusGTE applies the GTE predicate on the "moderation_status" field.
+func ModerationStatusGTE(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGTE(FieldModerationStatus, v))
+}
+
+// ModerationStatusLT applies the LT predicate on the "moderation_status" field.
+func ModerationStatusLT(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLT(FieldModerationStatus, v))
+}
+
+// ModerationStatusLTE applies the LTE predicate on the "moderation_status" field.
+func ModerationStatusLTE(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLTE(FieldModerationStatus, v))
+}
+
+// ModerationStatusContains applies the Contains predicate on the "moderation_status" field.
+func ModerationStatusContains(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldContains(FieldModerationStatus, v))
+}
+
+// ModerationStatusHasPrefix applies the HasPrefix predicate on the "moderation_status" field.
+func ModerationStatusHasPrefix(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldHasPrefix(FieldModerationStatus, v))
+}
+
+// ModerationStatusHasSuffix applies the HasSuffix predicate on the "moderation_status" field.
+func ModerationStatusHasSuffix(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldHasSuffix(FieldModerationStatus, v))
+}
+
+// ModerationStatusEqualFold applies the EqualFold predicate on the "moderation_status" field.
+func ModerationStatusEqualFold(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEqualFold(FieldModerationStatus, v))
+}
+
+// ModerationStatusContainsFold applies the ContainsFold predicate on the "moderation_status" field.
+func ModerationStatusContainsFold(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldContainsFold(FieldModerationStatus, v))
 }
 
 // And groups predicates with the AND operator between them.

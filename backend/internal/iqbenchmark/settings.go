@@ -34,6 +34,14 @@ const (
 	hardMaxArtifactsPerRun = 100
 	hardMaxConcurrency     = 32
 	hardMaxArtifactBytes   = int64(64 << 20) // 64 MiB
+
+	// 用户自测默认值。
+	defaultUserTestDailyLimit    = 5
+	defaultUserTestMaxConcurrent = 1
+	// 硬上限：日次数上限压到 200，避免管理员误填 100000 让单用户打爆网关。
+	hardMaxUserTestDailyLimit = 200
+	// 自测并发上限压到 4：自测是用户点出来的，不需要更高。
+	hardMaxUserTestConcurrency = 4
 )
 
 // RateLimitTierSettings 是单档限流配置。
@@ -120,6 +128,22 @@ type Settings struct {
 	CleanupIntervalMinutes int `json:"cleanup_interval_minutes"`
 
 	RateLimit IQGalleryRateLimitSettings `json:"rate_limit"`
+
+	// ---- 用户自测（用自己本站 API Key 一键检测）----
+
+	// UserTestEnabled 是自测总开关，默认 false。
+	// 关闭时 /iq-gallery/my-tests 等路由不注册（与功能总开关同样的 404 语义）。
+	UserTestEnabled bool `json:"user_test_enabled"`
+	// UserTestDailyLimit 是单用户每日自测次数上限（按自然日，本地时区）。
+	UserTestDailyLimit int `json:"user_test_daily_limit"`
+	// UserTestMaxConcurrent 是单用户在途自测请求上限。
+	UserTestMaxConcurrent int `json:"user_test_max_concurrent"`
+	// UserTestRequireReview 决定自测产出是否先进入待审核（pending）。
+	// 默认 true：公开作品展是任何人都能看的页面，先审后发是更安全的默认。
+	UserTestRequireReview bool `json:"user_test_require_review"`
+	// UserTestDailyCostBudget 是单用户每日自测成本上限（USD）。
+	// 0 表示不限制（用户裁决：默认不限制，允许用户自行收紧）。
+	UserTestDailyCostBudget float64 `json:"user_test_daily_cost_budget"`
 }
 
 // DefaultSettings 返回默认配置：功能关闭、限额保守。
@@ -144,6 +168,13 @@ func DefaultSettings() Settings {
 		MaxArtifacts:           defaultMaxArtifacts,
 		CleanupIntervalMinutes: defaultCleanupIntervalMinute,
 		RateLimit:              DefaultIQGalleryRateLimitSettings(),
+
+		// 自测默认关闭：与总开关同样的「默认零副作用」原则。
+		UserTestEnabled:         false,
+		UserTestDailyLimit:      defaultUserTestDailyLimit,
+		UserTestMaxConcurrent:   defaultUserTestMaxConcurrent,
+		UserTestRequireReview:   true,
+		UserTestDailyCostBudget: 0, // 0 = 不限制（用户裁决）
 	}
 }
 
@@ -210,6 +241,24 @@ func (s Settings) Normalize() Settings {
 	s.RateLimit = s.RateLimit.Normalize()
 	// 首版不实现 LLM 裁判：无论配置怎么写，执行侧都不启用。
 	s.LLMJudgeEnabled = false
+
+	// 自测：0 在 DailyLimit / MaxConcurrent 上不是「不限制」而是「没填」，
+	// 因此回落默认值（与 DailyCostBudget 的 0=不限制语义刻意区分）。
+	if s.UserTestDailyLimit <= 0 {
+		s.UserTestDailyLimit = def.UserTestDailyLimit
+	}
+	if s.UserTestDailyLimit > hardMaxUserTestDailyLimit {
+		s.UserTestDailyLimit = hardMaxUserTestDailyLimit
+	}
+	if s.UserTestMaxConcurrent <= 0 {
+		s.UserTestMaxConcurrent = def.UserTestMaxConcurrent
+	}
+	if s.UserTestMaxConcurrent > hardMaxUserTestConcurrency {
+		s.UserTestMaxConcurrent = hardMaxUserTestConcurrency
+	}
+	if s.UserTestDailyCostBudget < 0 {
+		s.UserTestDailyCostBudget = 0
+	}
 	return s
 }
 

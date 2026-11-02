@@ -56,6 +56,8 @@ type Tx struct {
 	IQBenchmarkRun *IQBenchmarkRunClient
 	// IQBenchmarkTask is the client for interacting with the IQBenchmarkTask builders.
 	IQBenchmarkTask *IQBenchmarkTaskClient
+	// IQBenchmarkUserTest is the client for interacting with the IQBenchmarkUserTest builders.
+	IQBenchmarkUserTest *IQBenchmarkUserTestClient
 	// IdempotencyRecord is the client for interacting with the IdempotencyRecord builders.
 	IdempotencyRecord *IdempotencyRecordClient
 	// IdentityAdoptionDecision is the client for interacting with the IdentityAdoptionDecision builders.
@@ -258,6 +260,7 @@ func (tx *Tx) init() {
 	tx.IQBenchmarkCase = NewIQBenchmarkCaseClient(tx.config)
 	tx.IQBenchmarkRun = NewIQBenchmarkRunClient(tx.config)
 	tx.IQBenchmarkTask = NewIQBenchmarkTaskClient(tx.config)
+	tx.IQBenchmarkUserTest = NewIQBenchmarkUserTestClient(tx.config)
 	tx.IdempotencyRecord = NewIdempotencyRecordClient(tx.config)
 	tx.IdentityAdoptionDecision = NewIdentityAdoptionDecisionClient(tx.config)
 	tx.PaymentAuditLog = NewPaymentAuditLogClient(tx.config)

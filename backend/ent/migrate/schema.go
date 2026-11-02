@@ -1023,8 +1023,8 @@ var (
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
-		{Name: "run_id", Type: field.TypeInt64},
-		{Name: "task_id", Type: field.TypeInt64},
+		{Name: "run_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "task_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "case_id", Type: field.TypeInt64},
 		{Name: "case_snapshot", Type: field.TypeJSON},
 		{Name: "group_id", Type: field.TypeInt64},
@@ -1049,6 +1049,9 @@ var (
 		{Name: "scored_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "blob_key", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "source", Type: field.TypeString, Size: 16},
+		{Name: "triggered_by_user_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "moderation_status", Type: field.TypeString, Size: 16, Default: "approved"},
 	}
 	// IqBenchmarkArtifactsTable holds the schema information for the "iq_benchmark_artifacts" table.
 	IqBenchmarkArtifactsTable = &schema.Table{
@@ -1093,6 +1096,14 @@ var (
 					Where: "deleted_at IS NULL",
 				},
 			},
+			{
+				Name:    "idx_iq_artifact_source_feed",
+				Unique:  false,
+				Columns: []*schema.Column{IqBenchmarkArtifactsColumns[29], IqBenchmarkArtifactsColumns[1], IqBenchmarkArtifactsColumns[0]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "deleted_at IS NULL",
+				},
+			},
 		},
 	}
 	// IqBenchmarkCasesColumns holds the columns for the "iq_benchmark_cases" table.
@@ -1111,6 +1122,7 @@ var (
 		{Name: "builtin", Type: field.TypeBool, Default: false},
 		{Name: "enabled", Type: field.TypeBool, Default: true},
 		{Name: "sort_order", Type: field.TypeInt, Default: 0},
+		{Name: "allow_user_test", Type: field.TypeBool, Default: false},
 	}
 	// IqBenchmarkCasesTable holds the schema information for the "iq_benchmark_cases" table.
 	IqBenchmarkCasesTable = &schema.Table{
@@ -1216,6 +1228,58 @@ var (
 				Name:    "idx_iq_task_group_model",
 				Unique:  false,
 				Columns: []*schema.Column{IqBenchmarkTasksColumns[4], IqBenchmarkTasksColumns[5]},
+			},
+		},
+	}
+	// IqBenchmarkUserTestsColumns holds the columns for the "iq_benchmark_user_tests" table.
+	IqBenchmarkUserTestsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "api_key_id", Type: field.TypeInt64},
+		{Name: "case_id", Type: field.TypeInt64},
+		{Name: "group_id", Type: field.TypeInt64},
+		{Name: "model", Type: field.TypeString, Size: 200},
+		{Name: "artifact_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "status", Type: field.TypeString, Size: 16, Default: "pending"},
+		{Name: "error_code", Type: field.TypeString, Nullable: true, Size: 64},
+		{Name: "error_summary", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
+		{Name: "estimated_cost", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "numeric(20,10)"}},
+		{Name: "actual_cost", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "numeric(20,10)"}},
+		{Name: "dedupe_key", Type: field.TypeString, Size: 128},
+	}
+	// IqBenchmarkUserTestsTable holds the schema information for the "iq_benchmark_user_tests" table.
+	IqBenchmarkUserTestsTable = &schema.Table{
+		Name:       "iq_benchmark_user_tests",
+		Columns:    IqBenchmarkUserTestsColumns,
+		PrimaryKey: []*schema.Column{IqBenchmarkUserTestsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "idx_iq_usertest_user",
+				Unique:  false,
+				Columns: []*schema.Column{IqBenchmarkUserTestsColumns[3], IqBenchmarkUserTestsColumns[1]},
+			},
+			{
+				Name:    "idx_iq_usertest_dedupe",
+				Unique:  false,
+				Columns: []*schema.Column{IqBenchmarkUserTestsColumns[14], IqBenchmarkUserTestsColumns[1]},
+			},
+			{
+				Name:    "idx_iq_usertest_pending",
+				Unique:  false,
+				Columns: []*schema.Column{IqBenchmarkUserTestsColumns[9]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "status IN ('pending', 'running')",
+				},
+			},
+			{
+				Name:    "idx_iq_usertest_artifact",
+				Unique:  true,
+				Columns: []*schema.Column{IqBenchmarkUserTestsColumns[8]},
+				Annotation: &entsql.IndexAnnotation{
+					Where: "artifact_id IS NOT NULL",
+				},
 			},
 		},
 	}
@@ -2388,6 +2452,7 @@ var (
 		IqBenchmarkCasesTable,
 		IqBenchmarkRunsTable,
 		IqBenchmarkTasksTable,
+		IqBenchmarkUserTestsTable,
 		IdempotencyRecordsTable,
 		IdentityAdoptionDecisionsTable,
 		PaymentAuditLogsTable,
@@ -2493,6 +2558,9 @@ func init() {
 	}
 	IqBenchmarkTasksTable.Annotation = &entsql.Annotation{
 		Table: "iq_benchmark_tasks",
+	}
+	IqBenchmarkUserTestsTable.Annotation = &entsql.Annotation{
+		Table: "iq_benchmark_user_tests",
 	}
 	IdempotencyRecordsTable.Annotation = &entsql.Annotation{
 		Table: "idempotency_records",

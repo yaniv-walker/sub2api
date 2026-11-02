@@ -70,6 +70,9 @@ func (IQBenchmarkCase) Fields() []ent.Field {
 			Default(true),
 		field.Int("sort_order").
 			Default(0),
+		// 是否允许用户自测：默认 false，需管理员显式放开。
+		field.Bool("allow_user_test").
+			Default(false),
 	}
 }
 

@@ -193,6 +193,20 @@ func (_u *IQBenchmarkCaseUpdate) AddSortOrder(v int) *IQBenchmarkCaseUpdate {
 	return _u
 }
 
+// SetAllowUserTest sets the "allow_user_test" field.
+func (_u *IQBenchmarkCaseUpdate) SetAllowUserTest(v bool) *IQBenchmarkCaseUpdate {
+	_u.mutation.SetAllowUserTest(v)
+	return _u
+}
+
+// SetNillableAllowUserTest sets the "allow_user_test" field if the given value is not nil.
+func (_u *IQBenchmarkCaseUpdate) SetNillableAllowUserTest(v *bool) *IQBenchmarkCaseUpdate {
+	if v != nil {
+		_u.SetAllowUserTest(*v)
+	}
+	return _u
+}
+
 // Mutation returns the IQBenchmarkCaseMutation object of the builder.
 func (_u *IQBenchmarkCaseUpdate) Mutation() *IQBenchmarkCaseMutation {
 	return _u.mutation
@@ -317,6 +331,9 @@ func (_u *IQBenchmarkCaseUpdate) sqlSave(ctx context.Context) (_node int, err er
 	}
 	if value, ok := _u.mutation.AddedSortOrder(); ok {
 		_spec.AddField(iqbenchmarkcase.FieldSortOrder, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AllowUserTest(); ok {
+		_spec.SetField(iqbenchmarkcase.FieldAllowUserTest, field.TypeBool, value)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -503,6 +520,20 @@ func (_u *IQBenchmarkCaseUpdateOne) AddSortOrder(v int) *IQBenchmarkCaseUpdateOn
 	return _u
 }
 
+// SetAllowUserTest sets the "allow_user_test" field.
+func (_u *IQBenchmarkCaseUpdateOne) SetAllowUserTest(v bool) *IQBenchmarkCaseUpdateOne {
+	_u.mutation.SetAllowUserTest(v)
+	return _u
+}
+
+// SetNillableAllowUserTest sets the "allow_user_test" field if the given value is not nil.
+func (_u *IQBenchmarkCaseUpdateOne) SetNillableAllowUserTest(v *bool) *IQBenchmarkCaseUpdateOne {
+	if v != nil {
+		_u.SetAllowUserTest(*v)
+	}
+	return _u
+}
+
 // Mutation returns the IQBenchmarkCaseMutation object of the builder.
 func (_u *IQBenchmarkCaseUpdateOne) Mutation() *IQBenchmarkCaseMutation {
 	return _u.mutation
@@ -657,6 +688,9 @@ func (_u *IQBenchmarkCaseUpdateOne) sqlSave(ctx context.Context) (_node *IQBench
 	}
 	if value, ok := _u.mutation.AddedSortOrder(); ok {
 		_spec.AddField(iqbenchmarkcase.FieldSortOrder, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AllowUserTest(); ok {
+		_spec.SetField(iqbenchmarkcase.FieldAllowUserTest, field.TypeBool, value)
 	}
 	_node = &IQBenchmarkCase{config: _u.config}
 	_spec.Assign = _node.assignValues

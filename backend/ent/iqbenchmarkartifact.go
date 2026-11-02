@@ -23,9 +23,9 @@ type IQBenchmarkArtifact struct {
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// RunID holds the value of the "run_id" field.
-	RunID int64 `json:"run_id,omitempty"`
+	RunID *int64 `json:"run_id,omitempty"`
 	// TaskID holds the value of the "task_id" field.
-	TaskID int64 `json:"task_id,omitempty"`
+	TaskID *int64 `json:"task_id,omitempty"`
 	// CaseID holds the value of the "case_id" field.
 	CaseID int64 `json:"case_id,omitempty"`
 	// CaseSnapshot holds the value of the "case_snapshot" field.
@@ -73,8 +73,14 @@ type IQBenchmarkArtifact struct {
 	// BlobKey holds the value of the "blob_key" field.
 	BlobKey *string `json:"blob_key,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
-	DeletedAt    *time.Time `json:"deleted_at,omitempty"`
-	selectValues sql.SelectValues
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+	// scheduled / user_test
+	Source string `json:"source,omitempty"`
+	// TriggeredByUserID holds the value of the "triggered_by_user_id" field.
+	TriggeredByUserID *int64 `json:"triggered_by_user_id,omitempty"`
+	// approved / pending / rejected
+	ModerationStatus string `json:"moderation_status,omitempty"`
+	selectValues     sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -88,9 +94,9 @@ func (*IQBenchmarkArtifact) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case iqbenchmarkartifact.FieldCost, iqbenchmarkartifact.FieldScore:
 			values[i] = new(sql.NullFloat64)
-		case iqbenchmarkartifact.FieldID, iqbenchmarkartifact.FieldRunID, iqbenchmarkartifact.FieldTaskID, iqbenchmarkartifact.FieldCaseID, iqbenchmarkartifact.FieldGroupID, iqbenchmarkartifact.FieldDurationMs, iqbenchmarkartifact.FieldInputTokens, iqbenchmarkartifact.FieldOutputTokens, iqbenchmarkartifact.FieldScoredBy:
+		case iqbenchmarkartifact.FieldID, iqbenchmarkartifact.FieldRunID, iqbenchmarkartifact.FieldTaskID, iqbenchmarkartifact.FieldCaseID, iqbenchmarkartifact.FieldGroupID, iqbenchmarkartifact.FieldDurationMs, iqbenchmarkartifact.FieldInputTokens, iqbenchmarkartifact.FieldOutputTokens, iqbenchmarkartifact.FieldScoredBy, iqbenchmarkartifact.FieldTriggeredByUserID:
 			values[i] = new(sql.NullInt64)
-		case iqbenchmarkartifact.FieldModel, iqbenchmarkartifact.FieldRenderKind, iqbenchmarkartifact.FieldImageURL, iqbenchmarkartifact.FieldContent, iqbenchmarkartifact.FieldContentSha256, iqbenchmarkartifact.FieldRawResponseRef, iqbenchmarkartifact.FieldStatus, iqbenchmarkartifact.FieldErrorCode, iqbenchmarkartifact.FieldErrorSummary, iqbenchmarkartifact.FieldBlobKey:
+		case iqbenchmarkartifact.FieldModel, iqbenchmarkartifact.FieldRenderKind, iqbenchmarkartifact.FieldImageURL, iqbenchmarkartifact.FieldContent, iqbenchmarkartifact.FieldContentSha256, iqbenchmarkartifact.FieldRawResponseRef, iqbenchmarkartifact.FieldStatus, iqbenchmarkartifact.FieldErrorCode, iqbenchmarkartifact.FieldErrorSummary, iqbenchmarkartifact.FieldBlobKey, iqbenchmarkartifact.FieldSource, iqbenchmarkartifact.FieldModerationStatus:
 			values[i] = new(sql.NullString)
 		case iqbenchmarkartifact.FieldCreatedAt, iqbenchmarkartifact.FieldUpdatedAt, iqbenchmarkartifact.FieldScoredAt, iqbenchmarkartifact.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -131,13 +137,15 @@ func (_m *IQBenchmarkArtifact) assignValues(columns []string, values []any) erro
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field run_id", values[i])
 			} else if value.Valid {
-				_m.RunID = value.Int64
+				_m.RunID = new(int64)
+				*_m.RunID = value.Int64
 			}
 		case iqbenchmarkartifact.FieldTaskID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field task_id", values[i])
 			} else if value.Valid {
-				_m.TaskID = value.Int64
+				_m.TaskID = new(int64)
+				*_m.TaskID = value.Int64
 			}
 		case iqbenchmarkartifact.FieldCaseID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -300,6 +308,25 @@ func (_m *IQBenchmarkArtifact) assignValues(columns []string, values []any) erro
 				_m.DeletedAt = new(time.Time)
 				*_m.DeletedAt = value.Time
 			}
+		case iqbenchmarkartifact.FieldSource:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field source", values[i])
+			} else if value.Valid {
+				_m.Source = value.String
+			}
+		case iqbenchmarkartifact.FieldTriggeredByUserID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field triggered_by_user_id", values[i])
+			} else if value.Valid {
+				_m.TriggeredByUserID = new(int64)
+				*_m.TriggeredByUserID = value.Int64
+			}
+		case iqbenchmarkartifact.FieldModerationStatus:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field moderation_status", values[i])
+			} else if value.Valid {
+				_m.ModerationStatus = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -342,11 +369,15 @@ func (_m *IQBenchmarkArtifact) String() string {
 	builder.WriteString("updated_at=")
 	builder.WriteString(_m.UpdatedAt.Format(time.ANSIC))
 	builder.WriteString(", ")
-	builder.WriteString("run_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.RunID))
+	if v := _m.RunID; v != nil {
+		builder.WriteString("run_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
-	builder.WriteString("task_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.TaskID))
+	if v := _m.TaskID; v != nil {
+		builder.WriteString("task_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("case_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.CaseID))
@@ -441,6 +472,17 @@ func (_m *IQBenchmarkArtifact) String() string {
 		builder.WriteString("deleted_at=")
 		builder.WriteString(v.Format(time.ANSIC))
 	}
+	builder.WriteString(", ")
+	builder.WriteString("source=")
+	builder.WriteString(_m.Source)
+	builder.WriteString(", ")
+	if v := _m.TriggeredByUserID; v != nil {
+		builder.WriteString("triggered_by_user_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	builder.WriteString("moderation_status=")
+	builder.WriteString(_m.ModerationStatus)
 	builder.WriteByte(')')
 	return builder.String()
 }

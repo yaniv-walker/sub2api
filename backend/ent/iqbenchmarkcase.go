@@ -43,8 +43,10 @@ type IQBenchmarkCase struct {
 	// Enabled holds the value of the "enabled" field.
 	Enabled bool `json:"enabled,omitempty"`
 	// SortOrder holds the value of the "sort_order" field.
-	SortOrder    int `json:"sort_order,omitempty"`
-	selectValues sql.SelectValues
+	SortOrder int `json:"sort_order,omitempty"`
+	// AllowUserTest holds the value of the "allow_user_test" field.
+	AllowUserTest bool `json:"allow_user_test,omitempty"`
+	selectValues  sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -54,7 +56,7 @@ func (*IQBenchmarkCase) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case iqbenchmarkcase.FieldParams:
 			values[i] = new([]byte)
-		case iqbenchmarkcase.FieldLlmJudgeEnabled, iqbenchmarkcase.FieldBuiltin, iqbenchmarkcase.FieldEnabled:
+		case iqbenchmarkcase.FieldLlmJudgeEnabled, iqbenchmarkcase.FieldBuiltin, iqbenchmarkcase.FieldEnabled, iqbenchmarkcase.FieldAllowUserTest:
 			values[i] = new(sql.NullBool)
 		case iqbenchmarkcase.FieldID, iqbenchmarkcase.FieldSortOrder:
 			values[i] = new(sql.NullInt64)
@@ -164,6 +166,12 @@ func (_m *IQBenchmarkCase) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.SortOrder = int(value.Int64)
 			}
+		case iqbenchmarkcase.FieldAllowUserTest:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field allow_user_test", values[i])
+			} else if value.Valid {
+				_m.AllowUserTest = value.Bool
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -240,6 +248,9 @@ func (_m *IQBenchmarkCase) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("sort_order=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SortOrder))
+	builder.WriteString(", ")
+	builder.WriteString("allow_user_test=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AllowUserTest))
 	builder.WriteByte(')')
 	return builder.String()
 }

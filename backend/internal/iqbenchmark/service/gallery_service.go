@@ -309,15 +309,24 @@ func (s *GalleryService) ListRuns(ctx context.Context, taskID int64, page, pageS
 // ---------- 产出 ----------
 
 // ArtifactListQuery 是作品列表的入参（HTTP query 的领域映射）。
+//
+// Source 是「统计口径」参数：默认 scheduled（只看定时检测）。
+// 传 all 表示不过滤，传 user_test 只看用户自测。
+// 归一化在 NormalizeSourceFilter 里做，非法值降级为默认口径而不是报错。
+//
+// ModeratedOnly 决定是否只返回审核通过的作品：公开侧为 true，
+// 管理侧为 false（管理员要能看到待审的）。
 type ArtifactListQuery struct {
-	Model    string
-	CaseID   *int64
-	Status   string
-	Kind     string
-	Since    *time.Time
-	Until    *time.Time
-	Page     int
-	PageSize int
+	Model         string
+	CaseID        *int64
+	Status        string
+	Kind          string
+	Source        string
+	Since         *time.Time
+	Until         *time.Time
+	ModeratedOnly bool
+	Page          int
+	PageSize      int
 }
 
 // ListArtifacts 列出作品。
@@ -334,10 +343,14 @@ func (s *GalleryService) ListArtifacts(ctx context.Context, q ArtifactListQuery)
 		CaseID:   q.CaseID,
 		Status:   trimSpace(q.Status),
 		Kind:     trimSpace(q.Kind),
+		Source:   iqbenchmark.SourceFilterToRepo(q.Source),
 		Since:    q.Since,
 		Until:    q.Until,
 		Page:     page,
 		PageSize: pageSize,
+	}
+	if q.ModeratedOnly {
+		filter.ModerationStatus = iqbenchmark.ModerationApproved
 	}
 	return s.Store.ListArtifacts(ctx, filter)
 }
@@ -382,15 +395,20 @@ func (s *GalleryService) Compare(ctx context.Context, ids []int64) ([]iqbenchmar
 // ---------- 总览 ----------
 
 // GetOverview 返回作品展总览。
-func (s *GalleryService) GetOverview(ctx context.Context, bucketLimit int) (*iqbenchmark.Overview, error) {
+//
+// source 的归一化在服务层完成（fail-closed 到 scheduled），
+// 因此即使调用方忘了传或传了脏值，统计口径也不会被放大成全量。
+// 要全量必须显式传 SourceAll。
+func (s *GalleryService) GetOverview(ctx context.Context, bucketLimit int, source string) (*iqbenchmark.Overview, error) {
 	if bucketLimit <= 0 {
 		bucketLimit = 50
 	}
-	counts, err := s.Store.GetOverviewCounts(ctx)
+	repoSource := iqbenchmark.SourceFilterToRepo(source)
+	counts, err := s.Store.GetOverviewCounts(ctx, repoSource)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.Store.GetOverviewBuckets(ctx, bucketLimit)
+	rows, err := s.Store.GetOverviewBuckets(ctx, bucketLimit, repoSource)
 	if err != nil {
 		return nil, err
 	}

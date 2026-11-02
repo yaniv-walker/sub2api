@@ -29,11 +29,13 @@ type galleryStore struct {
 	removedFor  int64
 	deleteCalls int
 
-	missing          map[int64]bool
-	getArtifactErr   error
-	getArtifactCalls int
-	lastBucketLimit  int
-	lastListFilter   iqbenchmark.ArtifactListFilter
+	missing            map[int64]bool
+	getArtifactErr     error
+	getArtifactCalls   int
+	lastBucketLimit    int
+	lastBucketSource   string
+	lastOverviewSource string
+	lastListFilter     iqbenchmark.ArtifactListFilter
 	// 记录调用顺序，用于断言「顺序不能变」。
 	order []string
 }
@@ -77,12 +79,14 @@ func (g *galleryStore) GetArtifact(_ context.Context, id int64) (*iqbenchmark.Ar
 	return &iqbenchmark.Artifact{ID: id}, nil
 }
 
-func (g *galleryStore) GetOverviewCounts(_ context.Context) (OverviewCounts, error) {
+func (g *galleryStore) GetOverviewCounts(_ context.Context, source string) (OverviewCounts, error) {
+	g.lastOverviewSource = source
 	return OverviewCounts{}, nil
 }
 
-func (g *galleryStore) GetOverviewBuckets(_ context.Context, limit int) ([]OverviewBucketRow, error) {
+func (g *galleryStore) GetOverviewBuckets(_ context.Context, limit int, source string) ([]OverviewBucketRow, error) {
 	g.lastBucketLimit = limit
+	g.lastBucketSource = source
 	return nil, nil
 }
 
@@ -221,7 +225,64 @@ func TestGetOverviewDefaultsBucketLimit(t *testing.T) {
 	store := &galleryStore{}
 	svc := NewGalleryService(store, nil)
 
-	_, err := svc.GetOverview(context.Background(), 0)
+	_, err := svc.GetOverview(context.Background(), 0, iqbenchmark.SourceScheduled)
 	require.NoError(t, err)
 	require.Equal(t, 50, store.lastBucketLimit, "non-positive bucketLimit must fall back to 50")
+}
+
+// TestGetOverviewPassesSourceThrough 覆盖来源口径的透传与归一化：
+// 默认 scheduled 必须原样到达仓储；all 必须变成「不过滤」的空字符串；
+// 非法值必须降级为 scheduled 而不是放大成全量。
+func TestGetOverviewPassesSourceThrough(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{name: "scheduled stays scheduled", in: iqbenchmark.SourceScheduled, want: iqbenchmark.SourceScheduled},
+		{name: "user_test stays user_test", in: iqbenchmark.SourceUserTest, want: iqbenchmark.SourceUserTest},
+		{name: "all means no filter", in: iqbenchmark.SourceAll, want: ""},
+		{name: "unknown degrades to scheduled", in: "bogus", want: iqbenchmark.SourceScheduled},
+		{name: "empty degrades to scheduled", in: "", want: iqbenchmark.SourceScheduled},
+		{name: "case and spaces are tolerated", in: "  USER_TEST ", want: iqbenchmark.SourceUserTest},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			store := &galleryStore{}
+			svc := NewGalleryService(store, nil)
+
+			_, err := svc.GetOverview(context.Background(), 10, tc.in)
+			require.NoError(t, err)
+			require.Equal(t, tc.want, store.lastOverviewSource,
+				"counts query must receive the normalized source")
+			require.Equal(t, tc.want, store.lastBucketSource,
+				"buckets query must receive the same normalized source")
+		})
+	}
+}
+
+// TestListArtifactsSourceAndModerationFilter 覆盖列表的两道闸：
+//   - source 归一化后进入 filter（默认 scheduled，all 变空串）；
+//   - ModeratedOnly 时强制只看 approved（公开侧的可见性规则）。
+func TestListArtifactsSourceAndModerationFilter(t *testing.T) {
+	store := &galleryStore{}
+	svc := NewGalleryService(store, nil)
+
+	_, err := svc.ListArtifacts(context.Background(), ArtifactListQuery{Page: 1, PageSize: 10})
+	require.NoError(t, err)
+	require.Equal(t, iqbenchmark.SourceScheduled, store.lastListFilter.Source,
+		"omitted source must default to scheduled")
+	require.Empty(t, store.lastListFilter.ModerationStatus,
+		"admin path must not implicitly filter by moderation")
+
+	_, err = svc.ListArtifacts(context.Background(), ArtifactListQuery{
+		Source:        iqbenchmark.SourceAll,
+		ModeratedOnly: true,
+		Page:          1,
+		PageSize:      10,
+	})
+	require.NoError(t, err)
+	require.Empty(t, store.lastListFilter.Source, "source=all must clear the filter")
+	require.Equal(t, iqbenchmark.ModerationApproved, store.lastListFilter.ModerationStatus,
+		"public path must only expose approved artifacts")
 }

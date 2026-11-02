@@ -69,6 +69,12 @@ const (
 	FieldBlobKey = "blob_key"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
 	FieldDeletedAt = "deleted_at"
+	// FieldSource holds the string denoting the source field in the database.
+	FieldSource = "source"
+	// FieldTriggeredByUserID holds the string denoting the triggered_by_user_id field in the database.
+	FieldTriggeredByUserID = "triggered_by_user_id"
+	// FieldModerationStatus holds the string denoting the moderation_status field in the database.
+	FieldModerationStatus = "moderation_status"
 	// Table holds the table name of the iqbenchmarkartifact in the database.
 	Table = "iq_benchmark_artifacts"
 )
@@ -104,6 +110,9 @@ var Columns = []string{
 	FieldScoredAt,
 	FieldBlobKey,
 	FieldDeletedAt,
+	FieldSource,
+	FieldTriggeredByUserID,
+	FieldModerationStatus,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -155,6 +164,12 @@ var (
 	StatusValidator func(string) error
 	// ErrorCodeValidator is a validator for the "error_code" field. It is called by the builders before save.
 	ErrorCodeValidator func(string) error
+	// SourceValidator is a validator for the "source" field. It is called by the builders before save.
+	SourceValidator func(string) error
+	// DefaultModerationStatus holds the default value on creation for the "moderation_status" field.
+	DefaultModerationStatus string
+	// ModerationStatusValidator is a validator for the "moderation_status" field. It is called by the builders before save.
+	ModerationStatusValidator func(string) error
 )
 
 // OrderOption defines the ordering options for the IQBenchmarkArtifact queries.
@@ -288,4 +303,19 @@ func ByBlobKey(opts ...sql.OrderTermOption) OrderOption {
 // ByDeletedAt orders the results by the deleted_at field.
 func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeletedAt, opts...).ToFunc()
+}
+
+// BySource orders the results by the source field.
+func BySource(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSource, opts...).ToFunc()
+}
+
+// ByTriggeredByUserID orders the results by the triggered_by_user_id field.
+func ByTriggeredByUserID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldTriggeredByUserID, opts...).ToFunc()
+}
+
+// ByModerationStatus orders the results by the moderation_status field.
+func ByModerationStatus(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldModerationStatus, opts...).ToFunc()
 }

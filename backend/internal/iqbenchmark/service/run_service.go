@@ -2,15 +2,12 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark"
-	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/sanitize"
 )
 
 // RunService 编排一次检测执行（一个 task 的一次 tick）。
@@ -21,6 +18,9 @@ import (
 //   - 任务之间并发，上限 max_task_concurrency（默认 4）；
 //   - 每个 case 独立成败，单题失败不终止整轮；
 //   - 失败/超时/被拦截也写产出（占位卡片）。
+//
+// 单题执行逻辑在 Executor 里（它被用户自测链路复用），
+// RunService 只负责「编排一轮」：前置校验、成本、终态。
 type RunService struct {
 	Store     Store
 	Gateway   *GatewayClient
@@ -29,6 +29,9 @@ type RunService struct {
 	Settings  *SettingsProvider
 	Logger    *slog.Logger
 	Now       func() time.Time
+
+	// executor 是共享的单题执行器（惰性构造，保证与 RunService 同源依赖）。
+	executor *Executor
 
 	// Concurrency 是跨任务并发的信号量（nil 表示不限制，仅测试用）。
 	Concurrency chan struct{}
@@ -52,6 +55,20 @@ func NewRunService(store Store, gateway *GatewayClient, artifacts *ArtifactServi
 		Logger:    logger,
 		Now:       time.Now,
 	}
+}
+
+// Executor 返回共享的单题执行器。
+//
+// 惰性构造而不是增加构造参数：RunService 在 Wire 里已有 6 个依赖，
+// 再加一个只为内部复用而存在的参数只会让每个调用点变噪音。
+func (s *RunService) Executor() *Executor {
+	if s == nil {
+		return nil
+	}
+	if s.executor == nil {
+		s.executor = NewExecutor(s.Gateway, s.Artifacts, s.Logger)
+	}
+	return s.executor
 }
 
 func (s *RunService) now() time.Time {
@@ -98,13 +115,17 @@ func (s *RunService) RunTask(ctx context.Context, in RunTaskInput) (*iqbenchmark
 	if s.Gateway == nil {
 		return nil, iqbenchmark.ErrNoTargetGroup
 	}
-	// Key 明文在这里取出一次，贯穿整轮执行：每轮内 Key 不会变，
+	// 身份在这里构造一次，贯穿整轮执行：每轮内 Key 不会变，
 	// 反复从 Agent 读会让「用哪个 Key」的判定散落在多处。
-	apiKey := in.Agent.KeyString()
-	if strings.TrimSpace(apiKey) == "" {
+	identity := ExecutionIdentity{
+		GatewayKey:    in.Agent.KeyString(),
+		UsageAPIKeyID: in.Agent.KeyID(),
+		Source:        iqbenchmark.SourceScheduled,
+	}
+	if err := identity.Valid(); err != nil {
 		// Ready() 只保证 Key 非 nil，不保证 Key.Key 非空；
 		// 这里补一道，避免带着空 Bearer token 去打网关。
-		return nil, iqbenchmark.ErrInternalAgentMissing
+		return nil, err
 	}
 
 	// 题目：按配置顺序串行执行；已失效的题目跳过（不阻断整轮）。
@@ -130,12 +151,10 @@ func (s *RunService) RunTask(ctx context.Context, in RunTaskInput) (*iqbenchmark
 	}
 
 	// 预算：在发起任何调用之前校验，避免「跑完才发现超预算」。
-	if exhausted, spent, err := s.Guard.CheckBudget(ctx, in.Agent.KeyID(), settings.DailyCostBudget, s.now()); err != nil {
+	if exhausted, _, err := s.Guard.CheckBudget(ctx, in.Agent.KeyID(), settings.DailyCostBudget, s.now()); err != nil {
 		return nil, err
 	} else if exhausted {
 		return nil, ErrBudgetExhausted
-	} else {
-		_ = spent
 	}
 
 	startedAt := s.now()
@@ -152,21 +171,39 @@ func (s *RunService) RunTask(ctx context.Context, in RunTaskInput) (*iqbenchmark
 		return nil, fmt.Errorf("iqbenchmark: create run: %w", err)
 	}
 
+	executor := s.Executor()
 	counts := RunCounts{}
 	var totalDuration int64
 
 	for i := range ordered {
 		c := &ordered[i]
+		execIn := ExecuteInput{
+			RunID:    run.ID,
+			TaskID:   task.ID,
+			Identity: identity,
+			Case:     c,
+			GroupID:  task.GroupID,
+			Model:    task.Model,
+		}
 		// 每个题目执行前检查一次容量：满员时后续题目记失败而非静默丢弃。
 		if err := s.Artifacts.EnsureCapacity(ctx); err != nil {
-			s.recordCaseFailure(ctx, run, task, c, iqbenchmark.ArtifactStatusFailed, iqbenchmark.ErrCodeStorageDisabled)
+			executor.RecordCaseFailure(ctx, execIn, iqbenchmark.ArtifactStatusFailed,
+				iqbenchmark.ErrCodeStorageDisabled, settings.UserTestRequireReview)
 			counts.Failed++
 			continue
 		}
 
-		status, duration, reqID := s.executeCase(ctx, apiKey, run, task, c)
-		totalDuration += duration
-		switch status {
+		result, execErr := executor.Execute(ctx, execIn, settings.UserTestRequireReview)
+		if execErr != nil {
+			// 身份/依赖类错误在进入循环前就该被拦下；走到这里说明配置或依赖
+			// 在运行期变了：记一条 ERROR 并计入失败，不静默丢弃这一题。
+			s.Logger.Error("iqbenchmark: execute case failed to start",
+				"run_id", run.ID, "case_id", c.ID, "error", execErr)
+			counts.Failed++
+			continue
+		}
+		totalDuration += result.DurationMS
+		switch result.Status {
 		case iqbenchmark.ArtifactStatusSuccess:
 			counts.Success++
 		case iqbenchmark.ArtifactStatusTimeout:
@@ -178,12 +215,12 @@ func (s *RunService) RunTask(ctx context.Context, in RunTaskInput) (*iqbenchmark
 		}
 
 		// 配额耗尽必须立即中止整轮：继续跑只会重复失败并继续扣尝试次数。
-		if status == iqbenchmark.ArtifactStatusFailed && s.lastErrorWasQuotaExhausted() {
+		// 判定用**本次结果**而不是共享字段，避免并发任务互相覆盖。
+		if result.QuotaExhausted() {
 			s.Logger.Warn("iqbenchmark: quota exhausted mid-run, aborting remaining cases",
 				"run_id", run.ID, "task_id", task.ID, "completed", i+1, "total", len(ordered))
 			break
 		}
-		_ = reqID
 	}
 
 	counts.TotalDurationMS = totalDuration
@@ -198,162 +235,6 @@ func (s *RunService) RunTask(ctx context.Context, in RunTaskInput) (*iqbenchmark
 	run.BlockedCount = counts.Blocked
 	run.TotalDurationMS = counts.TotalDurationMS
 	return run, nil
-}
-
-// executeCase 执行单个题目并写入产出，返回产出状态 / 耗时 / request_id。
-//
-// apiKey 是本次执行使用的明文 Key，一路传到网关调用点，存在栈上而不是结构体字段上。
-func (s *RunService) executeCase(ctx context.Context, apiKey string, run *iqbenchmark.Run, task *iqbenchmark.Task, c *iqbenchmark.Case) (string, int64, string) {
-	snapshot := iqbenchmark.CaseSnapshot(c)
-	started := s.now()
-
-	base := ArtifactCreateInput{
-		RunID:         run.ID,
-		TaskID:        task.ID,
-		CaseID:        c.ID,
-		CaseSnapshot:  snapshot,
-		GroupID:       task.GroupID,
-		Model:         task.Model,
-		RequestParams: DecodeSafeJSON(c.Params),
-	}
-
-	if iqbenchmark.IsImageCase(c.Kind) {
-		return s.executeImageCase(ctx, apiKey, base, task, c, started)
-	}
-	return s.executeTextCase(ctx, apiKey, base, task, c, started)
-}
-
-// executeTextCase 执行文本 / 代码类题目。
-func (s *RunService) executeTextCase(ctx context.Context, apiKey string, base ArtifactCreateInput, task *iqbenchmark.Task, c *iqbenchmark.Case, started time.Time) (string, int64, string) {
-	settings := s.settings(ctx)
-	resp, err := s.Gateway.Chat(ctx, ChatRequest{
-		Model:        task.Model,
-		Prompt:       c.Prompt,
-		SystemPrompt: c.SystemPrompt,
-		Params:       c.Params,
-		APIKey:       apiKey,
-	})
-	duration := s.now().Sub(started).Milliseconds()
-	base.DurationMS = int(duration)
-
-	if err != nil {
-		status, code := classifyInvokeError(err)
-		s.setLastError(code)
-		base.ErrorCode = code
-		if _, saveErr := s.Artifacts.SaveFailedArtifact(ctx, base, status, code); saveErr != nil {
-			s.Logger.Error("iqbenchmark: persist failed artifact failed",
-				"run_id", base.RunID, "case_id", base.CaseID, "error", saveErr)
-		}
-		return status, duration, ""
-	}
-	base.InputTokens = resp.InputTokens
-	base.OutputTokens = resp.OutputTokens
-
-	renderKind := sanitize.Classify(sanitize.ClassifyInput{Text: resp.Text, ExpectKind: c.ExpectKind})
-	base.RequestParams = withRequestID(base.RequestParams, resp.RequestID)
-	artifact, saveErr := s.Artifacts.SaveTextArtifact(ctx, base, renderKind, resp.Text)
-	if saveErr != nil {
-		s.Logger.Error("iqbenchmark: persist artifact failed",
-			"run_id", base.RunID, "case_id", base.CaseID, "error", saveErr)
-		return iqbenchmark.ArtifactStatusFailed, duration, resp.RequestID
-	}
-	_ = settings
-	return artifact.Status, duration, resp.RequestID
-}
-
-// executeImageCase 执行图片类题目。
-//
-// 图片字节由调用方注入的下载/上传链路处理（见 image_uploader 适配）；
-// 这里只把网关返回的 URL / b64 记录为产出引用。
-func (s *RunService) executeImageCase(ctx context.Context, apiKey string, base ArtifactCreateInput, task *iqbenchmark.Task, c *iqbenchmark.Case, started time.Time) (string, int64, string) {
-	resp, err := s.Gateway.Image(ctx, ImageRequest{
-		Model:  task.Model,
-		Prompt: c.Prompt,
-		Params: c.Params,
-		APIKey: apiKey,
-	})
-	duration := s.now().Sub(started).Milliseconds()
-	base.DurationMS = int(duration)
-
-	if err != nil {
-		status, code := classifyInvokeError(err)
-		s.setLastError(code)
-		base.ErrorCode = code
-		if _, saveErr := s.Artifacts.SaveFailedArtifact(ctx, base, status, code); saveErr != nil {
-			s.Logger.Error("iqbenchmark: persist failed image artifact failed",
-				"run_id", base.RunID, "case_id", base.CaseID, "error", saveErr)
-		}
-		return status, duration, ""
-	}
-
-	base.RequestParams = withRequestID(base.RequestParams, resp.RequestID)
-	if len(resp.URLs) == 0 && len(resp.B64) == 0 {
-		// 模型没给任何图片：记为 no_artifact 失败（不是成功空产出）。
-		code := iqbenchmark.ErrCodeNoArtifact
-		base.ErrorCode = code
-		if _, saveErr := s.Artifacts.SaveFailedArtifact(ctx, base, iqbenchmark.ArtifactStatusFailed, code); saveErr != nil {
-			s.Logger.Error("iqbenchmark: persist no-artifact failure failed", "run_id", base.RunID, "error", saveErr)
-		}
-		return iqbenchmark.ArtifactStatusFailed, duration, resp.RequestID
-	}
-
-	// 首版只用 URL 直链（b64 需经 ImageResultUploader 转存，见 known limitations）。
-	if len(resp.URLs) > 0 {
-		if _, saveErr := s.Artifacts.SaveImageArtifact(ctx, base, resp.URLs[0], ""); saveErr != nil {
-			s.Logger.Error("iqbenchmark: persist image artifact failed", "run_id", base.RunID, "error", saveErr)
-			return iqbenchmark.ArtifactStatusFailed, duration, resp.RequestID
-		}
-		return iqbenchmark.ArtifactStatusSuccess, duration, resp.RequestID
-	}
-
-	// 只有 b64：无对象存储时降级为 storage_disabled。
-	code := iqbenchmark.ErrCodeStorageDisabled
-	base.ErrorCode = code
-	if _, saveErr := s.Artifacts.SaveFailedArtifact(ctx, base, iqbenchmark.ArtifactStatusFailed, code); saveErr != nil {
-		s.Logger.Error("iqbenchmark: persist storage-disabled failure failed", "run_id", base.RunID, "error", saveErr)
-	}
-	return iqbenchmark.ArtifactStatusFailed, duration, resp.RequestID
-}
-
-// recordCaseFailure 记录一条失败产出（容量不足等前置失败）。
-func (s *RunService) recordCaseFailure(ctx context.Context, run *iqbenchmark.Run, task *iqbenchmark.Task, c *iqbenchmark.Case, status, code string) {
-	base := ArtifactCreateInput{
-		RunID:         run.ID,
-		TaskID:        task.ID,
-		CaseID:        c.ID,
-		CaseSnapshot:  iqbenchmark.CaseSnapshot(c),
-		GroupID:       task.GroupID,
-		Model:         task.Model,
-		RequestParams: DecodeSafeJSON(c.Params),
-	}
-	if _, err := s.Artifacts.SaveFailedArtifact(ctx, base, status, code); err != nil {
-		s.Logger.Error("iqbenchmark: record case failure failed",
-			"run_id", run.ID, "case_id", c.ID, "error", err)
-	}
-}
-
-// classifyInvokeError 把调用错误映射为产出状态 + 稳定错误码。
-func classifyInvokeError(err error) (status, code string) {
-	var non2xx *ErrGatewayNon2xx
-	switch {
-	case errors.Is(err, iqbenchmark.ErrDeadlineExceeded):
-		return iqbenchmark.ArtifactStatusTimeout, iqbenchmark.ErrCodeTimeout
-	case errors.Is(err, iqbenchmark.ErrGatewayUnreachable):
-		return iqbenchmark.ArtifactStatusFailed, iqbenchmark.ErrCodeGatewayUnreachable
-	case errors.As(err, &non2xx):
-		switch non2xx.Status {
-		case 429:
-			return iqbenchmark.ArtifactStatusFailed, iqbenchmark.ErrCodeRateLimited
-		case 402, 403:
-			return iqbenchmark.ArtifactStatusFailed, iqbenchmark.ErrCodeInsufficientBalance
-		case 400, 422:
-			return iqbenchmark.ArtifactStatusFailed, iqbenchmark.ErrCodeCapabilityMissing
-		default:
-			return iqbenchmark.ArtifactStatusFailed, iqbenchmark.ErrCodeUpstreamError
-		}
-	default:
-		return iqbenchmark.ArtifactStatusFailed, iqbenchmark.ErrCodeUpstreamError
-	}
 }
 
 // runFinalStatus 由计数推导终态。
@@ -383,24 +264,12 @@ func defaultTrigger(trigger string) string {
 	}
 }
 
-// withRequestID 把 request_id 记入请求参数快照，供事后成本回采。
-func withRequestID(params map[string]any, requestID string) map[string]any {
-	if strings.TrimSpace(requestID) == "" {
-		return params
-	}
-	if params == nil {
-		params = map[string]any{}
-	}
-	params["request_id"] = requestID
-	return params
-}
-
 // ------- 配额耗尽的中途传播 -------
 
 // lastErrorWasQuotaExhausted 判断最近一次题目失败是否因配额耗尽。
 //
-// 用执行期状态而非返回值，是因为 executeCase 的返回签名已承载状态与耗时；
-// 这里用独立字段把「需要中止整轮」这一信息带出来，避免污染主流程的可读性。
+// 保留这两个方法是为了兼容既有单测；主流程已改用 ExecuteResult.QuotaExhausted()，
+// 那里不受并发任务互相覆盖的影响。
 func (s *RunService) lastErrorWasQuotaExhausted() bool {
 	if s == nil {
 		return false

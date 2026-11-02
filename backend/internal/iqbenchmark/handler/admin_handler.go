@@ -341,16 +341,33 @@ func (h *AdminHandler) ScoreArtifact(c *gin.Context) {
 // ---------- 总览 ----------
 
 // GetOverview 返回总览（管理侧含分组维度）。
+//
+// 管理侧默认**全量**口径（source=all），因为管理员看的是「系统整体状况」，
+// 把用户自测藏起来反而会让数字对不上。
+// 显式 ?source=scheduled|user_test 可单看某条链路。
 func (h *AdminHandler) GetOverview(c *gin.Context) {
 	if !h.ensureEnabled(c) {
 		return
 	}
-	overview, err := h.Gallery.GetOverview(c.Request.Context(), 50)
+	overview, err := h.Gallery.GetOverview(c.Request.Context(), 50, adminSource(c))
 	if err != nil {
 		writeError(c, err)
 		return
 	}
 	response.Success(c, overview)
+}
+
+// adminSource 解析管理侧的来源口径：缺席即全量（显式传 all）。
+//
+// 管理员看的是系统整体，把用户自测藏起来会让数字对不上；
+// 归一到 all 而不是留空，是为了让「漏传参数」在服务层也落到全量，
+// 与公开侧默认收紧的口径明确区分。
+func adminSource(c *gin.Context) string {
+	raw := strings.TrimSpace(strings.ToLower(c.Query("source")))
+	if raw == "" {
+		return iqbenchmark.SourceAll
+	}
+	return iqbenchmark.NormalizeSourceFilter(raw)
 }
 
 // ---------- 任务目标（级联下拉） ----------

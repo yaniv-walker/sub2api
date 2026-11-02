@@ -56,6 +56,12 @@ func (_u *IQBenchmarkArtifactUpdate) AddRunID(v int64) *IQBenchmarkArtifactUpdat
 	return _u
 }
 
+// ClearRunID clears the value of the "run_id" field.
+func (_u *IQBenchmarkArtifactUpdate) ClearRunID() *IQBenchmarkArtifactUpdate {
+	_u.mutation.ClearRunID()
+	return _u
+}
+
 // SetTaskID sets the "task_id" field.
 func (_u *IQBenchmarkArtifactUpdate) SetTaskID(v int64) *IQBenchmarkArtifactUpdate {
 	_u.mutation.ResetTaskID()
@@ -74,6 +80,12 @@ func (_u *IQBenchmarkArtifactUpdate) SetNillableTaskID(v *int64) *IQBenchmarkArt
 // AddTaskID adds value to the "task_id" field.
 func (_u *IQBenchmarkArtifactUpdate) AddTaskID(v int64) *IQBenchmarkArtifactUpdate {
 	_u.mutation.AddTaskID(v)
+	return _u
+}
+
+// ClearTaskID clears the value of the "task_id" field.
+func (_u *IQBenchmarkArtifactUpdate) ClearTaskID() *IQBenchmarkArtifactUpdate {
+	_u.mutation.ClearTaskID()
 	return _u
 }
 
@@ -517,6 +529,61 @@ func (_u *IQBenchmarkArtifactUpdate) ClearDeletedAt() *IQBenchmarkArtifactUpdate
 	return _u
 }
 
+// SetSource sets the "source" field.
+func (_u *IQBenchmarkArtifactUpdate) SetSource(v string) *IQBenchmarkArtifactUpdate {
+	_u.mutation.SetSource(v)
+	return _u
+}
+
+// SetNillableSource sets the "source" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdate) SetNillableSource(v *string) *IQBenchmarkArtifactUpdate {
+	if v != nil {
+		_u.SetSource(*v)
+	}
+	return _u
+}
+
+// SetTriggeredByUserID sets the "triggered_by_user_id" field.
+func (_u *IQBenchmarkArtifactUpdate) SetTriggeredByUserID(v int64) *IQBenchmarkArtifactUpdate {
+	_u.mutation.ResetTriggeredByUserID()
+	_u.mutation.SetTriggeredByUserID(v)
+	return _u
+}
+
+// SetNillableTriggeredByUserID sets the "triggered_by_user_id" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdate) SetNillableTriggeredByUserID(v *int64) *IQBenchmarkArtifactUpdate {
+	if v != nil {
+		_u.SetTriggeredByUserID(*v)
+	}
+	return _u
+}
+
+// AddTriggeredByUserID adds value to the "triggered_by_user_id" field.
+func (_u *IQBenchmarkArtifactUpdate) AddTriggeredByUserID(v int64) *IQBenchmarkArtifactUpdate {
+	_u.mutation.AddTriggeredByUserID(v)
+	return _u
+}
+
+// ClearTriggeredByUserID clears the value of the "triggered_by_user_id" field.
+func (_u *IQBenchmarkArtifactUpdate) ClearTriggeredByUserID() *IQBenchmarkArtifactUpdate {
+	_u.mutation.ClearTriggeredByUserID()
+	return _u
+}
+
+// SetModerationStatus sets the "moderation_status" field.
+func (_u *IQBenchmarkArtifactUpdate) SetModerationStatus(v string) *IQBenchmarkArtifactUpdate {
+	_u.mutation.SetModerationStatus(v)
+	return _u
+}
+
+// SetNillableModerationStatus sets the "moderation_status" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdate) SetNillableModerationStatus(v *string) *IQBenchmarkArtifactUpdate {
+	if v != nil {
+		_u.SetModerationStatus(*v)
+	}
+	return _u
+}
+
 // Mutation returns the IQBenchmarkArtifactMutation object of the builder.
 func (_u *IQBenchmarkArtifactUpdate) Mutation() *IQBenchmarkArtifactMutation {
 	return _u.mutation
@@ -600,6 +667,16 @@ func (_u *IQBenchmarkArtifactUpdate) check() error {
 			return &ValidationError{Name: "error_code", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.error_code": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Source(); ok {
+		if err := iqbenchmarkartifact.SourceValidator(v); err != nil {
+			return &ValidationError{Name: "source", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.source": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ModerationStatus(); ok {
+		if err := iqbenchmarkartifact.ModerationStatusValidator(v); err != nil {
+			return &ValidationError{Name: "moderation_status", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.moderation_status": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -624,11 +701,17 @@ func (_u *IQBenchmarkArtifactUpdate) sqlSave(ctx context.Context) (_node int, er
 	if value, ok := _u.mutation.AddedRunID(); ok {
 		_spec.AddField(iqbenchmarkartifact.FieldRunID, field.TypeInt64, value)
 	}
+	if _u.mutation.RunIDCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldRunID, field.TypeInt64)
+	}
 	if value, ok := _u.mutation.TaskID(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldTaskID, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.AddedTaskID(); ok {
 		_spec.AddField(iqbenchmarkartifact.FieldTaskID, field.TypeInt64, value)
+	}
+	if _u.mutation.TaskIDCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldTaskID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.CaseID(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldCaseID, field.TypeInt64, value)
@@ -764,6 +847,21 @@ func (_u *IQBenchmarkArtifactUpdate) sqlSave(ctx context.Context) (_node int, er
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(iqbenchmarkartifact.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.Source(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldSource, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.TriggeredByUserID(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldTriggeredByUserID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedTriggeredByUserID(); ok {
+		_spec.AddField(iqbenchmarkartifact.FieldTriggeredByUserID, field.TypeInt64, value)
+	}
+	if _u.mutation.TriggeredByUserIDCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldTriggeredByUserID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.ModerationStatus(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldModerationStatus, field.TypeString, value)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{iqbenchmarkartifact.Label}
@@ -811,6 +909,12 @@ func (_u *IQBenchmarkArtifactUpdateOne) AddRunID(v int64) *IQBenchmarkArtifactUp
 	return _u
 }
 
+// ClearRunID clears the value of the "run_id" field.
+func (_u *IQBenchmarkArtifactUpdateOne) ClearRunID() *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.ClearRunID()
+	return _u
+}
+
 // SetTaskID sets the "task_id" field.
 func (_u *IQBenchmarkArtifactUpdateOne) SetTaskID(v int64) *IQBenchmarkArtifactUpdateOne {
 	_u.mutation.ResetTaskID()
@@ -829,6 +933,12 @@ func (_u *IQBenchmarkArtifactUpdateOne) SetNillableTaskID(v *int64) *IQBenchmark
 // AddTaskID adds value to the "task_id" field.
 func (_u *IQBenchmarkArtifactUpdateOne) AddTaskID(v int64) *IQBenchmarkArtifactUpdateOne {
 	_u.mutation.AddTaskID(v)
+	return _u
+}
+
+// ClearTaskID clears the value of the "task_id" field.
+func (_u *IQBenchmarkArtifactUpdateOne) ClearTaskID() *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.ClearTaskID()
 	return _u
 }
 
@@ -1272,6 +1382,61 @@ func (_u *IQBenchmarkArtifactUpdateOne) ClearDeletedAt() *IQBenchmarkArtifactUpd
 	return _u
 }
 
+// SetSource sets the "source" field.
+func (_u *IQBenchmarkArtifactUpdateOne) SetSource(v string) *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.SetSource(v)
+	return _u
+}
+
+// SetNillableSource sets the "source" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdateOne) SetNillableSource(v *string) *IQBenchmarkArtifactUpdateOne {
+	if v != nil {
+		_u.SetSource(*v)
+	}
+	return _u
+}
+
+// SetTriggeredByUserID sets the "triggered_by_user_id" field.
+func (_u *IQBenchmarkArtifactUpdateOne) SetTriggeredByUserID(v int64) *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.ResetTriggeredByUserID()
+	_u.mutation.SetTriggeredByUserID(v)
+	return _u
+}
+
+// SetNillableTriggeredByUserID sets the "triggered_by_user_id" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdateOne) SetNillableTriggeredByUserID(v *int64) *IQBenchmarkArtifactUpdateOne {
+	if v != nil {
+		_u.SetTriggeredByUserID(*v)
+	}
+	return _u
+}
+
+// AddTriggeredByUserID adds value to the "triggered_by_user_id" field.
+func (_u *IQBenchmarkArtifactUpdateOne) AddTriggeredByUserID(v int64) *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.AddTriggeredByUserID(v)
+	return _u
+}
+
+// ClearTriggeredByUserID clears the value of the "triggered_by_user_id" field.
+func (_u *IQBenchmarkArtifactUpdateOne) ClearTriggeredByUserID() *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.ClearTriggeredByUserID()
+	return _u
+}
+
+// SetModerationStatus sets the "moderation_status" field.
+func (_u *IQBenchmarkArtifactUpdateOne) SetModerationStatus(v string) *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.SetModerationStatus(v)
+	return _u
+}
+
+// SetNillableModerationStatus sets the "moderation_status" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdateOne) SetNillableModerationStatus(v *string) *IQBenchmarkArtifactUpdateOne {
+	if v != nil {
+		_u.SetModerationStatus(*v)
+	}
+	return _u
+}
+
 // Mutation returns the IQBenchmarkArtifactMutation object of the builder.
 func (_u *IQBenchmarkArtifactUpdateOne) Mutation() *IQBenchmarkArtifactMutation {
 	return _u.mutation
@@ -1368,6 +1533,16 @@ func (_u *IQBenchmarkArtifactUpdateOne) check() error {
 			return &ValidationError{Name: "error_code", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.error_code": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Source(); ok {
+		if err := iqbenchmarkartifact.SourceValidator(v); err != nil {
+			return &ValidationError{Name: "source", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.source": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ModerationStatus(); ok {
+		if err := iqbenchmarkartifact.ModerationStatusValidator(v); err != nil {
+			return &ValidationError{Name: "moderation_status", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.moderation_status": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -1409,11 +1584,17 @@ func (_u *IQBenchmarkArtifactUpdateOne) sqlSave(ctx context.Context) (_node *IQB
 	if value, ok := _u.mutation.AddedRunID(); ok {
 		_spec.AddField(iqbenchmarkartifact.FieldRunID, field.TypeInt64, value)
 	}
+	if _u.mutation.RunIDCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldRunID, field.TypeInt64)
+	}
 	if value, ok := _u.mutation.TaskID(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldTaskID, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.AddedTaskID(); ok {
 		_spec.AddField(iqbenchmarkartifact.FieldTaskID, field.TypeInt64, value)
+	}
+	if _u.mutation.TaskIDCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldTaskID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.CaseID(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldCaseID, field.TypeInt64, value)
@@ -1548,6 +1729,21 @@ func (_u *IQBenchmarkArtifactUpdateOne) sqlSave(ctx context.Context) (_node *IQB
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(iqbenchmarkartifact.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.Source(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldSource, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.TriggeredByUserID(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldTriggeredByUserID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedTriggeredByUserID(); ok {
+		_spec.AddField(iqbenchmarkartifact.FieldTriggeredByUserID, field.TypeInt64, value)
+	}
+	if _u.mutation.TriggeredByUserIDCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldTriggeredByUserID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.ModerationStatus(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldModerationStatus, field.TypeString, value)
 	}
 	_node = &IQBenchmarkArtifact{config: _u.config}
 	_spec.Assign = _node.assignValues

@@ -94,8 +94,11 @@ type Store interface {
 	HardDeleteRunsSoftDeletedBefore(ctx context.Context, cutoff time.Time) (int64, error)
 
 	// Overview
-	GetOverviewCounts(ctx context.Context) (OverviewCounts, error)
-	GetOverviewBuckets(ctx context.Context, limit int) ([]OverviewBucketRow, error)
+	// GetOverviewCounts / GetOverviewBuckets 的 source 参数为空表示全量口径。
+	// 统计口径必须由仓储层强制执行（而不是让每个调用方各自过滤），
+	// 否则漏一处就会让「按来源统计」静默失真。
+	GetOverviewCounts(ctx context.Context, source string) (OverviewCounts, error)
+	GetOverviewBuckets(ctx context.Context, limit int, source string) ([]OverviewBucketRow, error)
 }
 
 // CaseCreateInput、TaskCreateInput 等直接复用主包的入参类型，

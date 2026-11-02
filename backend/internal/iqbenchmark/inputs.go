@@ -80,6 +80,7 @@ type RunCounts struct {
 
 // ArtifactCreateInput 是写入一条产出的入参。
 type ArtifactCreateInput struct {
+	// RunID / TaskID 传 0 表示「无」（写入 NULL），用于用户自测产出。
 	RunID            int64
 	TaskID           int64
 	CaseID           int64
@@ -102,6 +103,12 @@ type ArtifactCreateInput struct {
 	ErrorCode        string
 	ErrorSummary     string
 	BlobKey          string
+	// Source 为 scheduled / user_test；空值按 scheduled 处理（定时链路的默认）。
+	Source string
+	// TriggeredByUserID 传 0 表示 NULL（定时链路）。
+	TriggeredByUserID int64
+	// ModerationStatus 空值交由数据库默认（approved）。
+	ModerationStatus string
 }
 
 // PurgedArtifact 是被清理的产出的最小信息。

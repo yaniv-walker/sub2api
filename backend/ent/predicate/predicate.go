@@ -69,6 +69,9 @@ type IQBenchmarkRun func(*sql.Selector)
 // IQBenchmarkTask is the predicate function for iqbenchmarktask builders.
 type IQBenchmarkTask func(*sql.Selector)
 
+// IQBenchmarkUserTest is the predicate function for iqbenchmarkusertest builders.
+type IQBenchmarkUserTest func(*sql.Selector)
+
 // IdempotencyRecord is the predicate function for idempotencyrecord builders.
 type IdempotencyRecord func(*sql.Selector)
 

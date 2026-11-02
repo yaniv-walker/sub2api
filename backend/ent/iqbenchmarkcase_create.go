@@ -164,6 +164,20 @@ func (_c *IQBenchmarkCaseCreate) SetNillableSortOrder(v *int) *IQBenchmarkCaseCr
 	return _c
 }
 
+// SetAllowUserTest sets the "allow_user_test" field.
+func (_c *IQBenchmarkCaseCreate) SetAllowUserTest(v bool) *IQBenchmarkCaseCreate {
+	_c.mutation.SetAllowUserTest(v)
+	return _c
+}
+
+// SetNillableAllowUserTest sets the "allow_user_test" field if the given value is not nil.
+func (_c *IQBenchmarkCaseCreate) SetNillableAllowUserTest(v *bool) *IQBenchmarkCaseCreate {
+	if v != nil {
+		_c.SetAllowUserTest(*v)
+	}
+	return _c
+}
+
 // Mutation returns the IQBenchmarkCaseMutation object of the builder.
 func (_c *IQBenchmarkCaseCreate) Mutation() *IQBenchmarkCaseMutation {
 	return _c.mutation
@@ -231,6 +245,10 @@ func (_c *IQBenchmarkCaseCreate) defaults() {
 		v := iqbenchmarkcase.DefaultSortOrder
 		_c.mutation.SetSortOrder(v)
 	}
+	if _, ok := _c.mutation.AllowUserTest(); !ok {
+		v := iqbenchmarkcase.DefaultAllowUserTest
+		_c.mutation.SetAllowUserTest(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -295,6 +313,9 @@ func (_c *IQBenchmarkCaseCreate) check() error {
 	}
 	if _, ok := _c.mutation.SortOrder(); !ok {
 		return &ValidationError{Name: "sort_order", err: errors.New(`ent: missing required field "IQBenchmarkCase.sort_order"`)}
+	}
+	if _, ok := _c.mutation.AllowUserTest(); !ok {
+		return &ValidationError{Name: "allow_user_test", err: errors.New(`ent: missing required field "IQBenchmarkCase.allow_user_test"`)}
 	}
 	return nil
 }
@@ -374,6 +395,10 @@ func (_c *IQBenchmarkCaseCreate) createSpec() (*IQBenchmarkCase, *sqlgraph.Creat
 	if value, ok := _c.mutation.SortOrder(); ok {
 		_spec.SetField(iqbenchmarkcase.FieldSortOrder, field.TypeInt, value)
 		_node.SortOrder = value
+	}
+	if value, ok := _c.mutation.AllowUserTest(); ok {
+		_spec.SetField(iqbenchmarkcase.FieldAllowUserTest, field.TypeBool, value)
+		_node.AllowUserTest = value
 	}
 	return _node, _spec
 }
@@ -580,6 +605,18 @@ func (u *IQBenchmarkCaseUpsert) UpdateSortOrder() *IQBenchmarkCaseUpsert {
 // AddSortOrder adds v to the "sort_order" field.
 func (u *IQBenchmarkCaseUpsert) AddSortOrder(v int) *IQBenchmarkCaseUpsert {
 	u.Add(iqbenchmarkcase.FieldSortOrder, v)
+	return u
+}
+
+// SetAllowUserTest sets the "allow_user_test" field.
+func (u *IQBenchmarkCaseUpsert) SetAllowUserTest(v bool) *IQBenchmarkCaseUpsert {
+	u.Set(iqbenchmarkcase.FieldAllowUserTest, v)
+	return u
+}
+
+// UpdateAllowUserTest sets the "allow_user_test" field to the value that was provided on create.
+func (u *IQBenchmarkCaseUpsert) UpdateAllowUserTest() *IQBenchmarkCaseUpsert {
+	u.SetExcluded(iqbenchmarkcase.FieldAllowUserTest)
 	return u
 }
 
@@ -807,6 +844,20 @@ func (u *IQBenchmarkCaseUpsertOne) AddSortOrder(v int) *IQBenchmarkCaseUpsertOne
 func (u *IQBenchmarkCaseUpsertOne) UpdateSortOrder() *IQBenchmarkCaseUpsertOne {
 	return u.Update(func(s *IQBenchmarkCaseUpsert) {
 		s.UpdateSortOrder()
+	})
+}
+
+// SetAllowUserTest sets the "allow_user_test" field.
+func (u *IQBenchmarkCaseUpsertOne) SetAllowUserTest(v bool) *IQBenchmarkCaseUpsertOne {
+	return u.Update(func(s *IQBenchmarkCaseUpsert) {
+		s.SetAllowUserTest(v)
+	})
+}
+
+// UpdateAllowUserTest sets the "allow_user_test" field to the value that was provided on create.
+func (u *IQBenchmarkCaseUpsertOne) UpdateAllowUserTest() *IQBenchmarkCaseUpsertOne {
+	return u.Update(func(s *IQBenchmarkCaseUpsert) {
+		s.UpdateAllowUserTest()
 	})
 }
 
@@ -1200,6 +1251,20 @@ func (u *IQBenchmarkCaseUpsertBulk) AddSortOrder(v int) *IQBenchmarkCaseUpsertBu
 func (u *IQBenchmarkCaseUpsertBulk) UpdateSortOrder() *IQBenchmarkCaseUpsertBulk {
 	return u.Update(func(s *IQBenchmarkCaseUpsert) {
 		s.UpdateSortOrder()
+	})
+}
+
+// SetAllowUserTest sets the "allow_user_test" field.
+func (u *IQBenchmarkCaseUpsertBulk) SetAllowUserTest(v bool) *IQBenchmarkCaseUpsertBulk {
+	return u.Update(func(s *IQBenchmarkCaseUpsert) {
+		s.SetAllowUserTest(v)
+	})
+}
+
+// UpdateAllowUserTest sets the "allow_user_test" field to the value that was provided on create.
+func (u *IQBenchmarkCaseUpsertBulk) UpdateAllowUserTest() *IQBenchmarkCaseUpsertBulk {
+	return u.Update(func(s *IQBenchmarkCaseUpsert) {
+		s.UpdateAllowUserTest()
 	})
 }
 

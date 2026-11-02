@@ -28,6 +28,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkcase"
 	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkrun"
 	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarktask"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkusertest"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -1325,6 +1326,16 @@ func init() {
 	iqbenchmarkartifactDescErrorCode := iqbenchmarkartifactFields[19].Descriptor()
 	// iqbenchmarkartifact.ErrorCodeValidator is a validator for the "error_code" field. It is called by the builders before save.
 	iqbenchmarkartifact.ErrorCodeValidator = iqbenchmarkartifactDescErrorCode.Validators[0].(func(string) error)
+	// iqbenchmarkartifactDescSource is the schema descriptor for source field.
+	iqbenchmarkartifactDescSource := iqbenchmarkartifactFields[26].Descriptor()
+	// iqbenchmarkartifact.SourceValidator is a validator for the "source" field. It is called by the builders before save.
+	iqbenchmarkartifact.SourceValidator = iqbenchmarkartifactDescSource.Validators[0].(func(string) error)
+	// iqbenchmarkartifactDescModerationStatus is the schema descriptor for moderation_status field.
+	iqbenchmarkartifactDescModerationStatus := iqbenchmarkartifactFields[28].Descriptor()
+	// iqbenchmarkartifact.DefaultModerationStatus holds the default value on creation for the moderation_status field.
+	iqbenchmarkartifact.DefaultModerationStatus = iqbenchmarkartifactDescModerationStatus.Default.(string)
+	// iqbenchmarkartifact.ModerationStatusValidator is a validator for the "moderation_status" field. It is called by the builders before save.
+	iqbenchmarkartifact.ModerationStatusValidator = iqbenchmarkartifactDescModerationStatus.Validators[0].(func(string) error)
 	iqbenchmarkcaseMixin := schema.IQBenchmarkCase{}.Mixin()
 	iqbenchmarkcaseMixinFields0 := iqbenchmarkcaseMixin[0].Fields()
 	_ = iqbenchmarkcaseMixinFields0
@@ -1396,6 +1407,10 @@ func init() {
 	iqbenchmarkcaseDescSortOrder := iqbenchmarkcaseFields[10].Descriptor()
 	// iqbenchmarkcase.DefaultSortOrder holds the default value on creation for the sort_order field.
 	iqbenchmarkcase.DefaultSortOrder = iqbenchmarkcaseDescSortOrder.Default.(int)
+	// iqbenchmarkcaseDescAllowUserTest is the schema descriptor for allow_user_test field.
+	iqbenchmarkcaseDescAllowUserTest := iqbenchmarkcaseFields[11].Descriptor()
+	// iqbenchmarkcase.DefaultAllowUserTest holds the default value on creation for the allow_user_test field.
+	iqbenchmarkcase.DefaultAllowUserTest = iqbenchmarkcaseDescAllowUserTest.Default.(bool)
 	iqbenchmarkrunMixin := schema.IQBenchmarkRun{}.Mixin()
 	iqbenchmarkrunMixinFields0 := iqbenchmarkrunMixin[0].Fields()
 	_ = iqbenchmarkrunMixinFields0
@@ -1550,6 +1565,47 @@ func init() {
 	iqbenchmarktaskDescLeaseOwner := iqbenchmarktaskFields[11].Descriptor()
 	// iqbenchmarktask.LeaseOwnerValidator is a validator for the "lease_owner" field. It is called by the builders before save.
 	iqbenchmarktask.LeaseOwnerValidator = iqbenchmarktaskDescLeaseOwner.Validators[0].(func(string) error)
+	iqbenchmarkusertestMixin := schema.IQBenchmarkUserTest{}.Mixin()
+	iqbenchmarkusertestMixinFields0 := iqbenchmarkusertestMixin[0].Fields()
+	_ = iqbenchmarkusertestMixinFields0
+	iqbenchmarkusertestFields := schema.IQBenchmarkUserTest{}.Fields()
+	_ = iqbenchmarkusertestFields
+	// iqbenchmarkusertestDescCreatedAt is the schema descriptor for created_at field.
+	iqbenchmarkusertestDescCreatedAt := iqbenchmarkusertestMixinFields0[0].Descriptor()
+	// iqbenchmarkusertest.DefaultCreatedAt holds the default value on creation for the created_at field.
+	iqbenchmarkusertest.DefaultCreatedAt = iqbenchmarkusertestDescCreatedAt.Default.(func() time.Time)
+	// iqbenchmarkusertestDescUpdatedAt is the schema descriptor for updated_at field.
+	iqbenchmarkusertestDescUpdatedAt := iqbenchmarkusertestMixinFields0[1].Descriptor()
+	// iqbenchmarkusertest.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	iqbenchmarkusertest.DefaultUpdatedAt = iqbenchmarkusertestDescUpdatedAt.Default.(func() time.Time)
+	// iqbenchmarkusertest.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	iqbenchmarkusertest.UpdateDefaultUpdatedAt = iqbenchmarkusertestDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// iqbenchmarkusertestDescModel is the schema descriptor for model field.
+	iqbenchmarkusertestDescModel := iqbenchmarkusertestFields[4].Descriptor()
+	// iqbenchmarkusertest.ModelValidator is a validator for the "model" field. It is called by the builders before save.
+	iqbenchmarkusertest.ModelValidator = iqbenchmarkusertestDescModel.Validators[0].(func(string) error)
+	// iqbenchmarkusertestDescStatus is the schema descriptor for status field.
+	iqbenchmarkusertestDescStatus := iqbenchmarkusertestFields[6].Descriptor()
+	// iqbenchmarkusertest.DefaultStatus holds the default value on creation for the status field.
+	iqbenchmarkusertest.DefaultStatus = iqbenchmarkusertestDescStatus.Default.(string)
+	// iqbenchmarkusertest.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	iqbenchmarkusertest.StatusValidator = iqbenchmarkusertestDescStatus.Validators[0].(func(string) error)
+	// iqbenchmarkusertestDescErrorCode is the schema descriptor for error_code field.
+	iqbenchmarkusertestDescErrorCode := iqbenchmarkusertestFields[7].Descriptor()
+	// iqbenchmarkusertest.ErrorCodeValidator is a validator for the "error_code" field. It is called by the builders before save.
+	iqbenchmarkusertest.ErrorCodeValidator = iqbenchmarkusertestDescErrorCode.Validators[0].(func(string) error)
+	// iqbenchmarkusertestDescEstimatedCost is the schema descriptor for estimated_cost field.
+	iqbenchmarkusertestDescEstimatedCost := iqbenchmarkusertestFields[9].Descriptor()
+	// iqbenchmarkusertest.DefaultEstimatedCost holds the default value on creation for the estimated_cost field.
+	iqbenchmarkusertest.DefaultEstimatedCost = iqbenchmarkusertestDescEstimatedCost.Default.(float64)
+	// iqbenchmarkusertestDescActualCost is the schema descriptor for actual_cost field.
+	iqbenchmarkusertestDescActualCost := iqbenchmarkusertestFields[10].Descriptor()
+	// iqbenchmarkusertest.DefaultActualCost holds the default value on creation for the actual_cost field.
+	iqbenchmarkusertest.DefaultActualCost = iqbenchmarkusertestDescActualCost.Default.(float64)
+	// iqbenchmarkusertestDescDedupeKey is the schema descriptor for dedupe_key field.
+	iqbenchmarkusertestDescDedupeKey := iqbenchmarkusertestFields[11].Descriptor()
+	// iqbenchmarkusertest.DedupeKeyValidator is a validator for the "dedupe_key" field. It is called by the builders before save.
+	iqbenchmarkusertest.DedupeKeyValidator = iqbenchmarkusertestDescDedupeKey.Validators[0].(func(string) error)
 	idempotencyrecordMixin := schema.IdempotencyRecord{}.Mixin()
 	idempotencyrecordMixinFields0 := idempotencyrecordMixin[0].Fields()
 	_ = idempotencyrecordMixinFields0

@@ -36,8 +36,14 @@ func (IQBenchmarkArtifact) Mixin() []ent.Mixin {
 
 func (IQBenchmarkArtifact) Fields() []ent.Field {
 	return []ent.Field{
-		field.Int64("run_id"),
-		field.Int64("task_id"),
+		// run_id / task_id 对用户自测为空：自测既不是定时任务，也没有 run。
+		// 用 NULL 如实表达「不存在」而不是伪造 0 —— 后者会让 reads 与统计误判。
+		field.Int64("run_id").
+			Optional().
+			Nillable(),
+		field.Int64("task_id").
+			Optional().
+			Nillable(),
 		field.Int64("case_id"),
 		// 题目快照（name/kind/prompt/system_prompt/params/expect_kind/scoring）。
 		field.JSON("case_snapshot", map[string]any{}).
@@ -116,6 +122,19 @@ func (IQBenchmarkArtifact) Fields() []ent.Field {
 			Optional().
 			Nillable().
 			SchemaType(map[string]string{dialect.Postgres: "timestamptz"}),
+		// 产出必须标明来源，且刻意**不设** Default：
+		// 漏写时直接报错，而不是被静默标成 scheduled 污染统计口径。
+		field.String("source").
+			MaxLen(16).
+			Comment("scheduled / user_test"),
+		// 触发自测的用户；定时检测为 NULL（由 CHECK 约束保证与 source 自洽）。
+		field.Int64("triggered_by_user_id").
+			Optional().
+			Nillable(),
+		field.String("moderation_status").
+			MaxLen(16).
+			Default("approved").
+			Comment("approved / pending / rejected"),
 	}
 }
 
@@ -140,6 +159,10 @@ func (IQBenchmarkArtifact) Indexes() []ent.Index {
 		// 容量守卫与清理扫描：按 task 保留最新 N 条。
 		index.Fields("task_id", "created_at").
 			StorageKey("idx_iq_artifact_task_live").
+			Annotations(entsql.IndexWhere("deleted_at IS NULL")),
+		// 按来源筛选的主查询（默认口径只查 scheduled）。
+		index.Fields("source", "created_at", "id").
+			StorageKey("idx_iq_artifact_source_feed").
 			Annotations(entsql.IndexWhere("deleted_at IS NULL")),
 	}
 }

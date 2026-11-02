@@ -365,7 +365,7 @@ func TestGetOverviewCountsSplitsImageAndText(t *testing.T) {
 			AddRow(int64(10), int64(6), int64(4), int64(2), int64(3), int64(1)))
 
 	repo := New(nil, db)
-	counts, err := repo.GetOverviewCounts(context.Background())
+	counts, err := repo.GetOverviewCounts(context.Background(), iqbenchmark.SourceScheduled)
 	require.NoError(t, err)
 	require.Equal(t, int64(10), counts.TotalArtifacts)
 	require.Equal(t, int64(6), counts.ImageArtifacts)
@@ -381,12 +381,12 @@ func TestGetOverviewBucketsGroupsByGroupAndModel(t *testing.T) {
 
 	last := time.Date(2026, 11, 2, 10, 0, 0, 0, time.UTC)
 	mock.ExpectQuery(`(?s)GROUP BY group_id, model.*LIMIT \$1`).
-		WithArgs(20).
+		WithArgs(20, iqbenchmark.SourceScheduled).
 		WillReturnRows(sqlmock.NewRows([]string{"group_id", "model", "total", "success", "failed", "avg_ms", "last_at"}).
 			AddRow(int64(3), "gpt-4o", int64(5), int64(4), int64(1), 1234.5, last))
 
 	repo := New(nil, db)
-	rows, err := repo.GetOverviewBuckets(context.Background(), 20)
+	rows, err := repo.GetOverviewBuckets(context.Background(), 20, iqbenchmark.SourceScheduled)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	require.Equal(t, "gpt-4o", rows[0].Model)

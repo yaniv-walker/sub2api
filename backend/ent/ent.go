@@ -35,6 +35,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkcase"
 	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkrun"
 	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarktask"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkusertest"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -139,6 +140,7 @@ func checkColumn(t, c string) error {
 			iqbenchmarkcase.Table:               iqbenchmarkcase.ValidColumn,
 			iqbenchmarkrun.Table:                iqbenchmarkrun.ValidColumn,
 			iqbenchmarktask.Table:               iqbenchmarktask.ValidColumn,
+			iqbenchmarkusertest.Table:           iqbenchmarkusertest.ValidColumn,
 			idempotencyrecord.Table:             idempotencyrecord.ValidColumn,
 			identityadoptiondecision.Table:      identityadoptiondecision.ValidColumn,
 			paymentauditlog.Table:               paymentauditlog.ValidColumn,

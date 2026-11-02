@@ -114,6 +114,11 @@ func SortOrder(v int) predicate.IQBenchmarkCase {
 	return predicate.IQBenchmarkCase(sql.FieldEQ(FieldSortOrder, v))
 }
 
+// AllowUserTest applies equality check predicate on the "allow_user_test" field. It's identical to AllowUserTestEQ.
+func AllowUserTest(v bool) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldEQ(FieldAllowUserTest, v))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.IQBenchmarkCase {
 	return predicate.IQBenchmarkCase(sql.FieldEQ(FieldCreatedAt, v))
@@ -662,6 +667,16 @@ func SortOrderLT(v int) predicate.IQBenchmarkCase {
 // SortOrderLTE applies the LTE predicate on the "sort_order" field.
 func SortOrderLTE(v int) predicate.IQBenchmarkCase {
 	return predicate.IQBenchmarkCase(sql.FieldLTE(FieldSortOrder, v))
+}
+
+// AllowUserTestEQ applies the EQ predicate on the "allow_user_test" field.
+func AllowUserTestEQ(v bool) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldEQ(FieldAllowUserTest, v))
+}
+
+// AllowUserTestNEQ applies the NEQ predicate on the "allow_user_test" field.
+func AllowUserTestNEQ(v bool) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldNEQ(FieldAllowUserTest, v))
 }
 
 // And groups predicates with the AND operator between them.

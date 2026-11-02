@@ -38,6 +38,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkcase"
 	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkrun"
 	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarktask"
+	"github.com/Wei-Shaw/sub2api/ent/iqbenchmarkusertest"
 	"github.com/Wei-Shaw/sub2api/ent/paymentauditlog"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/paymentproviderinstance"
@@ -112,6 +113,8 @@ type Client struct {
 	IQBenchmarkRun *IQBenchmarkRunClient
 	// IQBenchmarkTask is the client for interacting with the IQBenchmarkTask builders.
 	IQBenchmarkTask *IQBenchmarkTaskClient
+	// IQBenchmarkUserTest is the client for interacting with the IQBenchmarkUserTest builders.
+	IQBenchmarkUserTest *IQBenchmarkUserTestClient
 	// IdempotencyRecord is the client for interacting with the IdempotencyRecord builders.
 	IdempotencyRecord *IdempotencyRecordClient
 	// IdentityAdoptionDecision is the client for interacting with the IdentityAdoptionDecision builders.
@@ -194,6 +197,7 @@ func (c *Client) init() {
 	c.IQBenchmarkCase = NewIQBenchmarkCaseClient(c.config)
 	c.IQBenchmarkRun = NewIQBenchmarkRunClient(c.config)
 	c.IQBenchmarkTask = NewIQBenchmarkTaskClient(c.config)
+	c.IQBenchmarkUserTest = NewIQBenchmarkUserTestClient(c.config)
 	c.IdempotencyRecord = NewIdempotencyRecordClient(c.config)
 	c.IdentityAdoptionDecision = NewIdentityAdoptionDecisionClient(c.config)
 	c.PaymentAuditLog = NewPaymentAuditLogClient(c.config)
@@ -332,6 +336,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		IQBenchmarkCase:               NewIQBenchmarkCaseClient(cfg),
 		IQBenchmarkRun:                NewIQBenchmarkRunClient(cfg),
 		IQBenchmarkTask:               NewIQBenchmarkTaskClient(cfg),
+		IQBenchmarkUserTest:           NewIQBenchmarkUserTestClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
 		PaymentAuditLog:               NewPaymentAuditLogClient(cfg),
@@ -397,6 +402,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		IQBenchmarkCase:               NewIQBenchmarkCaseClient(cfg),
 		IQBenchmarkRun:                NewIQBenchmarkRunClient(cfg),
 		IQBenchmarkTask:               NewIQBenchmarkTaskClient(cfg),
+		IQBenchmarkUserTest:           NewIQBenchmarkUserTestClient(cfg),
 		IdempotencyRecord:             NewIdempotencyRecordClient(cfg),
 		IdentityAdoptionDecision:      NewIdentityAdoptionDecisionClient(cfg),
 		PaymentAuditLog:               NewPaymentAuditLogClient(cfg),
@@ -456,14 +462,14 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
 		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate,
 		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IQBenchmarkArtifact,
-		c.IQBenchmarkCase, c.IQBenchmarkRun, c.IQBenchmarkTask, c.IdempotencyRecord,
-		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
-		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
-		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UpstreamBalanceSnapshot, c.UpstreamErrorRecord,
-		c.UpstreamMonitorUpstream, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.IQBenchmarkCase, c.IQBenchmarkRun, c.IQBenchmarkTask, c.IQBenchmarkUserTest,
+		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.PaymentAuditLog,
+		c.PaymentOrder, c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode,
+		c.PromoCodeUsage, c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting,
+		c.SubscriptionPlan, c.TLSFingerprintProfile, c.UpstreamBalanceSnapshot,
+		c.UpstreamErrorRecord, c.UpstreamMonitorUpstream, c.UsageCleanupTask,
+		c.UsageLog, c.User, c.UserAllowedGroup, c.UserAttributeDefinition,
+		c.UserAttributeValue, c.UserPlatformQuota, c.UserSubscription,
 	} {
 		n.Use(hooks...)
 	}
@@ -478,14 +484,14 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BatchImageJob, c.ChannelMonitor, c.ChannelMonitorDailyRollup,
 		c.ChannelMonitorHistory, c.ChannelMonitorRequestTemplate,
 		c.CompositeModelRoute, c.ErrorPassthroughRule, c.Group, c.IQBenchmarkArtifact,
-		c.IQBenchmarkCase, c.IQBenchmarkRun, c.IQBenchmarkTask, c.IdempotencyRecord,
-		c.IdentityAdoptionDecision, c.PaymentAuditLog, c.PaymentOrder,
-		c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode, c.PromoCodeUsage,
-		c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
-		c.TLSFingerprintProfile, c.UpstreamBalanceSnapshot, c.UpstreamErrorRecord,
-		c.UpstreamMonitorUpstream, c.UsageCleanupTask, c.UsageLog, c.User,
-		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
-		c.UserPlatformQuota, c.UserSubscription,
+		c.IQBenchmarkCase, c.IQBenchmarkRun, c.IQBenchmarkTask, c.IQBenchmarkUserTest,
+		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.PaymentAuditLog,
+		c.PaymentOrder, c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode,
+		c.PromoCodeUsage, c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting,
+		c.SubscriptionPlan, c.TLSFingerprintProfile, c.UpstreamBalanceSnapshot,
+		c.UpstreamErrorRecord, c.UpstreamMonitorUpstream, c.UsageCleanupTask,
+		c.UsageLog, c.User, c.UserAllowedGroup, c.UserAttributeDefinition,
+		c.UserAttributeValue, c.UserPlatformQuota, c.UserSubscription,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -536,6 +542,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.IQBenchmarkRun.mutate(ctx, m)
 	case *IQBenchmarkTaskMutation:
 		return c.IQBenchmarkTask.mutate(ctx, m)
+	case *IQBenchmarkUserTestMutation:
+		return c.IQBenchmarkUserTest.mutate(ctx, m)
 	case *IdempotencyRecordMutation:
 		return c.IdempotencyRecord.mutate(ctx, m)
 	case *IdentityAdoptionDecisionMutation:
@@ -3868,6 +3876,139 @@ func (c *IQBenchmarkTaskClient) mutate(ctx context.Context, m *IQBenchmarkTaskMu
 		return (&IQBenchmarkTaskDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown IQBenchmarkTask mutation op: %q", m.Op())
+	}
+}
+
+// IQBenchmarkUserTestClient is a client for the IQBenchmarkUserTest schema.
+type IQBenchmarkUserTestClient struct {
+	config
+}
+
+// NewIQBenchmarkUserTestClient returns a client for the IQBenchmarkUserTest from the given config.
+func NewIQBenchmarkUserTestClient(c config) *IQBenchmarkUserTestClient {
+	return &IQBenchmarkUserTestClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `iqbenchmarkusertest.Hooks(f(g(h())))`.
+func (c *IQBenchmarkUserTestClient) Use(hooks ...Hook) {
+	c.hooks.IQBenchmarkUserTest = append(c.hooks.IQBenchmarkUserTest, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `iqbenchmarkusertest.Intercept(f(g(h())))`.
+func (c *IQBenchmarkUserTestClient) Intercept(interceptors ...Interceptor) {
+	c.inters.IQBenchmarkUserTest = append(c.inters.IQBenchmarkUserTest, interceptors...)
+}
+
+// Create returns a builder for creating a IQBenchmarkUserTest entity.
+func (c *IQBenchmarkUserTestClient) Create() *IQBenchmarkUserTestCreate {
+	mutation := newIQBenchmarkUserTestMutation(c.config, OpCreate)
+	return &IQBenchmarkUserTestCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of IQBenchmarkUserTest entities.
+func (c *IQBenchmarkUserTestClient) CreateBulk(builders ...*IQBenchmarkUserTestCreate) *IQBenchmarkUserTestCreateBulk {
+	return &IQBenchmarkUserTestCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *IQBenchmarkUserTestClient) MapCreateBulk(slice any, setFunc func(*IQBenchmarkUserTestCreate, int)) *IQBenchmarkUserTestCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &IQBenchmarkUserTestCreateBulk{err: fmt.Errorf("calling to IQBenchmarkUserTestClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*IQBenchmarkUserTestCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &IQBenchmarkUserTestCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for IQBenchmarkUserTest.
+func (c *IQBenchmarkUserTestClient) Update() *IQBenchmarkUserTestUpdate {
+	mutation := newIQBenchmarkUserTestMutation(c.config, OpUpdate)
+	return &IQBenchmarkUserTestUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *IQBenchmarkUserTestClient) UpdateOne(_m *IQBenchmarkUserTest) *IQBenchmarkUserTestUpdateOne {
+	mutation := newIQBenchmarkUserTestMutation(c.config, OpUpdateOne, withIQBenchmarkUserTest(_m))
+	return &IQBenchmarkUserTestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *IQBenchmarkUserTestClient) UpdateOneID(id int64) *IQBenchmarkUserTestUpdateOne {
+	mutation := newIQBenchmarkUserTestMutation(c.config, OpUpdateOne, withIQBenchmarkUserTestID(id))
+	return &IQBenchmarkUserTestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for IQBenchmarkUserTest.
+func (c *IQBenchmarkUserTestClient) Delete() *IQBenchmarkUserTestDelete {
+	mutation := newIQBenchmarkUserTestMutation(c.config, OpDelete)
+	return &IQBenchmarkUserTestDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *IQBenchmarkUserTestClient) DeleteOne(_m *IQBenchmarkUserTest) *IQBenchmarkUserTestDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *IQBenchmarkUserTestClient) DeleteOneID(id int64) *IQBenchmarkUserTestDeleteOne {
+	builder := c.Delete().Where(iqbenchmarkusertest.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &IQBenchmarkUserTestDeleteOne{builder}
+}
+
+// Query returns a query builder for IQBenchmarkUserTest.
+func (c *IQBenchmarkUserTestClient) Query() *IQBenchmarkUserTestQuery {
+	return &IQBenchmarkUserTestQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeIQBenchmarkUserTest},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a IQBenchmarkUserTest entity by its id.
+func (c *IQBenchmarkUserTestClient) Get(ctx context.Context, id int64) (*IQBenchmarkUserTest, error) {
+	return c.Query().Where(iqbenchmarkusertest.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *IQBenchmarkUserTestClient) GetX(ctx context.Context, id int64) *IQBenchmarkUserTest {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *IQBenchmarkUserTestClient) Hooks() []Hook {
+	return c.hooks.IQBenchmarkUserTest
+}
+
+// Interceptors returns the client interceptors.
+func (c *IQBenchmarkUserTestClient) Interceptors() []Interceptor {
+	return c.inters.IQBenchmarkUserTest
+}
+
+func (c *IQBenchmarkUserTestClient) mutate(ctx context.Context, m *IQBenchmarkUserTestMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&IQBenchmarkUserTestCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&IQBenchmarkUserTestUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&IQBenchmarkUserTestUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&IQBenchmarkUserTestDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown IQBenchmarkUserTest mutation op: %q", m.Op())
 	}
 }
 
@@ -7837,12 +7978,13 @@ type (
 		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
 		ChannelMonitorRequestTemplate, CompositeModelRoute, ErrorPassthroughRule,
 		Group, IQBenchmarkArtifact, IQBenchmarkCase, IQBenchmarkRun, IQBenchmarkTask,
-		IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog, PaymentOrder,
-		PaymentProviderInstance, PendingAuthSession, PromoCode, PromoCodeUsage, Proxy,
-		RedeemCode, SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
-		UpstreamBalanceSnapshot, UpstreamErrorRecord, UpstreamMonitorUpstream,
-		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
-		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Hook
+		IQBenchmarkUserTest, IdempotencyRecord, IdentityAdoptionDecision,
+		PaymentAuditLog, PaymentOrder, PaymentProviderInstance, PendingAuthSession,
+		PromoCode, PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting,
+		SubscriptionPlan, TLSFingerprintProfile, UpstreamBalanceSnapshot,
+		UpstreamErrorRecord, UpstreamMonitorUpstream, UsageCleanupTask, UsageLog, User,
+		UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
+		UserPlatformQuota, UserSubscription []ent.Hook
 	}
 	inters struct {
 		APIKey, Account, AccountGroup, Announcement, AnnouncementRead, AuthIdentity,
@@ -7850,12 +7992,13 @@ type (
 		ChannelMonitor, ChannelMonitorDailyRollup, ChannelMonitorHistory,
 		ChannelMonitorRequestTemplate, CompositeModelRoute, ErrorPassthroughRule,
 		Group, IQBenchmarkArtifact, IQBenchmarkCase, IQBenchmarkRun, IQBenchmarkTask,
-		IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog, PaymentOrder,
-		PaymentProviderInstance, PendingAuthSession, PromoCode, PromoCodeUsage, Proxy,
-		RedeemCode, SecuritySecret, Setting, SubscriptionPlan, TLSFingerprintProfile,
-		UpstreamBalanceSnapshot, UpstreamErrorRecord, UpstreamMonitorUpstream,
-		UsageCleanupTask, UsageLog, User, UserAllowedGroup, UserAttributeDefinition,
-		UserAttributeValue, UserPlatformQuota, UserSubscription []ent.Interceptor
+		IQBenchmarkUserTest, IdempotencyRecord, IdentityAdoptionDecision,
+		PaymentAuditLog, PaymentOrder, PaymentProviderInstance, PendingAuthSession,
+		PromoCode, PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting,
+		SubscriptionPlan, TLSFingerprintProfile, UpstreamBalanceSnapshot,
+		UpstreamErrorRecord, UpstreamMonitorUpstream, UsageCleanupTask, UsageLog, User,
+		UserAllowedGroup, UserAttributeDefinition, UserAttributeValue,
+		UserPlatformQuota, UserSubscription []ent.Interceptor
 	}
 )
 
