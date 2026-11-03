@@ -94,6 +94,20 @@ func (_c *IQBenchmarkCaseCreate) SetExpectKind(v string) *IQBenchmarkCaseCreate 
 	return _c
 }
 
+// SetExpected sets the "expected" field.
+func (_c *IQBenchmarkCaseCreate) SetExpected(v string) *IQBenchmarkCaseCreate {
+	_c.mutation.SetExpected(v)
+	return _c
+}
+
+// SetNillableExpected sets the "expected" field if the given value is not nil.
+func (_c *IQBenchmarkCaseCreate) SetNillableExpected(v *string) *IQBenchmarkCaseCreate {
+	if v != nil {
+		_c.SetExpected(*v)
+	}
+	return _c
+}
+
 // SetScoring sets the "scoring" field.
 func (_c *IQBenchmarkCaseCreate) SetScoring(v string) *IQBenchmarkCaseCreate {
 	_c.mutation.SetScoring(v)
@@ -376,6 +390,10 @@ func (_c *IQBenchmarkCaseCreate) createSpec() (*IQBenchmarkCase, *sqlgraph.Creat
 		_spec.SetField(iqbenchmarkcase.FieldExpectKind, field.TypeString, value)
 		_node.ExpectKind = value
 	}
+	if value, ok := _c.mutation.Expected(); ok {
+		_spec.SetField(iqbenchmarkcase.FieldExpected, field.TypeString, value)
+		_node.Expected = &value
+	}
 	if value, ok := _c.mutation.Scoring(); ok {
 		_spec.SetField(iqbenchmarkcase.FieldScoring, field.TypeString, value)
 		_node.Scoring = value
@@ -539,6 +557,24 @@ func (u *IQBenchmarkCaseUpsert) SetExpectKind(v string) *IQBenchmarkCaseUpsert {
 // UpdateExpectKind sets the "expect_kind" field to the value that was provided on create.
 func (u *IQBenchmarkCaseUpsert) UpdateExpectKind() *IQBenchmarkCaseUpsert {
 	u.SetExcluded(iqbenchmarkcase.FieldExpectKind)
+	return u
+}
+
+// SetExpected sets the "expected" field.
+func (u *IQBenchmarkCaseUpsert) SetExpected(v string) *IQBenchmarkCaseUpsert {
+	u.Set(iqbenchmarkcase.FieldExpected, v)
+	return u
+}
+
+// UpdateExpected sets the "expected" field to the value that was provided on create.
+func (u *IQBenchmarkCaseUpsert) UpdateExpected() *IQBenchmarkCaseUpsert {
+	u.SetExcluded(iqbenchmarkcase.FieldExpected)
+	return u
+}
+
+// ClearExpected clears the value of the "expected" field.
+func (u *IQBenchmarkCaseUpsert) ClearExpected() *IQBenchmarkCaseUpsert {
+	u.SetNull(iqbenchmarkcase.FieldExpected)
 	return u
 }
 
@@ -767,6 +803,27 @@ func (u *IQBenchmarkCaseUpsertOne) SetExpectKind(v string) *IQBenchmarkCaseUpser
 func (u *IQBenchmarkCaseUpsertOne) UpdateExpectKind() *IQBenchmarkCaseUpsertOne {
 	return u.Update(func(s *IQBenchmarkCaseUpsert) {
 		s.UpdateExpectKind()
+	})
+}
+
+// SetExpected sets the "expected" field.
+func (u *IQBenchmarkCaseUpsertOne) SetExpected(v string) *IQBenchmarkCaseUpsertOne {
+	return u.Update(func(s *IQBenchmarkCaseUpsert) {
+		s.SetExpected(v)
+	})
+}
+
+// UpdateExpected sets the "expected" field to the value that was provided on create.
+func (u *IQBenchmarkCaseUpsertOne) UpdateExpected() *IQBenchmarkCaseUpsertOne {
+	return u.Update(func(s *IQBenchmarkCaseUpsert) {
+		s.UpdateExpected()
+	})
+}
+
+// ClearExpected clears the value of the "expected" field.
+func (u *IQBenchmarkCaseUpsertOne) ClearExpected() *IQBenchmarkCaseUpsertOne {
+	return u.Update(func(s *IQBenchmarkCaseUpsert) {
+		s.ClearExpected()
 	})
 }
 
@@ -1174,6 +1231,27 @@ func (u *IQBenchmarkCaseUpsertBulk) SetExpectKind(v string) *IQBenchmarkCaseUpse
 func (u *IQBenchmarkCaseUpsertBulk) UpdateExpectKind() *IQBenchmarkCaseUpsertBulk {
 	return u.Update(func(s *IQBenchmarkCaseUpsert) {
 		s.UpdateExpectKind()
+	})
+}
+
+// SetExpected sets the "expected" field.
+func (u *IQBenchmarkCaseUpsertBulk) SetExpected(v string) *IQBenchmarkCaseUpsertBulk {
+	return u.Update(func(s *IQBenchmarkCaseUpsert) {
+		s.SetExpected(v)
+	})
+}
+
+// UpdateExpected sets the "expected" field to the value that was provided on create.
+func (u *IQBenchmarkCaseUpsertBulk) UpdateExpected() *IQBenchmarkCaseUpsertBulk {
+	return u.Update(func(s *IQBenchmarkCaseUpsert) {
+		s.UpdateExpected()
+	})
+}
+
+// ClearExpected clears the value of the "expected" field.
+func (u *IQBenchmarkCaseUpsertBulk) ClearExpected() *IQBenchmarkCaseUpsertBulk {
+	return u.Update(func(s *IQBenchmarkCaseUpsert) {
+		s.ClearExpected()
 	})
 }
 

@@ -232,6 +232,48 @@ func (_c *IQBenchmarkRunCreate) SetNillableStatus(v *string) *IQBenchmarkRunCrea
 	return _c
 }
 
+// SetVerdict sets the "verdict" field.
+func (_c *IQBenchmarkRunCreate) SetVerdict(v string) *IQBenchmarkRunCreate {
+	_c.mutation.SetVerdict(v)
+	return _c
+}
+
+// SetNillableVerdict sets the "verdict" field if the given value is not nil.
+func (_c *IQBenchmarkRunCreate) SetNillableVerdict(v *string) *IQBenchmarkRunCreate {
+	if v != nil {
+		_c.SetVerdict(*v)
+	}
+	return _c
+}
+
+// SetLogicTotal sets the "logic_total" field.
+func (_c *IQBenchmarkRunCreate) SetLogicTotal(v int) *IQBenchmarkRunCreate {
+	_c.mutation.SetLogicTotal(v)
+	return _c
+}
+
+// SetNillableLogicTotal sets the "logic_total" field if the given value is not nil.
+func (_c *IQBenchmarkRunCreate) SetNillableLogicTotal(v *int) *IQBenchmarkRunCreate {
+	if v != nil {
+		_c.SetLogicTotal(*v)
+	}
+	return _c
+}
+
+// SetLogicPassed sets the "logic_passed" field.
+func (_c *IQBenchmarkRunCreate) SetLogicPassed(v int) *IQBenchmarkRunCreate {
+	_c.mutation.SetLogicPassed(v)
+	return _c
+}
+
+// SetNillableLogicPassed sets the "logic_passed" field if the given value is not nil.
+func (_c *IQBenchmarkRunCreate) SetNillableLogicPassed(v *int) *IQBenchmarkRunCreate {
+	if v != nil {
+		_c.SetLogicPassed(*v)
+	}
+	return _c
+}
+
 // SetCostCollectedAt sets the "cost_collected_at" field.
 func (_c *IQBenchmarkRunCreate) SetCostCollectedAt(v time.Time) *IQBenchmarkRunCreate {
 	_c.mutation.SetCostCollectedAt(v)
@@ -338,6 +380,14 @@ func (_c *IQBenchmarkRunCreate) defaults() {
 	if _, ok := _c.mutation.Status(); !ok {
 		v := iqbenchmarkrun.DefaultStatus
 		_c.mutation.SetStatus(v)
+	}
+	if _, ok := _c.mutation.LogicTotal(); !ok {
+		v := iqbenchmarkrun.DefaultLogicTotal
+		_c.mutation.SetLogicTotal(v)
+	}
+	if _, ok := _c.mutation.LogicPassed(); !ok {
+		v := iqbenchmarkrun.DefaultLogicPassed
+		_c.mutation.SetLogicPassed(v)
 	}
 }
 
@@ -447,6 +497,27 @@ func (_c *IQBenchmarkRunCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.status": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.Verdict(); ok {
+		if err := iqbenchmarkrun.VerdictValidator(v); err != nil {
+			return &ValidationError{Name: "verdict", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.verdict": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.LogicTotal(); !ok {
+		return &ValidationError{Name: "logic_total", err: errors.New(`ent: missing required field "IQBenchmarkRun.logic_total"`)}
+	}
+	if v, ok := _c.mutation.LogicTotal(); ok {
+		if err := iqbenchmarkrun.LogicTotalValidator(v); err != nil {
+			return &ValidationError{Name: "logic_total", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.logic_total": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.LogicPassed(); !ok {
+		return &ValidationError{Name: "logic_passed", err: errors.New(`ent: missing required field "IQBenchmarkRun.logic_passed"`)}
+	}
+	if v, ok := _c.mutation.LogicPassed(); ok {
+		if err := iqbenchmarkrun.LogicPassedValidator(v); err != nil {
+			return &ValidationError{Name: "logic_passed", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.logic_passed": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -549,6 +620,18 @@ func (_c *IQBenchmarkRunCreate) createSpec() (*IQBenchmarkRun, *sqlgraph.CreateS
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(iqbenchmarkrun.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.Verdict(); ok {
+		_spec.SetField(iqbenchmarkrun.FieldVerdict, field.TypeString, value)
+		_node.Verdict = &value
+	}
+	if value, ok := _c.mutation.LogicTotal(); ok {
+		_spec.SetField(iqbenchmarkrun.FieldLogicTotal, field.TypeInt, value)
+		_node.LogicTotal = value
+	}
+	if value, ok := _c.mutation.LogicPassed(); ok {
+		_spec.SetField(iqbenchmarkrun.FieldLogicPassed, field.TypeInt, value)
+		_node.LogicPassed = value
 	}
 	if value, ok := _c.mutation.CostCollectedAt(); ok {
 		_spec.SetField(iqbenchmarkrun.FieldCostCollectedAt, field.TypeTime, value)
@@ -901,6 +984,60 @@ func (u *IQBenchmarkRunUpsert) SetStatus(v string) *IQBenchmarkRunUpsert {
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *IQBenchmarkRunUpsert) UpdateStatus() *IQBenchmarkRunUpsert {
 	u.SetExcluded(iqbenchmarkrun.FieldStatus)
+	return u
+}
+
+// SetVerdict sets the "verdict" field.
+func (u *IQBenchmarkRunUpsert) SetVerdict(v string) *IQBenchmarkRunUpsert {
+	u.Set(iqbenchmarkrun.FieldVerdict, v)
+	return u
+}
+
+// UpdateVerdict sets the "verdict" field to the value that was provided on create.
+func (u *IQBenchmarkRunUpsert) UpdateVerdict() *IQBenchmarkRunUpsert {
+	u.SetExcluded(iqbenchmarkrun.FieldVerdict)
+	return u
+}
+
+// ClearVerdict clears the value of the "verdict" field.
+func (u *IQBenchmarkRunUpsert) ClearVerdict() *IQBenchmarkRunUpsert {
+	u.SetNull(iqbenchmarkrun.FieldVerdict)
+	return u
+}
+
+// SetLogicTotal sets the "logic_total" field.
+func (u *IQBenchmarkRunUpsert) SetLogicTotal(v int) *IQBenchmarkRunUpsert {
+	u.Set(iqbenchmarkrun.FieldLogicTotal, v)
+	return u
+}
+
+// UpdateLogicTotal sets the "logic_total" field to the value that was provided on create.
+func (u *IQBenchmarkRunUpsert) UpdateLogicTotal() *IQBenchmarkRunUpsert {
+	u.SetExcluded(iqbenchmarkrun.FieldLogicTotal)
+	return u
+}
+
+// AddLogicTotal adds v to the "logic_total" field.
+func (u *IQBenchmarkRunUpsert) AddLogicTotal(v int) *IQBenchmarkRunUpsert {
+	u.Add(iqbenchmarkrun.FieldLogicTotal, v)
+	return u
+}
+
+// SetLogicPassed sets the "logic_passed" field.
+func (u *IQBenchmarkRunUpsert) SetLogicPassed(v int) *IQBenchmarkRunUpsert {
+	u.Set(iqbenchmarkrun.FieldLogicPassed, v)
+	return u
+}
+
+// UpdateLogicPassed sets the "logic_passed" field to the value that was provided on create.
+func (u *IQBenchmarkRunUpsert) UpdateLogicPassed() *IQBenchmarkRunUpsert {
+	u.SetExcluded(iqbenchmarkrun.FieldLogicPassed)
+	return u
+}
+
+// AddLogicPassed adds v to the "logic_passed" field.
+func (u *IQBenchmarkRunUpsert) AddLogicPassed(v int) *IQBenchmarkRunUpsert {
+	u.Add(iqbenchmarkrun.FieldLogicPassed, v)
 	return u
 }
 
@@ -1325,6 +1462,69 @@ func (u *IQBenchmarkRunUpsertOne) SetStatus(v string) *IQBenchmarkRunUpsertOne {
 func (u *IQBenchmarkRunUpsertOne) UpdateStatus() *IQBenchmarkRunUpsertOne {
 	return u.Update(func(s *IQBenchmarkRunUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetVerdict sets the "verdict" field.
+func (u *IQBenchmarkRunUpsertOne) SetVerdict(v string) *IQBenchmarkRunUpsertOne {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.SetVerdict(v)
+	})
+}
+
+// UpdateVerdict sets the "verdict" field to the value that was provided on create.
+func (u *IQBenchmarkRunUpsertOne) UpdateVerdict() *IQBenchmarkRunUpsertOne {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.UpdateVerdict()
+	})
+}
+
+// ClearVerdict clears the value of the "verdict" field.
+func (u *IQBenchmarkRunUpsertOne) ClearVerdict() *IQBenchmarkRunUpsertOne {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.ClearVerdict()
+	})
+}
+
+// SetLogicTotal sets the "logic_total" field.
+func (u *IQBenchmarkRunUpsertOne) SetLogicTotal(v int) *IQBenchmarkRunUpsertOne {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.SetLogicTotal(v)
+	})
+}
+
+// AddLogicTotal adds v to the "logic_total" field.
+func (u *IQBenchmarkRunUpsertOne) AddLogicTotal(v int) *IQBenchmarkRunUpsertOne {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.AddLogicTotal(v)
+	})
+}
+
+// UpdateLogicTotal sets the "logic_total" field to the value that was provided on create.
+func (u *IQBenchmarkRunUpsertOne) UpdateLogicTotal() *IQBenchmarkRunUpsertOne {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.UpdateLogicTotal()
+	})
+}
+
+// SetLogicPassed sets the "logic_passed" field.
+func (u *IQBenchmarkRunUpsertOne) SetLogicPassed(v int) *IQBenchmarkRunUpsertOne {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.SetLogicPassed(v)
+	})
+}
+
+// AddLogicPassed adds v to the "logic_passed" field.
+func (u *IQBenchmarkRunUpsertOne) AddLogicPassed(v int) *IQBenchmarkRunUpsertOne {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.AddLogicPassed(v)
+	})
+}
+
+// UpdateLogicPassed sets the "logic_passed" field to the value that was provided on create.
+func (u *IQBenchmarkRunUpsertOne) UpdateLogicPassed() *IQBenchmarkRunUpsertOne {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.UpdateLogicPassed()
 	})
 }
 
@@ -1921,6 +2121,69 @@ func (u *IQBenchmarkRunUpsertBulk) SetStatus(v string) *IQBenchmarkRunUpsertBulk
 func (u *IQBenchmarkRunUpsertBulk) UpdateStatus() *IQBenchmarkRunUpsertBulk {
 	return u.Update(func(s *IQBenchmarkRunUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetVerdict sets the "verdict" field.
+func (u *IQBenchmarkRunUpsertBulk) SetVerdict(v string) *IQBenchmarkRunUpsertBulk {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.SetVerdict(v)
+	})
+}
+
+// UpdateVerdict sets the "verdict" field to the value that was provided on create.
+func (u *IQBenchmarkRunUpsertBulk) UpdateVerdict() *IQBenchmarkRunUpsertBulk {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.UpdateVerdict()
+	})
+}
+
+// ClearVerdict clears the value of the "verdict" field.
+func (u *IQBenchmarkRunUpsertBulk) ClearVerdict() *IQBenchmarkRunUpsertBulk {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.ClearVerdict()
+	})
+}
+
+// SetLogicTotal sets the "logic_total" field.
+func (u *IQBenchmarkRunUpsertBulk) SetLogicTotal(v int) *IQBenchmarkRunUpsertBulk {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.SetLogicTotal(v)
+	})
+}
+
+// AddLogicTotal adds v to the "logic_total" field.
+func (u *IQBenchmarkRunUpsertBulk) AddLogicTotal(v int) *IQBenchmarkRunUpsertBulk {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.AddLogicTotal(v)
+	})
+}
+
+// UpdateLogicTotal sets the "logic_total" field to the value that was provided on create.
+func (u *IQBenchmarkRunUpsertBulk) UpdateLogicTotal() *IQBenchmarkRunUpsertBulk {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.UpdateLogicTotal()
+	})
+}
+
+// SetLogicPassed sets the "logic_passed" field.
+func (u *IQBenchmarkRunUpsertBulk) SetLogicPassed(v int) *IQBenchmarkRunUpsertBulk {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.SetLogicPassed(v)
+	})
+}
+
+// AddLogicPassed adds v to the "logic_passed" field.
+func (u *IQBenchmarkRunUpsertBulk) AddLogicPassed(v int) *IQBenchmarkRunUpsertBulk {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.AddLogicPassed(v)
+	})
+}
+
+// UpdateLogicPassed sets the "logic_passed" field to the value that was provided on create.
+func (u *IQBenchmarkRunUpsertBulk) UpdateLogicPassed() *IQBenchmarkRunUpsertBulk {
+	return u.Update(func(s *IQBenchmarkRunUpsert) {
+		s.UpdateLogicPassed()
 	})
 }
 

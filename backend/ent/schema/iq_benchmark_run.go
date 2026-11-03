@@ -79,6 +79,26 @@ func (IQBenchmarkRun) Fields() []ent.Field {
 			MaxLen(16).
 			Default("running").
 			Comment("running / success / partial / failed"),
+		// verdict 是本次运行的汇总判定（判定口径），与 status（调用口径）并行。
+		//
+		// generated 且 logic_total = 0 表示「纯生成模式」：
+		// 这一轮只出图，没有可判分的题目。
+		field.String("verdict").
+			MaxLen(16).
+			Optional().
+			Nillable().
+			Comment("normal / degraded / unknown / generated"),
+		// logic_total / logic_passed 是判定口径的分子分母。
+		//
+		// 与 success_count 等的区别：后者数调用成败，这里数判定结果。
+		// 保留两套计数是刻意的 —— 通过率要能被追溯到"哪些题真的判了"，
+		// 而调用成败仍要用于运维排障，二者都不可替代。
+		field.Int("logic_total").
+			Default(0).
+			NonNegative(),
+		field.Int("logic_passed").
+			Default(0).
+			NonNegative(),
 		// 成本回采标记：usage_logs 异步落库时下一轮补偿回采。
 		field.Time("cost_collected_at").
 			Optional().

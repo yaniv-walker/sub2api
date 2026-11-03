@@ -144,6 +144,21 @@ func Status(v string) predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldStatus, v))
 }
 
+// Verdict applies equality check predicate on the "verdict" field. It's identical to VerdictEQ.
+func Verdict(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldVerdict, v))
+}
+
+// RenderVerdict applies equality check predicate on the "render_verdict" field. It's identical to RenderVerdictEQ.
+func RenderVerdict(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldRenderVerdict, v))
+}
+
+// ErrorKind applies equality check predicate on the "error_kind" field. It's identical to ErrorKindEQ.
+func ErrorKind(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldErrorKind, v))
+}
+
 // ErrorCode applies equality check predicate on the "error_code" field. It's identical to ErrorCodeEQ.
 func ErrorCode(v string) predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldErrorCode, v))
@@ -1127,6 +1142,231 @@ func StatusEqualFold(v string) predicate.IQBenchmarkArtifact {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.IQBenchmarkArtifact {
 	return predicate.IQBenchmarkArtifact(sql.FieldContainsFold(FieldStatus, v))
+}
+
+// VerdictEQ applies the EQ predicate on the "verdict" field.
+func VerdictEQ(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldVerdict, v))
+}
+
+// VerdictNEQ applies the NEQ predicate on the "verdict" field.
+func VerdictNEQ(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNEQ(FieldVerdict, v))
+}
+
+// VerdictIn applies the In predicate on the "verdict" field.
+func VerdictIn(vs ...string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIn(FieldVerdict, vs...))
+}
+
+// VerdictNotIn applies the NotIn predicate on the "verdict" field.
+func VerdictNotIn(vs ...string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotIn(FieldVerdict, vs...))
+}
+
+// VerdictGT applies the GT predicate on the "verdict" field.
+func VerdictGT(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGT(FieldVerdict, v))
+}
+
+// VerdictGTE applies the GTE predicate on the "verdict" field.
+func VerdictGTE(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGTE(FieldVerdict, v))
+}
+
+// VerdictLT applies the LT predicate on the "verdict" field.
+func VerdictLT(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLT(FieldVerdict, v))
+}
+
+// VerdictLTE applies the LTE predicate on the "verdict" field.
+func VerdictLTE(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLTE(FieldVerdict, v))
+}
+
+// VerdictContains applies the Contains predicate on the "verdict" field.
+func VerdictContains(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldContains(FieldVerdict, v))
+}
+
+// VerdictHasPrefix applies the HasPrefix predicate on the "verdict" field.
+func VerdictHasPrefix(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldHasPrefix(FieldVerdict, v))
+}
+
+// VerdictHasSuffix applies the HasSuffix predicate on the "verdict" field.
+func VerdictHasSuffix(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldHasSuffix(FieldVerdict, v))
+}
+
+// VerdictIsNil applies the IsNil predicate on the "verdict" field.
+func VerdictIsNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIsNull(FieldVerdict))
+}
+
+// VerdictNotNil applies the NotNil predicate on the "verdict" field.
+func VerdictNotNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotNull(FieldVerdict))
+}
+
+// VerdictEqualFold applies the EqualFold predicate on the "verdict" field.
+func VerdictEqualFold(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEqualFold(FieldVerdict, v))
+}
+
+// VerdictContainsFold applies the ContainsFold predicate on the "verdict" field.
+func VerdictContainsFold(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldContainsFold(FieldVerdict, v))
+}
+
+// RenderVerdictEQ applies the EQ predicate on the "render_verdict" field.
+func RenderVerdictEQ(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldRenderVerdict, v))
+}
+
+// RenderVerdictNEQ applies the NEQ predicate on the "render_verdict" field.
+func RenderVerdictNEQ(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNEQ(FieldRenderVerdict, v))
+}
+
+// RenderVerdictIn applies the In predicate on the "render_verdict" field.
+func RenderVerdictIn(vs ...string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIn(FieldRenderVerdict, vs...))
+}
+
+// RenderVerdictNotIn applies the NotIn predicate on the "render_verdict" field.
+func RenderVerdictNotIn(vs ...string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotIn(FieldRenderVerdict, vs...))
+}
+
+// RenderVerdictGT applies the GT predicate on the "render_verdict" field.
+func RenderVerdictGT(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGT(FieldRenderVerdict, v))
+}
+
+// RenderVerdictGTE applies the GTE predicate on the "render_verdict" field.
+func RenderVerdictGTE(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGTE(FieldRenderVerdict, v))
+}
+
+// RenderVerdictLT applies the LT predicate on the "render_verdict" field.
+func RenderVerdictLT(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLT(FieldRenderVerdict, v))
+}
+
+// RenderVerdictLTE applies the LTE predicate on the "render_verdict" field.
+func RenderVerdictLTE(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLTE(FieldRenderVerdict, v))
+}
+
+// RenderVerdictContains applies the Contains predicate on the "render_verdict" field.
+func RenderVerdictContains(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldContains(FieldRenderVerdict, v))
+}
+
+// RenderVerdictHasPrefix applies the HasPrefix predicate on the "render_verdict" field.
+func RenderVerdictHasPrefix(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldHasPrefix(FieldRenderVerdict, v))
+}
+
+// RenderVerdictHasSuffix applies the HasSuffix predicate on the "render_verdict" field.
+func RenderVerdictHasSuffix(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldHasSuffix(FieldRenderVerdict, v))
+}
+
+// RenderVerdictIsNil applies the IsNil predicate on the "render_verdict" field.
+func RenderVerdictIsNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIsNull(FieldRenderVerdict))
+}
+
+// RenderVerdictNotNil applies the NotNil predicate on the "render_verdict" field.
+func RenderVerdictNotNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotNull(FieldRenderVerdict))
+}
+
+// RenderVerdictEqualFold applies the EqualFold predicate on the "render_verdict" field.
+func RenderVerdictEqualFold(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEqualFold(FieldRenderVerdict, v))
+}
+
+// RenderVerdictContainsFold applies the ContainsFold predicate on the "render_verdict" field.
+func RenderVerdictContainsFold(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldContainsFold(FieldRenderVerdict, v))
+}
+
+// ErrorKindEQ applies the EQ predicate on the "error_kind" field.
+func ErrorKindEQ(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEQ(FieldErrorKind, v))
+}
+
+// ErrorKindNEQ applies the NEQ predicate on the "error_kind" field.
+func ErrorKindNEQ(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNEQ(FieldErrorKind, v))
+}
+
+// ErrorKindIn applies the In predicate on the "error_kind" field.
+func ErrorKindIn(vs ...string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIn(FieldErrorKind, vs...))
+}
+
+// ErrorKindNotIn applies the NotIn predicate on the "error_kind" field.
+func ErrorKindNotIn(vs ...string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotIn(FieldErrorKind, vs...))
+}
+
+// ErrorKindGT applies the GT predicate on the "error_kind" field.
+func ErrorKindGT(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGT(FieldErrorKind, v))
+}
+
+// ErrorKindGTE applies the GTE predicate on the "error_kind" field.
+func ErrorKindGTE(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldGTE(FieldErrorKind, v))
+}
+
+// ErrorKindLT applies the LT predicate on the "error_kind" field.
+func ErrorKindLT(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLT(FieldErrorKind, v))
+}
+
+// ErrorKindLTE applies the LTE predicate on the "error_kind" field.
+func ErrorKindLTE(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldLTE(FieldErrorKind, v))
+}
+
+// ErrorKindContains applies the Contains predicate on the "error_kind" field.
+func ErrorKindContains(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldContains(FieldErrorKind, v))
+}
+
+// ErrorKindHasPrefix applies the HasPrefix predicate on the "error_kind" field.
+func ErrorKindHasPrefix(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldHasPrefix(FieldErrorKind, v))
+}
+
+// ErrorKindHasSuffix applies the HasSuffix predicate on the "error_kind" field.
+func ErrorKindHasSuffix(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldHasSuffix(FieldErrorKind, v))
+}
+
+// ErrorKindIsNil applies the IsNil predicate on the "error_kind" field.
+func ErrorKindIsNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldIsNull(FieldErrorKind))
+}
+
+// ErrorKindNotNil applies the NotNil predicate on the "error_kind" field.
+func ErrorKindNotNil() predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldNotNull(FieldErrorKind))
+}
+
+// ErrorKindEqualFold applies the EqualFold predicate on the "error_kind" field.
+func ErrorKindEqualFold(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldEqualFold(FieldErrorKind, v))
+}
+
+// ErrorKindContainsFold applies the ContainsFold predicate on the "error_kind" field.
+func ErrorKindContainsFold(v string) predicate.IQBenchmarkArtifact {
+	return predicate.IQBenchmarkArtifact(sql.FieldContainsFold(FieldErrorKind, v))
 }
 
 // ErrorCodeEQ applies the EQ predicate on the "error_code" field.

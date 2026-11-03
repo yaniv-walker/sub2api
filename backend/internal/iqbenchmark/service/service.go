@@ -38,10 +38,16 @@ var (
 	ErrEmptyName          = errors.New("iqbenchmark: name must not be empty")
 	ErrEmptyPrompt        = errors.New("iqbenchmark: prompt must not be empty")
 	ErrKindExpectMismatch = errors.New("iqbenchmark: case kind and expect kind do not match")
-	ErrIntervalTooSmall   = errors.New("iqbenchmark: interval_minutes is below the minimum")
-	ErrIntervalTooLarge   = errors.New("iqbenchmark: interval_minutes is above the maximum")
-	ErrJitterNegative     = errors.New("iqbenchmark: jitter_seconds must not be negative")
-	ErrJitterTooLarge     = errors.New("iqbenchmark: jitter_seconds reduces the minimum interval below 900 seconds")
+	// ErrMissingExpected 表示自定义的文本/代码题没有填参考答案。
+	//
+	// 没有 expected 就没有判定依据，这道题永远判不出 normal/degraded —
+	// 与其让它一直停在 generated 上、把「没判」当成「不能判」，
+	// 不如在提交时就拒绝，让作者补上。
+	ErrMissingExpected  = errors.New("iqbenchmark: custom logic case requires expected answer")
+	ErrIntervalTooSmall = errors.New("iqbenchmark: interval_minutes is below the minimum")
+	ErrIntervalTooLarge = errors.New("iqbenchmark: interval_minutes is above the maximum")
+	ErrJitterNegative   = errors.New("iqbenchmark: jitter_seconds must not be negative")
+	ErrJitterTooLarge   = errors.New("iqbenchmark: jitter_seconds reduces the minimum interval below 900 seconds")
 )
 
 // Store 是本模块需要的全部数据访问能力。

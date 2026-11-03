@@ -55,6 +55,12 @@ const (
 	FieldCost = "cost"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldVerdict holds the string denoting the verdict field in the database.
+	FieldVerdict = "verdict"
+	// FieldRenderVerdict holds the string denoting the render_verdict field in the database.
+	FieldRenderVerdict = "render_verdict"
+	// FieldErrorKind holds the string denoting the error_kind field in the database.
+	FieldErrorKind = "error_kind"
 	// FieldErrorCode holds the string denoting the error_code field in the database.
 	FieldErrorCode = "error_code"
 	// FieldErrorSummary holds the string denoting the error_summary field in the database.
@@ -107,6 +113,9 @@ var Columns = []string{
 	FieldOutputTokens,
 	FieldCost,
 	FieldStatus,
+	FieldVerdict,
+	FieldRenderVerdict,
+	FieldErrorKind,
 	FieldErrorCode,
 	FieldErrorSummary,
 	FieldScore,
@@ -168,6 +177,12 @@ var (
 	DefaultCost float64
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
 	StatusValidator func(string) error
+	// VerdictValidator is a validator for the "verdict" field. It is called by the builders before save.
+	VerdictValidator func(string) error
+	// RenderVerdictValidator is a validator for the "render_verdict" field. It is called by the builders before save.
+	RenderVerdictValidator func(string) error
+	// ErrorKindValidator is a validator for the "error_kind" field. It is called by the builders before save.
+	ErrorKindValidator func(string) error
 	// ErrorCodeValidator is a validator for the "error_code" field. It is called by the builders before save.
 	ErrorCodeValidator func(string) error
 	// SourceValidator is a validator for the "source" field. It is called by the builders before save.
@@ -274,6 +289,21 @@ func ByCost(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByVerdict orders the results by the verdict field.
+func ByVerdict(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVerdict, opts...).ToFunc()
+}
+
+// ByRenderVerdict orders the results by the render_verdict field.
+func ByRenderVerdict(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldRenderVerdict, opts...).ToFunc()
+}
+
+// ByErrorKind orders the results by the error_kind field.
+func ByErrorKind(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldErrorKind, opts...).ToFunc()
 }
 
 // ByErrorCode orders the results by the error_code field.

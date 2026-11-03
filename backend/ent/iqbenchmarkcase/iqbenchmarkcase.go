@@ -29,6 +29,8 @@ const (
 	FieldParams = "params"
 	// FieldExpectKind holds the string denoting the expect_kind field in the database.
 	FieldExpectKind = "expect_kind"
+	// FieldExpected holds the string denoting the expected field in the database.
+	FieldExpected = "expected"
 	// FieldScoring holds the string denoting the scoring field in the database.
 	FieldScoring = "scoring"
 	// FieldLlmJudgeEnabled holds the string denoting the llm_judge_enabled field in the database.
@@ -56,6 +58,7 @@ var Columns = []string{
 	FieldSystemPrompt,
 	FieldParams,
 	FieldExpectKind,
+	FieldExpected,
 	FieldScoring,
 	FieldLlmJudgeEnabled,
 	FieldBuiltin,
@@ -148,6 +151,11 @@ func BySystemPrompt(opts ...sql.OrderTermOption) OrderOption {
 // ByExpectKind orders the results by the expect_kind field.
 func ByExpectKind(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldExpectKind, opts...).ToFunc()
+}
+
+// ByExpected orders the results by the expected field.
+func ByExpected(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExpected, opts...).ToFunc()
 }
 
 // ByScoring orders the results by the scoring field.

@@ -116,6 +116,26 @@ func (_u *IQBenchmarkCaseUpdate) SetNillableExpectKind(v *string) *IQBenchmarkCa
 	return _u
 }
 
+// SetExpected sets the "expected" field.
+func (_u *IQBenchmarkCaseUpdate) SetExpected(v string) *IQBenchmarkCaseUpdate {
+	_u.mutation.SetExpected(v)
+	return _u
+}
+
+// SetNillableExpected sets the "expected" field if the given value is not nil.
+func (_u *IQBenchmarkCaseUpdate) SetNillableExpected(v *string) *IQBenchmarkCaseUpdate {
+	if v != nil {
+		_u.SetExpected(*v)
+	}
+	return _u
+}
+
+// ClearExpected clears the value of the "expected" field.
+func (_u *IQBenchmarkCaseUpdate) ClearExpected() *IQBenchmarkCaseUpdate {
+	_u.mutation.ClearExpected()
+	return _u
+}
+
 // SetScoring sets the "scoring" field.
 func (_u *IQBenchmarkCaseUpdate) SetScoring(v string) *IQBenchmarkCaseUpdate {
 	_u.mutation.SetScoring(v)
@@ -314,6 +334,12 @@ func (_u *IQBenchmarkCaseUpdate) sqlSave(ctx context.Context) (_node int, err er
 	if value, ok := _u.mutation.ExpectKind(); ok {
 		_spec.SetField(iqbenchmarkcase.FieldExpectKind, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Expected(); ok {
+		_spec.SetField(iqbenchmarkcase.FieldExpected, field.TypeString, value)
+	}
+	if _u.mutation.ExpectedCleared() {
+		_spec.ClearField(iqbenchmarkcase.FieldExpected, field.TypeString)
+	}
 	if value, ok := _u.mutation.Scoring(); ok {
 		_spec.SetField(iqbenchmarkcase.FieldScoring, field.TypeString, value)
 	}
@@ -440,6 +466,26 @@ func (_u *IQBenchmarkCaseUpdateOne) SetNillableExpectKind(v *string) *IQBenchmar
 	if v != nil {
 		_u.SetExpectKind(*v)
 	}
+	return _u
+}
+
+// SetExpected sets the "expected" field.
+func (_u *IQBenchmarkCaseUpdateOne) SetExpected(v string) *IQBenchmarkCaseUpdateOne {
+	_u.mutation.SetExpected(v)
+	return _u
+}
+
+// SetNillableExpected sets the "expected" field if the given value is not nil.
+func (_u *IQBenchmarkCaseUpdateOne) SetNillableExpected(v *string) *IQBenchmarkCaseUpdateOne {
+	if v != nil {
+		_u.SetExpected(*v)
+	}
+	return _u
+}
+
+// ClearExpected clears the value of the "expected" field.
+func (_u *IQBenchmarkCaseUpdateOne) ClearExpected() *IQBenchmarkCaseUpdateOne {
+	_u.mutation.ClearExpected()
 	return _u
 }
 
@@ -670,6 +716,12 @@ func (_u *IQBenchmarkCaseUpdateOne) sqlSave(ctx context.Context) (_node *IQBench
 	}
 	if value, ok := _u.mutation.ExpectKind(); ok {
 		_spec.SetField(iqbenchmarkcase.FieldExpectKind, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Expected(); ok {
+		_spec.SetField(iqbenchmarkcase.FieldExpected, field.TypeString, value)
+	}
+	if _u.mutation.ExpectedCleared() {
+		_spec.ClearField(iqbenchmarkcase.FieldExpected, field.TypeString)
 	}
 	if value, ok := _u.mutation.Scoring(); ok {
 		_spec.SetField(iqbenchmarkcase.FieldScoring, field.TypeString, value)

@@ -88,6 +88,10 @@ func (r *Repository) CreateCase(ctx context.Context, in CaseCreateInput) (*iqben
 	if strings.TrimSpace(in.SystemPrompt) != "" {
 		builder = builder.SetSystemPrompt(in.SystemPrompt)
 	}
+	// expected 空值不写（保持 NULL = 本题不可判分），而不是写空串。
+	if strings.TrimSpace(in.Expected) != "" {
+		builder = builder.SetExpected(in.Expected)
+	}
 	created, err := builder.Save(ctx)
 	if err != nil {
 		return nil, err
@@ -116,6 +120,13 @@ func (r *Repository) UpdateCase(ctx context.Context, id int64, in CaseUpdateInpu
 		builder = builder.ClearSystemPrompt()
 	} else {
 		builder = builder.SetSystemPrompt(in.SystemPrompt)
+	}
+	// expected 用同样的「空即清空」语义：改成图片题时应把旧答案清掉，
+	// 否则会留下一条对不上的参考答案，将来被误判。
+	if strings.TrimSpace(in.Expected) == "" {
+		builder = builder.ClearExpected()
+	} else {
+		builder = builder.SetExpected(in.Expected)
 	}
 	updated, err := builder.Save(ctx)
 	if err != nil {
@@ -435,6 +446,13 @@ func (r *Repository) FinishRun(ctx context.Context, id int64, finishedAt time.Ti
 		SetTimeoutCount(counts.Timeout).
 		SetBlockedCount(counts.Blocked).
 		SetTotalDurationMs(counts.TotalDurationMS).
+		SetLogicTotal(counts.LogicTotal).
+		SetLogicPassed(counts.LogicPassed).
+		SetVerdict(iqbenchmark.AggregateRunVerdict(
+			counts.Success+counts.Failed+counts.Timeout+counts.Blocked,
+			counts.LogicTotal,
+			counts.LogicPassed,
+		)).
 		Save(ctx)
 	return err
 }
@@ -613,6 +631,16 @@ func (r *Repository) CreateArtifact(ctx context.Context, in ArtifactCreateInput)
 	}
 	if strings.TrimSpace(in.ErrorCode) != "" {
 		builder = builder.SetErrorCode(in.ErrorCode)
+	}
+	// 判定字段：空值不写，交由列默认（NULL）表示「尚未判定」。
+	if strings.TrimSpace(in.Verdict) != "" {
+		builder = builder.SetVerdict(in.Verdict)
+	}
+	if strings.TrimSpace(in.RenderVerdict) != "" {
+		builder = builder.SetRenderVerdict(in.RenderVerdict)
+	}
+	if strings.TrimSpace(in.ErrorKind) != "" {
+		builder = builder.SetErrorKind(in.ErrorKind)
 	}
 	if strings.TrimSpace(in.ErrorSummary) != "" {
 		builder = builder.SetErrorSummary(in.ErrorSummary)
@@ -982,6 +1010,11 @@ func caseFromEntity(e *dbent.IQBenchmarkCase) *iqbenchmark.Case {
 	if e.SystemPrompt != nil {
 		systemPrompt = *e.SystemPrompt
 	}
+	// expected 为 NULL 时折叠成空串，与领域层「空 = 本题不可判分」的约定一致。
+	expected := ""
+	if e.Expected != nil {
+		expected = *e.Expected
+	}
 	return &iqbenchmark.Case{
 		ID:              e.ID,
 		Name:            e.Name,
@@ -990,6 +1023,7 @@ func caseFromEntity(e *dbent.IQBenchmarkCase) *iqbenchmark.Case {
 		SystemPrompt:    systemPrompt,
 		Params:          params,
 		ExpectKind:      e.ExpectKind,
+		Expected:        expected,
 		Scoring:         e.Scoring,
 		LLMJudgeEnabled: e.LlmJudgeEnabled,
 		Builtin:         e.Builtin,
@@ -1060,6 +1094,9 @@ func runFromEntity(e *dbent.IQBenchmarkRun) *iqbenchmark.Run {
 		InternalUserID:    e.InternalUserID,
 		InternalAPIKeyID:  e.InternalAPIKeyID,
 		Status:            e.Status,
+		Verdict:           derefString(e.Verdict),
+		LogicTotal:        e.LogicTotal,
+		LogicPassed:       e.LogicPassed,
 		CostCollectedAt:   e.CostCollectedAt,
 		CreatedAt:         e.CreatedAt,
 	}
@@ -1108,6 +1145,9 @@ func artifactFromEntity(e *dbent.IQBenchmarkArtifact) *iqbenchmark.Artifact {
 		OutputTokens:      e.OutputTokens,
 		Cost:              e.Cost,
 		Status:            e.Status,
+		Verdict:           str(e.Verdict),
+		RenderVerdict:     str(e.RenderVerdict),
+		ErrorKind:         str(e.ErrorKind),
 		ErrorCode:         str(e.ErrorCode),
 		ErrorSummary:      str(e.ErrorSummary),
 		Score:             e.Score,
@@ -1131,6 +1171,21 @@ func artifactFromEntity(e *dbent.IQBenchmarkArtifact) *iqbenchmark.Artifact {
 func derefInt64(p *int64) int64 {
 	if p == nil {
 		return 0
+	}
+	return *p
+}
+
+// derefString 把可空 string 折叠为空串：领域层用 "" 表示「未判定」。
+//
+// 与 derefInt64 同样的理由 —— 判定字段会被列表、详情、统计多处消费，
+// 把 *string 扩散出去只会让每个调用点都要判空。
+//
+// 注意：这里把 NULL 与空串合并了。对 verdict / render_verdict / error_kind
+// 而言这是安全的，因为「未判定」与「判定为空」在业务上都不成立
+// （判定结果永远落在枚举内，空串只可能是未判定）。
+func derefString(p *string) string {
+	if p == nil {
+		return ""
 	}
 	return *p
 }

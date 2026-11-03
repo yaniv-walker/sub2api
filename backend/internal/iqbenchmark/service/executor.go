@@ -90,6 +90,15 @@ type ExecuteResult struct {
 	// 任务 A 刚判定「配额耗尽」，任务 B 的一次成功就能把它覆盖成 false，
 	// 于是 A 的剩余题目继续跑、继续扣失败次数。
 	ErrorCode string
+	// Verdict / RenderVerdict 是本题判定（判定口径），与 Status（调用口径）正交。
+	//
+	// 单列出来而不再从 Status 推导，是因为调用方要按它累计 run 级的
+	// logic_total / logic_passed；若留在产出行里再回查，就等于把一次
+	// 已经算过的判定重新读一遍，既慢又可能读到被审核改动后的值。
+	Verdict       string
+	RenderVerdict string
+	// ErrorKind 是 12 类上游错误归一化，与 ErrorCode 并存（不替代）。
+	ErrorKind string
 	// ArtifactID 是本次写入的产出 ID（0 表示没有产出）。
 	// 自测链路需要它把 user_tests.artifact_id 回填。
 	ArtifactID int64
@@ -189,24 +198,41 @@ func (e *Executor) executeTextCase(ctx context.Context, identity ExecutionIdenti
 	if err != nil {
 		status, code := classifyInvokeError(err)
 		base.ErrorCode = code
+		// error_kind 与 error_code 是两个维度：前者描述上游怎么坏的，
+		// 后者是我们自己的失败原因（驱动熔断）。这里只补前者，不动后者。
+		base.ErrorKind = iqbenchmark.ClassifyErrorKind(err, gatewayStatusCode(err))
+		base.Verdict = iqbenchmark.VerdictForCase(status, c, "", false)
+		base.RenderVerdict = iqbenchmark.VerdictForRender(status, c.ExpectKind, "", false)
 		if _, saveErr := e.Artifacts.SaveFailedArtifact(ctx, base, status, code); saveErr != nil {
 			e.Logger.Error("iqbenchmark: persist failed artifact failed",
 				"run_id", base.RunID, "case_id", base.CaseID, "error", saveErr)
 		}
-		return ExecuteResult{Status: status, DurationMS: duration, ErrorCode: code}
+		return ExecuteResult{Status: status, DurationMS: duration, ErrorCode: code,
+			Verdict: base.Verdict, RenderVerdict: base.RenderVerdict, ErrorKind: base.ErrorKind}
 	}
 	base.InputTokens = resp.InputTokens
 	base.OutputTokens = resp.OutputTokens
 
 	renderKind := sanitize.Classify(sanitize.ClassifyInput{Text: resp.Text, ExpectKind: c.ExpectKind})
 	base.RequestParams = withRequestID(base.RequestParams, resp.RequestID)
+	// 判定必须在落库前算好：产出写入是唯一一次能同时看到
+	// 「模型原文」与「题目 expected」的时机。
+	hasArtifact := strings.TrimSpace(resp.Text) != ""
+	base.Verdict = iqbenchmark.VerdictForCase(iqbenchmark.ArtifactStatusSuccess, c, resp.Text, hasArtifact)
+	base.RenderVerdict = iqbenchmark.VerdictForRender(
+		iqbenchmark.ArtifactStatusSuccess, c.ExpectKind, renderKind, hasArtifact)
+	// 调用成功但内容可疑（空/被截断）时补 error_kind：这类问题拿不到状态码，
+	// 只能看内容。它不改变 Status —— 有产出就是 success。
+	base.ErrorKind = iqbenchmark.ErrorKindFromText(resp.Text, base.ContentTruncated)
 	artifact, saveErr := e.Artifacts.SaveTextArtifact(ctx, base, renderKind, resp.Text)
 	if saveErr != nil {
 		e.Logger.Error("iqbenchmark: persist artifact failed",
 			"run_id", base.RunID, "case_id", base.CaseID, "error", saveErr)
-		return ExecuteResult{Status: iqbenchmark.ArtifactStatusFailed, DurationMS: duration, RequestID: resp.RequestID}
+		return ExecuteResult{Status: iqbenchmark.ArtifactStatusFailed, DurationMS: duration, RequestID: resp.RequestID,
+			Verdict: iqbenchmark.VerdictDegraded, RenderVerdict: iqbenchmark.RenderVerdictUnknown}
 	}
 	return ExecuteResult{Status: artifact.Status, DurationMS: duration, RequestID: resp.RequestID,
+		Verdict: base.Verdict, RenderVerdict: base.RenderVerdict, ErrorKind: base.ErrorKind,
 		ArtifactID: artifact.ID}
 }
 
@@ -227,11 +253,15 @@ func (e *Executor) executeImageCase(ctx context.Context, identity ExecutionIdent
 	if err != nil {
 		status, code := classifyInvokeError(err)
 		base.ErrorCode = code
+		base.ErrorKind = iqbenchmark.ClassifyErrorKind(err, gatewayStatusCode(err))
+		base.Verdict = iqbenchmark.VerdictForCase(status, c, "", false)
+		base.RenderVerdict = iqbenchmark.VerdictForRender(status, c.ExpectKind, "", false)
 		if _, saveErr := e.Artifacts.SaveFailedArtifact(ctx, base, status, code); saveErr != nil {
 			e.Logger.Error("iqbenchmark: persist failed image artifact failed",
 				"run_id", base.RunID, "case_id", base.CaseID, "error", saveErr)
 		}
-		return ExecuteResult{Status: status, DurationMS: duration, ErrorCode: code}
+		return ExecuteResult{Status: status, DurationMS: duration, ErrorCode: code,
+			Verdict: base.Verdict, RenderVerdict: base.RenderVerdict, ErrorKind: base.ErrorKind}
 	}
 
 	base.RequestParams = withRequestID(base.RequestParams, resp.RequestID)
@@ -239,30 +269,45 @@ func (e *Executor) executeImageCase(ctx context.Context, identity ExecutionIdent
 		// 模型没给任何图片：记为 no_artifact 失败（不是成功空产出）。
 		code := iqbenchmark.ErrCodeNoArtifact
 		base.ErrorCode = code
+		base.ErrorKind = iqbenchmark.ErrorKindEmptyResponse
+		base.Verdict = iqbenchmark.VerdictDegraded
+		base.RenderVerdict = iqbenchmark.RenderVerdictUnknown
 		if _, saveErr := e.Artifacts.SaveFailedArtifact(ctx, base, iqbenchmark.ArtifactStatusFailed, code); saveErr != nil {
 			e.Logger.Error("iqbenchmark: persist no-artifact failure failed", "run_id", base.RunID, "error", saveErr)
 		}
-		return ExecuteResult{Status: iqbenchmark.ArtifactStatusFailed, DurationMS: duration, RequestID: resp.RequestID, ErrorCode: code}
+		return ExecuteResult{Status: iqbenchmark.ArtifactStatusFailed, DurationMS: duration, RequestID: resp.RequestID,
+			ErrorCode: code, Verdict: base.Verdict, RenderVerdict: base.RenderVerdict, ErrorKind: base.ErrorKind}
 	}
 
 	// 首版只用 URL 直链（b64 需经 ImageResultUploader 转存，见 known limitations）。
 	if len(resp.URLs) > 0 {
+		// 图片题天然没有 expected：VerdictForCase 会给出 generated
+		// （有产出但不判分），这正是「纯生成模式」的构成单元。
+		base.Verdict = iqbenchmark.VerdictForCase(iqbenchmark.ArtifactStatusSuccess, c, "", true)
+		base.RenderVerdict = iqbenchmark.VerdictForRender(
+			iqbenchmark.ArtifactStatusSuccess, c.ExpectKind, iqbenchmark.RenderKindImageURL, true)
 		saved, saveErr := e.Artifacts.SaveImageArtifact(ctx, base, resp.URLs[0], "")
 		if saveErr != nil {
 			e.Logger.Error("iqbenchmark: persist image artifact failed", "run_id", base.RunID, "error", saveErr)
-			return ExecuteResult{Status: iqbenchmark.ArtifactStatusFailed, DurationMS: duration, RequestID: resp.RequestID}
+			return ExecuteResult{Status: iqbenchmark.ArtifactStatusFailed, DurationMS: duration, RequestID: resp.RequestID,
+				Verdict: iqbenchmark.VerdictDegraded, RenderVerdict: iqbenchmark.RenderVerdictUnknown}
 		}
 		return ExecuteResult{Status: iqbenchmark.ArtifactStatusSuccess, DurationMS: duration,
-			RequestID: resp.RequestID, ArtifactID: saved.ID}
+			RequestID: resp.RequestID, Verdict: base.Verdict, RenderVerdict: base.RenderVerdict,
+			ArtifactID: saved.ID}
 	}
 
 	// 只有 b64：无对象存储时降级为 storage_disabled。
 	code := iqbenchmark.ErrCodeStorageDisabled
 	base.ErrorCode = code
+	base.ErrorKind = iqbenchmark.ErrorKindGeneric
+	base.Verdict = iqbenchmark.VerdictDegraded
+	base.RenderVerdict = iqbenchmark.RenderVerdictUnknown
 	if _, saveErr := e.Artifacts.SaveFailedArtifact(ctx, base, iqbenchmark.ArtifactStatusFailed, code); saveErr != nil {
 		e.Logger.Error("iqbenchmark: persist storage-disabled failure failed", "run_id", base.RunID, "error", saveErr)
 	}
-	return ExecuteResult{Status: iqbenchmark.ArtifactStatusFailed, DurationMS: duration, RequestID: resp.RequestID, ErrorCode: code}
+	return ExecuteResult{Status: iqbenchmark.ArtifactStatusFailed, DurationMS: duration, RequestID: resp.RequestID,
+		ErrorCode: code, Verdict: base.Verdict, RenderVerdict: base.RenderVerdict, ErrorKind: base.ErrorKind}
 }
 
 // RecordCaseFailure 记录一条失败产出（容量不足等前置失败）。
@@ -290,6 +335,10 @@ func (e *Executor) RecordCaseFailure(ctx context.Context, in ExecuteInput, statu
 }
 
 // classifyInvokeError 把调用错误映射为产出状态 + 稳定错误码。
+//
+// 这个函数是**熔断语义的唯一入口**（QuotaExhausted 依赖它给出的 code），
+// 因此本轮改造刻意一行未改。新增的 12 类归一化走 classifyInvokeErrorKind，
+// 两条路径互不影响 —— 这是「并存而不替代」的具体落点。
 func classifyInvokeError(err error) (status, code string) {
 	var non2xx *ErrGatewayNon2xx
 	switch {
@@ -311,6 +360,18 @@ func classifyInvokeError(err error) (status, code string) {
 	default:
 		return iqbenchmark.ArtifactStatusFailed, iqbenchmark.ErrCodeUpstreamError
 	}
+}
+
+// gatewayStatusCode 从调用错误里取上游 HTTP 状态码（取不到返回 0）。
+//
+// 单独抽出来是因为 classifyInvokeError 与 ClassifyErrorKind 都需要它，
+// 但二者的用途不同：前者决定熔断，后者只决定展示归类。
+func gatewayStatusCode(err error) int {
+	var non2xx *ErrGatewayNon2xx
+	if errors.As(err, &non2xx) {
+		return non2xx.Status
+	}
+	return 0
 }
 
 // withRequestID 把 request_id 记入请求参数快照，供事后成本回采。

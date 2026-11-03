@@ -59,7 +59,9 @@ func (s *GalleryService) now() time.Time {
 func (s *GalleryService) CreateCase(ctx context.Context, in CaseCreateInput) (*iqbenchmark.Case, error) {
 	in.Name = trimSpace(in.Name)
 	in.Prompt = trimSpace(in.Prompt)
-	if err := validateCase(in.Name, in.Prompt, in.Kind, in.ExpectKind, in.Scoring); err != nil {
+	in.Expected = trimSpace(in.Expected)
+	if err := validateCase(in.Name, in.Prompt, in.Kind, in.ExpectKind, in.Scoring,
+		in.Expected, in.Builtin); err != nil {
 		return nil, err
 	}
 	return s.Store.CreateCase(ctx, in)
@@ -69,7 +71,15 @@ func (s *GalleryService) CreateCase(ctx context.Context, in CaseCreateInput) (*i
 func (s *GalleryService) UpdateCase(ctx context.Context, id int64, in CaseUpdateInput) (*iqbenchmark.Case, error) {
 	in.Name = trimSpace(in.Name)
 	in.Prompt = trimSpace(in.Prompt)
-	if err := validateCase(in.Name, in.Prompt, in.Kind, in.ExpectKind, in.Scoring); err != nil {
+	in.Expected = trimSpace(in.Expected)
+	// builtin 不可通过更新修改，所以这里要读现有值来判断
+	// 「自定义题必须有 expected」这条规则是否适用。
+	existing, err := s.Store.GetCase(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateCase(in.Name, in.Prompt, in.Kind, in.ExpectKind, in.Scoring,
+		in.Expected, existing.Builtin); err != nil {
 		return nil, err
 	}
 	return s.Store.UpdateCase(ctx, id, in)
@@ -113,7 +123,7 @@ func (s *GalleryService) GetCase(ctx context.Context, id int64) (*iqbenchmark.Ca
 }
 
 // validateCase 校验题目字段组合。
-func validateCase(name, prompt, kind, expectKind, scoring string) error {
+func validateCase(name, prompt, kind, expectKind, scoring, expected string, builtin bool) error {
 	if name == "" {
 		return ErrEmptyName
 	}
@@ -136,6 +146,14 @@ func validateCase(name, prompt, kind, expectKind, scoring string) error {
 	}
 	if !iqbenchmark.IsImageCase(kind) && expectKind == iqbenchmark.ExpectKindImageURL {
 		return ErrKindExpectMismatch
+	}
+	// 自定义的文本/代码题必须有参考答案，否则这道题永远判不出 normal/degraded，
+	// 只会一直落在 generated 上 —— 那等于把「没判」伪装成「不能判」。
+	//
+	// 内置题豁免：它们是随版本发布的基准题，允许暂时不带 expected
+	// （管理员可以编辑补上）。图片题天然豁免（产出是图，没有可比的文本）。
+	if !builtin && !iqbenchmark.IsImageCase(kind) && expected == "" {
+		return ErrMissingExpected
 	}
 	return nil
 }

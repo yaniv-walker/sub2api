@@ -55,6 +55,12 @@ type IQBenchmarkRun struct {
 	InternalAPIKeyID int64 `json:"internal_api_key_id,omitempty"`
 	// running / success / partial / failed
 	Status string `json:"status,omitempty"`
+	// normal / degraded / unknown / generated
+	Verdict *string `json:"verdict,omitempty"`
+	// LogicTotal holds the value of the "logic_total" field.
+	LogicTotal int `json:"logic_total,omitempty"`
+	// LogicPassed holds the value of the "logic_passed" field.
+	LogicPassed int `json:"logic_passed,omitempty"`
 	// CostCollectedAt holds the value of the "cost_collected_at" field.
 	CostCollectedAt *time.Time `json:"cost_collected_at,omitempty"`
 	// DeletedAt holds the value of the "deleted_at" field.
@@ -69,9 +75,9 @@ func (*IQBenchmarkRun) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case iqbenchmarkrun.FieldTotalCost:
 			values[i] = new(sql.NullFloat64)
-		case iqbenchmarkrun.FieldID, iqbenchmarkrun.FieldTaskID, iqbenchmarkrun.FieldGroupID, iqbenchmarkrun.FieldSuccessCount, iqbenchmarkrun.FieldFailedCount, iqbenchmarkrun.FieldTimeoutCount, iqbenchmarkrun.FieldBlockedCount, iqbenchmarkrun.FieldTotalDurationMs, iqbenchmarkrun.FieldTotalInputTokens, iqbenchmarkrun.FieldTotalOutputTokens, iqbenchmarkrun.FieldInternalUserID, iqbenchmarkrun.FieldInternalAPIKeyID:
+		case iqbenchmarkrun.FieldID, iqbenchmarkrun.FieldTaskID, iqbenchmarkrun.FieldGroupID, iqbenchmarkrun.FieldSuccessCount, iqbenchmarkrun.FieldFailedCount, iqbenchmarkrun.FieldTimeoutCount, iqbenchmarkrun.FieldBlockedCount, iqbenchmarkrun.FieldTotalDurationMs, iqbenchmarkrun.FieldTotalInputTokens, iqbenchmarkrun.FieldTotalOutputTokens, iqbenchmarkrun.FieldInternalUserID, iqbenchmarkrun.FieldInternalAPIKeyID, iqbenchmarkrun.FieldLogicTotal, iqbenchmarkrun.FieldLogicPassed:
 			values[i] = new(sql.NullInt64)
-		case iqbenchmarkrun.FieldModel, iqbenchmarkrun.FieldTrigger, iqbenchmarkrun.FieldStatus:
+		case iqbenchmarkrun.FieldModel, iqbenchmarkrun.FieldTrigger, iqbenchmarkrun.FieldStatus, iqbenchmarkrun.FieldVerdict:
 			values[i] = new(sql.NullString)
 		case iqbenchmarkrun.FieldCreatedAt, iqbenchmarkrun.FieldUpdatedAt, iqbenchmarkrun.FieldStartedAt, iqbenchmarkrun.FieldFinishedAt, iqbenchmarkrun.FieldCostCollectedAt, iqbenchmarkrun.FieldDeletedAt:
 			values[i] = new(sql.NullTime)
@@ -211,6 +217,25 @@ func (_m *IQBenchmarkRun) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Status = value.String
 			}
+		case iqbenchmarkrun.FieldVerdict:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field verdict", values[i])
+			} else if value.Valid {
+				_m.Verdict = new(string)
+				*_m.Verdict = value.String
+			}
+		case iqbenchmarkrun.FieldLogicTotal:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field logic_total", values[i])
+			} else if value.Valid {
+				_m.LogicTotal = int(value.Int64)
+			}
+		case iqbenchmarkrun.FieldLogicPassed:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field logic_passed", values[i])
+			} else if value.Valid {
+				_m.LogicPassed = int(value.Int64)
+			}
 		case iqbenchmarkrun.FieldCostCollectedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field cost_collected_at", values[i])
@@ -319,6 +344,17 @@ func (_m *IQBenchmarkRun) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
+	builder.WriteString(", ")
+	if v := _m.Verdict; v != nil {
+		builder.WriteString("verdict=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	builder.WriteString("logic_total=")
+	builder.WriteString(fmt.Sprintf("%v", _m.LogicTotal))
+	builder.WriteString(", ")
+	builder.WriteString("logic_passed=")
+	builder.WriteString(fmt.Sprintf("%v", _m.LogicPassed))
 	builder.WriteString(", ")
 	if v := _m.CostCollectedAt; v != nil {
 		builder.WriteString("cost_collected_at=")

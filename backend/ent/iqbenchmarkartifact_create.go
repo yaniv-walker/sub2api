@@ -252,6 +252,48 @@ func (_c *IQBenchmarkArtifactCreate) SetStatus(v string) *IQBenchmarkArtifactCre
 	return _c
 }
 
+// SetVerdict sets the "verdict" field.
+func (_c *IQBenchmarkArtifactCreate) SetVerdict(v string) *IQBenchmarkArtifactCreate {
+	_c.mutation.SetVerdict(v)
+	return _c
+}
+
+// SetNillableVerdict sets the "verdict" field if the given value is not nil.
+func (_c *IQBenchmarkArtifactCreate) SetNillableVerdict(v *string) *IQBenchmarkArtifactCreate {
+	if v != nil {
+		_c.SetVerdict(*v)
+	}
+	return _c
+}
+
+// SetRenderVerdict sets the "render_verdict" field.
+func (_c *IQBenchmarkArtifactCreate) SetRenderVerdict(v string) *IQBenchmarkArtifactCreate {
+	_c.mutation.SetRenderVerdict(v)
+	return _c
+}
+
+// SetNillableRenderVerdict sets the "render_verdict" field if the given value is not nil.
+func (_c *IQBenchmarkArtifactCreate) SetNillableRenderVerdict(v *string) *IQBenchmarkArtifactCreate {
+	if v != nil {
+		_c.SetRenderVerdict(*v)
+	}
+	return _c
+}
+
+// SetErrorKind sets the "error_kind" field.
+func (_c *IQBenchmarkArtifactCreate) SetErrorKind(v string) *IQBenchmarkArtifactCreate {
+	_c.mutation.SetErrorKind(v)
+	return _c
+}
+
+// SetNillableErrorKind sets the "error_kind" field if the given value is not nil.
+func (_c *IQBenchmarkArtifactCreate) SetNillableErrorKind(v *string) *IQBenchmarkArtifactCreate {
+	if v != nil {
+		_c.SetErrorKind(*v)
+	}
+	return _c
+}
+
 // SetErrorCode sets the "error_code" field.
 func (_c *IQBenchmarkArtifactCreate) SetErrorCode(v string) *IQBenchmarkArtifactCreate {
 	_c.mutation.SetErrorCode(v)
@@ -575,6 +617,21 @@ func (_c *IQBenchmarkArtifactCreate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.status": %w`, err)}
 		}
 	}
+	if v, ok := _c.mutation.Verdict(); ok {
+		if err := iqbenchmarkartifact.VerdictValidator(v); err != nil {
+			return &ValidationError{Name: "verdict", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.verdict": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.RenderVerdict(); ok {
+		if err := iqbenchmarkartifact.RenderVerdictValidator(v); err != nil {
+			return &ValidationError{Name: "render_verdict", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.render_verdict": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.ErrorKind(); ok {
+		if err := iqbenchmarkartifact.ErrorKindValidator(v); err != nil {
+			return &ValidationError{Name: "error_kind", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.error_kind": %w`, err)}
+		}
+	}
 	if v, ok := _c.mutation.ErrorCode(); ok {
 		if err := iqbenchmarkartifact.ErrorCodeValidator(v); err != nil {
 			return &ValidationError{Name: "error_code", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.error_code": %w`, err)}
@@ -706,6 +763,18 @@ func (_c *IQBenchmarkArtifactCreate) createSpec() (*IQBenchmarkArtifact, *sqlgra
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldStatus, field.TypeString, value)
 		_node.Status = value
+	}
+	if value, ok := _c.mutation.Verdict(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldVerdict, field.TypeString, value)
+		_node.Verdict = &value
+	}
+	if value, ok := _c.mutation.RenderVerdict(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldRenderVerdict, field.TypeString, value)
+		_node.RenderVerdict = &value
+	}
+	if value, ok := _c.mutation.ErrorKind(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldErrorKind, field.TypeString, value)
+		_node.ErrorKind = &value
 	}
 	if value, ok := _c.mutation.ErrorCode(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldErrorCode, field.TypeString, value)
@@ -1128,6 +1197,60 @@ func (u *IQBenchmarkArtifactUpsert) SetStatus(v string) *IQBenchmarkArtifactUpse
 // UpdateStatus sets the "status" field to the value that was provided on create.
 func (u *IQBenchmarkArtifactUpsert) UpdateStatus() *IQBenchmarkArtifactUpsert {
 	u.SetExcluded(iqbenchmarkartifact.FieldStatus)
+	return u
+}
+
+// SetVerdict sets the "verdict" field.
+func (u *IQBenchmarkArtifactUpsert) SetVerdict(v string) *IQBenchmarkArtifactUpsert {
+	u.Set(iqbenchmarkartifact.FieldVerdict, v)
+	return u
+}
+
+// UpdateVerdict sets the "verdict" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsert) UpdateVerdict() *IQBenchmarkArtifactUpsert {
+	u.SetExcluded(iqbenchmarkartifact.FieldVerdict)
+	return u
+}
+
+// ClearVerdict clears the value of the "verdict" field.
+func (u *IQBenchmarkArtifactUpsert) ClearVerdict() *IQBenchmarkArtifactUpsert {
+	u.SetNull(iqbenchmarkartifact.FieldVerdict)
+	return u
+}
+
+// SetRenderVerdict sets the "render_verdict" field.
+func (u *IQBenchmarkArtifactUpsert) SetRenderVerdict(v string) *IQBenchmarkArtifactUpsert {
+	u.Set(iqbenchmarkartifact.FieldRenderVerdict, v)
+	return u
+}
+
+// UpdateRenderVerdict sets the "render_verdict" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsert) UpdateRenderVerdict() *IQBenchmarkArtifactUpsert {
+	u.SetExcluded(iqbenchmarkartifact.FieldRenderVerdict)
+	return u
+}
+
+// ClearRenderVerdict clears the value of the "render_verdict" field.
+func (u *IQBenchmarkArtifactUpsert) ClearRenderVerdict() *IQBenchmarkArtifactUpsert {
+	u.SetNull(iqbenchmarkartifact.FieldRenderVerdict)
+	return u
+}
+
+// SetErrorKind sets the "error_kind" field.
+func (u *IQBenchmarkArtifactUpsert) SetErrorKind(v string) *IQBenchmarkArtifactUpsert {
+	u.Set(iqbenchmarkartifact.FieldErrorKind, v)
+	return u
+}
+
+// UpdateErrorKind sets the "error_kind" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsert) UpdateErrorKind() *IQBenchmarkArtifactUpsert {
+	u.SetExcluded(iqbenchmarkartifact.FieldErrorKind)
+	return u
+}
+
+// ClearErrorKind clears the value of the "error_kind" field.
+func (u *IQBenchmarkArtifactUpsert) ClearErrorKind() *IQBenchmarkArtifactUpsert {
+	u.SetNull(iqbenchmarkartifact.FieldErrorKind)
 	return u
 }
 
@@ -1779,6 +1902,69 @@ func (u *IQBenchmarkArtifactUpsertOne) SetStatus(v string) *IQBenchmarkArtifactU
 func (u *IQBenchmarkArtifactUpsertOne) UpdateStatus() *IQBenchmarkArtifactUpsertOne {
 	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetVerdict sets the "verdict" field.
+func (u *IQBenchmarkArtifactUpsertOne) SetVerdict(v string) *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.SetVerdict(v)
+	})
+}
+
+// UpdateVerdict sets the "verdict" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsertOne) UpdateVerdict() *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.UpdateVerdict()
+	})
+}
+
+// ClearVerdict clears the value of the "verdict" field.
+func (u *IQBenchmarkArtifactUpsertOne) ClearVerdict() *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.ClearVerdict()
+	})
+}
+
+// SetRenderVerdict sets the "render_verdict" field.
+func (u *IQBenchmarkArtifactUpsertOne) SetRenderVerdict(v string) *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.SetRenderVerdict(v)
+	})
+}
+
+// UpdateRenderVerdict sets the "render_verdict" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsertOne) UpdateRenderVerdict() *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.UpdateRenderVerdict()
+	})
+}
+
+// ClearRenderVerdict clears the value of the "render_verdict" field.
+func (u *IQBenchmarkArtifactUpsertOne) ClearRenderVerdict() *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.ClearRenderVerdict()
+	})
+}
+
+// SetErrorKind sets the "error_kind" field.
+func (u *IQBenchmarkArtifactUpsertOne) SetErrorKind(v string) *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.SetErrorKind(v)
+	})
+}
+
+// UpdateErrorKind sets the "error_kind" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsertOne) UpdateErrorKind() *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.UpdateErrorKind()
+	})
+}
+
+// ClearErrorKind clears the value of the "error_kind" field.
+func (u *IQBenchmarkArtifactUpsertOne) ClearErrorKind() *IQBenchmarkArtifactUpsertOne {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.ClearErrorKind()
 	})
 }
 
@@ -2634,6 +2820,69 @@ func (u *IQBenchmarkArtifactUpsertBulk) SetStatus(v string) *IQBenchmarkArtifact
 func (u *IQBenchmarkArtifactUpsertBulk) UpdateStatus() *IQBenchmarkArtifactUpsertBulk {
 	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
 		s.UpdateStatus()
+	})
+}
+
+// SetVerdict sets the "verdict" field.
+func (u *IQBenchmarkArtifactUpsertBulk) SetVerdict(v string) *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.SetVerdict(v)
+	})
+}
+
+// UpdateVerdict sets the "verdict" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsertBulk) UpdateVerdict() *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.UpdateVerdict()
+	})
+}
+
+// ClearVerdict clears the value of the "verdict" field.
+func (u *IQBenchmarkArtifactUpsertBulk) ClearVerdict() *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.ClearVerdict()
+	})
+}
+
+// SetRenderVerdict sets the "render_verdict" field.
+func (u *IQBenchmarkArtifactUpsertBulk) SetRenderVerdict(v string) *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.SetRenderVerdict(v)
+	})
+}
+
+// UpdateRenderVerdict sets the "render_verdict" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsertBulk) UpdateRenderVerdict() *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.UpdateRenderVerdict()
+	})
+}
+
+// ClearRenderVerdict clears the value of the "render_verdict" field.
+func (u *IQBenchmarkArtifactUpsertBulk) ClearRenderVerdict() *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.ClearRenderVerdict()
+	})
+}
+
+// SetErrorKind sets the "error_kind" field.
+func (u *IQBenchmarkArtifactUpsertBulk) SetErrorKind(v string) *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.SetErrorKind(v)
+	})
+}
+
+// UpdateErrorKind sets the "error_kind" field to the value that was provided on create.
+func (u *IQBenchmarkArtifactUpsertBulk) UpdateErrorKind() *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.UpdateErrorKind()
+	})
+}
+
+// ClearErrorKind clears the value of the "error_kind" field.
+func (u *IQBenchmarkArtifactUpsertBulk) ClearErrorKind() *IQBenchmarkArtifactUpsertBulk {
+	return u.Update(func(s *IQBenchmarkArtifactUpsert) {
+		s.ClearErrorKind()
 	})
 }
 

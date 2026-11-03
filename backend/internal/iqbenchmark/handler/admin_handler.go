@@ -694,6 +694,7 @@ func writeError(c *gin.Context, err error) {
 		errors.Is(err, service.ErrEmptyName),
 		errors.Is(err, service.ErrEmptyPrompt),
 		errors.Is(err, service.ErrKindExpectMismatch),
+		errors.Is(err, service.ErrMissingExpected),
 		errors.Is(err, service.ErrIntervalTooSmall),
 		errors.Is(err, service.ErrIntervalTooLarge),
 		errors.Is(err, service.ErrJitterNegative),

@@ -208,6 +208,18 @@ func (s *RunService) RunTask(ctx context.Context, in RunTaskInput) (*iqbenchmark
 		default:
 			counts.Failed++
 		}
+		// 判定口径的计数与上面的调用口径并行累计。
+		//
+		// 只有可判定的题才进 logic_total：generated（无 expected，例如图片题）
+		// 与 unknown（连产出都没有）都不进分母 —— 把"不能判"算进分母
+		// 会让纯出图任务的通过率恒为 0，那是错误信息，不是降级信号。
+		switch result.Verdict {
+		case iqbenchmark.VerdictOK, iqbenchmark.VerdictDegraded:
+			counts.LogicTotal++
+			if result.Verdict == iqbenchmark.VerdictOK {
+				counts.LogicPassed++
+			}
+		}
 
 		// 配额耗尽必须立即中止整轮：继续跑只会重复失败并继续扣尝试次数。
 		// 判定用**本次结果**而不是共享字段，避免并发任务互相覆盖。
@@ -220,10 +232,19 @@ func (s *RunService) RunTask(ctx context.Context, in RunTaskInput) (*iqbenchmark
 
 	counts.TotalDurationMS = totalDuration
 	finalStatus := runFinalStatus(counts)
+	// run 级判定由计数汇总推导，与 Status 各说一件事：
+	// Status 说「跑得怎么样」，Verdict 说「模型答得怎么样」。
+	finalVerdict := iqbenchmark.AggregateRunVerdict(
+		counts.Success+counts.Failed+counts.Timeout+counts.Blocked,
+		counts.LogicTotal, counts.LogicPassed,
+	)
 	if err := s.Store.FinishRun(ctx, run.ID, s.now(), finalStatus, counts); err != nil {
 		s.Logger.Error("iqbenchmark: finish run failed", "run_id", run.ID, "error", err)
 	}
 	run.Status = finalStatus
+	run.Verdict = finalVerdict
+	run.LogicTotal = counts.LogicTotal
+	run.LogicPassed = counts.LogicPassed
 	run.SuccessCount = counts.Success
 	run.FailedCount = counts.Failed
 	run.TimeoutCount = counts.Timeout

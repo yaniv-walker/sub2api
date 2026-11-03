@@ -149,6 +149,21 @@ func Status(v string) predicate.IQBenchmarkRun {
 	return predicate.IQBenchmarkRun(sql.FieldEQ(FieldStatus, v))
 }
 
+// Verdict applies equality check predicate on the "verdict" field. It's identical to VerdictEQ.
+func Verdict(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldEQ(FieldVerdict, v))
+}
+
+// LogicTotal applies equality check predicate on the "logic_total" field. It's identical to LogicTotalEQ.
+func LogicTotal(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldEQ(FieldLogicTotal, v))
+}
+
+// LogicPassed applies equality check predicate on the "logic_passed" field. It's identical to LogicPassedEQ.
+func LogicPassed(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldEQ(FieldLogicPassed, v))
+}
+
 // CostCollectedAt applies equality check predicate on the "cost_collected_at" field. It's identical to CostCollectedAtEQ.
 func CostCollectedAt(v time.Time) predicate.IQBenchmarkRun {
 	return predicate.IQBenchmarkRun(sql.FieldEQ(FieldCostCollectedAt, v))
@@ -1002,6 +1017,161 @@ func StatusEqualFold(v string) predicate.IQBenchmarkRun {
 // StatusContainsFold applies the ContainsFold predicate on the "status" field.
 func StatusContainsFold(v string) predicate.IQBenchmarkRun {
 	return predicate.IQBenchmarkRun(sql.FieldContainsFold(FieldStatus, v))
+}
+
+// VerdictEQ applies the EQ predicate on the "verdict" field.
+func VerdictEQ(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldEQ(FieldVerdict, v))
+}
+
+// VerdictNEQ applies the NEQ predicate on the "verdict" field.
+func VerdictNEQ(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldNEQ(FieldVerdict, v))
+}
+
+// VerdictIn applies the In predicate on the "verdict" field.
+func VerdictIn(vs ...string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldIn(FieldVerdict, vs...))
+}
+
+// VerdictNotIn applies the NotIn predicate on the "verdict" field.
+func VerdictNotIn(vs ...string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldNotIn(FieldVerdict, vs...))
+}
+
+// VerdictGT applies the GT predicate on the "verdict" field.
+func VerdictGT(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldGT(FieldVerdict, v))
+}
+
+// VerdictGTE applies the GTE predicate on the "verdict" field.
+func VerdictGTE(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldGTE(FieldVerdict, v))
+}
+
+// VerdictLT applies the LT predicate on the "verdict" field.
+func VerdictLT(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldLT(FieldVerdict, v))
+}
+
+// VerdictLTE applies the LTE predicate on the "verdict" field.
+func VerdictLTE(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldLTE(FieldVerdict, v))
+}
+
+// VerdictContains applies the Contains predicate on the "verdict" field.
+func VerdictContains(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldContains(FieldVerdict, v))
+}
+
+// VerdictHasPrefix applies the HasPrefix predicate on the "verdict" field.
+func VerdictHasPrefix(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldHasPrefix(FieldVerdict, v))
+}
+
+// VerdictHasSuffix applies the HasSuffix predicate on the "verdict" field.
+func VerdictHasSuffix(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldHasSuffix(FieldVerdict, v))
+}
+
+// VerdictIsNil applies the IsNil predicate on the "verdict" field.
+func VerdictIsNil() predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldIsNull(FieldVerdict))
+}
+
+// VerdictNotNil applies the NotNil predicate on the "verdict" field.
+func VerdictNotNil() predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldNotNull(FieldVerdict))
+}
+
+// VerdictEqualFold applies the EqualFold predicate on the "verdict" field.
+func VerdictEqualFold(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldEqualFold(FieldVerdict, v))
+}
+
+// VerdictContainsFold applies the ContainsFold predicate on the "verdict" field.
+func VerdictContainsFold(v string) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldContainsFold(FieldVerdict, v))
+}
+
+// LogicTotalEQ applies the EQ predicate on the "logic_total" field.
+func LogicTotalEQ(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldEQ(FieldLogicTotal, v))
+}
+
+// LogicTotalNEQ applies the NEQ predicate on the "logic_total" field.
+func LogicTotalNEQ(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldNEQ(FieldLogicTotal, v))
+}
+
+// LogicTotalIn applies the In predicate on the "logic_total" field.
+func LogicTotalIn(vs ...int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldIn(FieldLogicTotal, vs...))
+}
+
+// LogicTotalNotIn applies the NotIn predicate on the "logic_total" field.
+func LogicTotalNotIn(vs ...int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldNotIn(FieldLogicTotal, vs...))
+}
+
+// LogicTotalGT applies the GT predicate on the "logic_total" field.
+func LogicTotalGT(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldGT(FieldLogicTotal, v))
+}
+
+// LogicTotalGTE applies the GTE predicate on the "logic_total" field.
+func LogicTotalGTE(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldGTE(FieldLogicTotal, v))
+}
+
+// LogicTotalLT applies the LT predicate on the "logic_total" field.
+func LogicTotalLT(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldLT(FieldLogicTotal, v))
+}
+
+// LogicTotalLTE applies the LTE predicate on the "logic_total" field.
+func LogicTotalLTE(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldLTE(FieldLogicTotal, v))
+}
+
+// LogicPassedEQ applies the EQ predicate on the "logic_passed" field.
+func LogicPassedEQ(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldEQ(FieldLogicPassed, v))
+}
+
+// LogicPassedNEQ applies the NEQ predicate on the "logic_passed" field.
+func LogicPassedNEQ(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldNEQ(FieldLogicPassed, v))
+}
+
+// LogicPassedIn applies the In predicate on the "logic_passed" field.
+func LogicPassedIn(vs ...int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldIn(FieldLogicPassed, vs...))
+}
+
+// LogicPassedNotIn applies the NotIn predicate on the "logic_passed" field.
+func LogicPassedNotIn(vs ...int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldNotIn(FieldLogicPassed, vs...))
+}
+
+// LogicPassedGT applies the GT predicate on the "logic_passed" field.
+func LogicPassedGT(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldGT(FieldLogicPassed, v))
+}
+
+// LogicPassedGTE applies the GTE predicate on the "logic_passed" field.
+func LogicPassedGTE(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldGTE(FieldLogicPassed, v))
+}
+
+// LogicPassedLT applies the LT predicate on the "logic_passed" field.
+func LogicPassedLT(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldLT(FieldLogicPassed, v))
+}
+
+// LogicPassedLTE applies the LTE predicate on the "logic_passed" field.
+func LogicPassedLTE(v int) predicate.IQBenchmarkRun {
+	return predicate.IQBenchmarkRun(sql.FieldLTE(FieldLogicPassed, v))
 }
 
 // CostCollectedAtEQ applies the EQ predicate on the "cost_collected_at" field.

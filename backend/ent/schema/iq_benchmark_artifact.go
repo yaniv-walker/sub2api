@@ -93,6 +93,32 @@ func (IQBenchmarkArtifact) Fields() []ent.Field {
 		field.String("status").
 			MaxLen(16).
 			Comment("success / failed / timeout / blocked"),
+		// verdict 是「本题判定」，与 status（调用成败）正交。
+		//
+		// 一次调用可以既 success 又 degraded（返回 200、有正文、但答案不对）。
+		// 可空：列是后加的，且判定需在产出落库后算。
+		field.String("verdict").
+			MaxLen(16).
+			Optional().
+			Nillable().
+			Comment("ok / degraded / generated / unknown"),
+		// render_verdict 是渲染形态判定，与 verdict 独立：
+		// 答案对但渲染形态坏掉，是另一类降级。
+		field.String("render_verdict").
+			MaxLen(16).
+			Optional().
+			Nillable().
+			Comment("ok / degraded / generated / unknown"),
+		// error_kind 是面向上游错误形态的 12 类归一化。
+		//
+		// 与下面的 error_code 并存而非替代：error_code 是「我们自己的失败原因」，
+		// 被 QuotaExhausted 用来驱动熔断；error_kind 只用于展示与统计。
+		// 合并二者会改动限流/熔断语义。
+		field.String("error_kind").
+			MaxLen(32).
+			Optional().
+			Nillable().
+			Comment("12 类上游错误归一化，与 error_code 并存"),
 		// error_code 为内部码，公开侧只下发脱敏后的 error_summary。
 		field.String("error_code").
 			MaxLen(64).

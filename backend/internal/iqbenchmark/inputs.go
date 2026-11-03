@@ -7,12 +7,14 @@ import "time"
 
 // CaseCreateInput 是新建题目的入参。
 type CaseCreateInput struct {
-	Name            string
-	Kind            string
-	Prompt          string
-	SystemPrompt    string
-	Params          map[string]any
-	ExpectKind      string
+	Name         string
+	Kind         string
+	Prompt       string
+	SystemPrompt string
+	Params       map[string]any
+	ExpectKind   string
+	// Expected 是 logic 类题目的参考答案；空表示本题不可判分。
+	Expected        string
 	Scoring         string
 	LLMJudgeEnabled bool
 	Builtin         bool
@@ -23,12 +25,14 @@ type CaseCreateInput struct {
 
 // CaseUpdateInput 是全量更新题目的入参（builtin 不可通过此处修改）。
 type CaseUpdateInput struct {
-	Name            string
-	Kind            string
-	Prompt          string
-	SystemPrompt    string
-	Params          map[string]any
-	ExpectKind      string
+	Name         string
+	Kind         string
+	Prompt       string
+	SystemPrompt string
+	Params       map[string]any
+	ExpectKind   string
+	// Expected 传空串表示「改为不可判分」，仓库层会清成 NULL。
+	Expected        string
 	Scoring         string
 	LLMJudgeEnabled bool
 	Enabled         bool
@@ -78,6 +82,10 @@ type RunCounts struct {
 	Timeout         int
 	Blocked         int
 	TotalDurationMS int64
+	// LogicTotal / LogicPassed 是判定口径的计数，与上面四项（调用口径）并行。
+	// 纯生成模式（只出图）下 LogicTotal 为 0。
+	LogicTotal  int
+	LogicPassed int
 }
 
 // ArtifactCreateInput 是写入一条产出的入参。
@@ -102,9 +110,14 @@ type ArtifactCreateInput struct {
 	OutputTokens     int
 	Cost             float64
 	Status           string
-	ErrorCode        string
-	ErrorSummary     string
-	BlobKey          string
+	// Verdict / RenderVerdict / ErrorKind 见 types.go 的常量说明。
+	// 空值由服务层按 Status 兜底推导，保证永不落空。
+	Verdict       string
+	RenderVerdict string
+	ErrorKind     string
+	ErrorCode     string
+	ErrorSummary  string
+	BlobKey       string
 	// Source 为 scheduled / user_test；空值按 scheduled 处理（定时链路的默认）。
 	Source string
 	// TriggeredByUserID 传 0 表示 NULL（定时链路）。

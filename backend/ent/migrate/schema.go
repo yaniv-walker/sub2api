@@ -1042,6 +1042,9 @@ var (
 		{Name: "output_tokens", Type: field.TypeInt, Default: 0},
 		{Name: "cost", Type: field.TypeFloat64, Default: 0, SchemaType: map[string]string{"postgres": "numeric(20,10)"}},
 		{Name: "status", Type: field.TypeString, Size: 16},
+		{Name: "verdict", Type: field.TypeString, Nullable: true, Size: 16},
+		{Name: "render_verdict", Type: field.TypeString, Nullable: true, Size: 16},
+		{Name: "error_kind", Type: field.TypeString, Nullable: true, Size: 32},
 		{Name: "error_code", Type: field.TypeString, Nullable: true, Size: 64},
 		{Name: "error_summary", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
 		{Name: "score", Type: field.TypeFloat64, Nullable: true, SchemaType: map[string]string{"postgres": "numeric(8,2)"}},
@@ -1101,7 +1104,7 @@ var (
 			{
 				Name:    "idx_iq_artifact_source_feed",
 				Unique:  false,
-				Columns: []*schema.Column{IqBenchmarkArtifactsColumns[29], IqBenchmarkArtifactsColumns[1], IqBenchmarkArtifactsColumns[0]},
+				Columns: []*schema.Column{IqBenchmarkArtifactsColumns[32], IqBenchmarkArtifactsColumns[1], IqBenchmarkArtifactsColumns[0]},
 				Annotation: &entsql.IndexAnnotation{
 					Where: "deleted_at IS NULL",
 				},
@@ -1119,6 +1122,7 @@ var (
 		{Name: "system_prompt", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
 		{Name: "params", Type: field.TypeJSON},
 		{Name: "expect_kind", Type: field.TypeString, Size: 16},
+		{Name: "expected", Type: field.TypeString, Nullable: true, SchemaType: map[string]string{"postgres": "text"}},
 		{Name: "scoring", Type: field.TypeString, Size: 16, Default: "manual"},
 		{Name: "llm_judge_enabled", Type: field.TypeBool, Default: false},
 		{Name: "builtin", Type: field.TypeBool, Default: false},
@@ -1135,7 +1139,7 @@ var (
 			{
 				Name:    "idx_iq_case_listing",
 				Unique:  false,
-				Columns: []*schema.Column{IqBenchmarkCasesColumns[12], IqBenchmarkCasesColumns[13], IqBenchmarkCasesColumns[0]},
+				Columns: []*schema.Column{IqBenchmarkCasesColumns[13], IqBenchmarkCasesColumns[14], IqBenchmarkCasesColumns[0]},
 			},
 		},
 	}
@@ -1161,6 +1165,9 @@ var (
 		{Name: "internal_user_id", Type: field.TypeInt64},
 		{Name: "internal_api_key_id", Type: field.TypeInt64},
 		{Name: "status", Type: field.TypeString, Size: 16, Default: "running"},
+		{Name: "verdict", Type: field.TypeString, Nullable: true, Size: 16},
+		{Name: "logic_total", Type: field.TypeInt, Default: 0},
+		{Name: "logic_passed", Type: field.TypeInt, Default: 0},
 		{Name: "cost_collected_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
 		{Name: "deleted_at", Type: field.TypeTime, Nullable: true, SchemaType: map[string]string{"postgres": "timestamptz"}},
 	}

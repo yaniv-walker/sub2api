@@ -60,6 +60,12 @@ type IQBenchmarkArtifact struct {
 	Cost float64 `json:"cost,omitempty"`
 	// success / failed / timeout / blocked
 	Status string `json:"status,omitempty"`
+	// ok / degraded / generated / unknown
+	Verdict *string `json:"verdict,omitempty"`
+	// ok / degraded / generated / unknown
+	RenderVerdict *string `json:"render_verdict,omitempty"`
+	// 12 类上游错误归一化，与 error_code 并存
+	ErrorKind *string `json:"error_kind,omitempty"`
 	// ErrorCode holds the value of the "error_code" field.
 	ErrorCode *string `json:"error_code,omitempty"`
 	// ErrorSummary holds the value of the "error_summary" field.
@@ -100,7 +106,7 @@ func (*IQBenchmarkArtifact) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case iqbenchmarkartifact.FieldID, iqbenchmarkartifact.FieldRunID, iqbenchmarkartifact.FieldTaskID, iqbenchmarkartifact.FieldCaseID, iqbenchmarkartifact.FieldGroupID, iqbenchmarkartifact.FieldDurationMs, iqbenchmarkartifact.FieldInputTokens, iqbenchmarkartifact.FieldOutputTokens, iqbenchmarkartifact.FieldScoredBy, iqbenchmarkartifact.FieldTriggeredByUserID, iqbenchmarkartifact.FieldReviewedBy:
 			values[i] = new(sql.NullInt64)
-		case iqbenchmarkartifact.FieldModel, iqbenchmarkartifact.FieldRenderKind, iqbenchmarkartifact.FieldImageURL, iqbenchmarkartifact.FieldContent, iqbenchmarkartifact.FieldContentSha256, iqbenchmarkartifact.FieldRawResponseRef, iqbenchmarkartifact.FieldStatus, iqbenchmarkartifact.FieldErrorCode, iqbenchmarkartifact.FieldErrorSummary, iqbenchmarkartifact.FieldBlobKey, iqbenchmarkartifact.FieldSource, iqbenchmarkartifact.FieldModerationStatus:
+		case iqbenchmarkartifact.FieldModel, iqbenchmarkartifact.FieldRenderKind, iqbenchmarkartifact.FieldImageURL, iqbenchmarkartifact.FieldContent, iqbenchmarkartifact.FieldContentSha256, iqbenchmarkartifact.FieldRawResponseRef, iqbenchmarkartifact.FieldStatus, iqbenchmarkartifact.FieldVerdict, iqbenchmarkartifact.FieldRenderVerdict, iqbenchmarkartifact.FieldErrorKind, iqbenchmarkartifact.FieldErrorCode, iqbenchmarkartifact.FieldErrorSummary, iqbenchmarkartifact.FieldBlobKey, iqbenchmarkartifact.FieldSource, iqbenchmarkartifact.FieldModerationStatus:
 			values[i] = new(sql.NullString)
 		case iqbenchmarkartifact.FieldCreatedAt, iqbenchmarkartifact.FieldUpdatedAt, iqbenchmarkartifact.FieldScoredAt, iqbenchmarkartifact.FieldDeletedAt, iqbenchmarkartifact.FieldReviewedAt:
 			values[i] = new(sql.NullTime)
@@ -262,6 +268,27 @@ func (_m *IQBenchmarkArtifact) assignValues(columns []string, values []any) erro
 				return fmt.Errorf("unexpected type %T for field status", values[i])
 			} else if value.Valid {
 				_m.Status = value.String
+			}
+		case iqbenchmarkartifact.FieldVerdict:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field verdict", values[i])
+			} else if value.Valid {
+				_m.Verdict = new(string)
+				*_m.Verdict = value.String
+			}
+		case iqbenchmarkartifact.FieldRenderVerdict:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field render_verdict", values[i])
+			} else if value.Valid {
+				_m.RenderVerdict = new(string)
+				*_m.RenderVerdict = value.String
+			}
+		case iqbenchmarkartifact.FieldErrorKind:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field error_kind", values[i])
+			} else if value.Valid {
+				_m.ErrorKind = new(string)
+				*_m.ErrorKind = value.String
 			}
 		case iqbenchmarkartifact.FieldErrorCode:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -455,6 +482,21 @@ func (_m *IQBenchmarkArtifact) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("status=")
 	builder.WriteString(_m.Status)
+	builder.WriteString(", ")
+	if v := _m.Verdict; v != nil {
+		builder.WriteString("verdict=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.RenderVerdict; v != nil {
+		builder.WriteString("render_verdict=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ErrorKind; v != nil {
+		builder.WriteString("error_kind=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	if v := _m.ErrorCode; v != nil {
 		builder.WriteString("error_code=")

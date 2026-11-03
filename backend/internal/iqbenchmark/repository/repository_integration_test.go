@@ -115,6 +115,25 @@ func iqTestDB(t *testing.T) *sql.DB {
 	// 幂等性：ADD COLUMN IF NOT EXISTS，重复执行必须安全。
 	_, err = db.Exec(string(migration252))
 	require.NoError(t, err, "migration 252 must be safely repeatable")
+
+	// 253 给四张表补「判定」维度：cases.expected、artifacts 的
+	// verdict/render_verdict/error_kind、runs 的 verdict/logic_total/logic_passed。
+	// 它同时重建了若干 CHECK 约束，所以必须在 249 之后、且只应用一次。
+	migration253, err := migrations.FS.ReadFile("253_iq_benchmark_verdict.sql")
+	require.NoError(t, err)
+	_, err = db.Exec(string(migration253))
+	require.NoError(t, err, "migration 253 must apply on top of 252")
+	// 幂等性：所有 DDL 都带 IF NOT EXISTS / 先 DROP 再 ADD，可安全重跑。
+	_, err = db.Exec(string(migration253))
+	require.NoError(t, err, "migration 253 must be safely repeatable")
+
+	// 254 只建索引，不改结构。
+	migration254, err := migrations.FS.ReadFile("254_iq_benchmark_verdict_index.sql")
+	require.NoError(t, err)
+	_, err = db.Exec(string(migration254))
+	require.NoError(t, err, "migration 254 must apply on top of 253")
+	_, err = db.Exec(string(migration254))
+	require.NoError(t, err, "migration 254 must be safely repeatable")
 	return db
 }
 
@@ -544,4 +563,197 @@ func TestIQBenchmarkServiceStatusValuesMatchMigration(t *testing.T) {
 		_, err := db.ExecContext(ctx, `UPDATE iq_benchmark_tasks SET status = $1 WHERE id = $2`, status, id)
 		require.NoError(t, err, "service constant %q must be accepted by the CHECK constraint", status)
 	}
+}
+
+// TestIQBenchmarkArtifactVerdictPersists 覆盖判定字段的真实落库与读回。
+//
+// 只靠纯函数单测不够：VerdictForCase 算得对，不代表值真的写进了
+// verdict 列、也不代表读回时没有被折叠成空串。这条把两端连起来。
+func TestIQBenchmarkArtifactVerdictPersists(t *testing.T) {
+	db := iqTestDB(t)
+	ctx := context.Background()
+	repo := iqTestRepo(db)
+
+	created, err := repo.CreateArtifact(ctx, iqbenchmark.ArtifactCreateInput{
+		CaseID:        1,
+		CaseSnapshot:  map[string]any{"name": "verdict"},
+		GroupID:       7,
+		Model:         "gpt-4o",
+		RenderKind:    iqbenchmark.RenderKindSVG,
+		Status:        iqbenchmark.ArtifactStatusSuccess,
+		Source:        iqbenchmark.SourceScheduled,
+		Verdict:       iqbenchmark.VerdictDegraded,
+		RenderVerdict: iqbenchmark.RenderVerdictDegraded,
+		ErrorKind:     iqbenchmark.ErrorKindResponseIncomplete,
+	})
+	require.NoError(t, err)
+
+	got, err := repo.GetArtifact(ctx, created.ID)
+	require.NoError(t, err)
+	require.Equal(t, iqbenchmark.VerdictDegraded, got.Verdict)
+	require.Equal(t, iqbenchmark.RenderVerdictDegraded, got.RenderVerdict)
+	require.Equal(t, iqbenchmark.ErrorKindResponseIncomplete, got.ErrorKind)
+
+	// 未指定判定时必须是空串（读回 NULL 折叠），而不是某个猜测值。
+	plain, err := repo.CreateArtifact(ctx, iqbenchmark.ArtifactCreateInput{
+		CaseID:       1,
+		CaseSnapshot: map[string]any{"name": "no-verdict"},
+		GroupID:      7,
+		Model:        "gpt-4o",
+		RenderKind:   iqbenchmark.RenderKindText,
+		Status:       iqbenchmark.ArtifactStatusFailed,
+		Source:       iqbenchmark.SourceScheduled,
+	})
+	require.NoError(t, err)
+	plainGot, err := repo.GetArtifact(ctx, plain.ID)
+	require.NoError(t, err)
+	require.Empty(t, plainGot.Verdict, "未判定必须是空串，不能编造取值")
+	require.Empty(t, plainGot.RenderVerdict)
+	require.Empty(t, plainGot.ErrorKind)
+}
+
+// TestIQBenchmarkArtifactVerdictRejectsUnknownValue 断言库层拦住非法判定值。
+func TestIQBenchmarkArtifactVerdictRejectsUnknownValue(t *testing.T) {
+	db := iqTestDB(t)
+	ctx := context.Background()
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO iq_benchmark_artifacts
+			(case_id, case_snapshot, group_id, model, render_kind, status, source, verdict)
+		VALUES (1, '{}'::jsonb, 7, 'm', 'text', 'success', 'scheduled', 'meltdown')`)
+	require.Error(t, err, "CHECK 约束必须拒绝清单外的 verdict")
+	require.Contains(t, err.Error(), "iq_benchmark_artifacts_verdict_check")
+
+	// 12 类里的每一个都必须被接受。
+	for _, kind := range iqbenchmark.ErrorKinds {
+		_, err := db.ExecContext(ctx, `
+			INSERT INTO iq_benchmark_artifacts
+				(case_id, case_snapshot, group_id, model, render_kind, status, source, error_kind)
+			VALUES (1, '{}'::jsonb, 7, 'm', 'text', 'failed', 'scheduled', $1)`, kind)
+		require.NoError(t, err, "error_kind %q 必须被 CHECK 接受", kind)
+	}
+}
+
+// TestIQBenchmarkFinishRunWritesVerdict 覆盖 run 级判定的落库路径。
+//
+// FinishRun 是唯一写 verdict / logic_total / logic_passed 的地方，
+// 它内部用 AggregateRunVerdict 推导，所以这条同时校验了
+// 「计数落库」与「推导结果落库」两件事是一致的。
+func TestIQBenchmarkFinishRunWritesVerdict(t *testing.T) {
+	db := iqTestDB(t)
+	ctx := context.Background()
+	repo := iqTestRepo(db)
+
+	taskID, err := iqInsertTask(t, db, "verdict-run", 9, "m", 60)
+	require.NoError(t, err)
+
+	run, err := repo.CreateRun(ctx, iqbenchmark.RunCreateInput{
+		TaskID:           taskID,
+		GroupID:          9,
+		Model:            "m",
+		Trigger:          iqbenchmark.RunTriggerManual,
+		InternalUserID:   1,
+		InternalAPIKeyID: 2,
+	})
+	require.NoError(t, err)
+
+	// 3 道可判题，2 道判对 → degraded（部分通过仍是降级）。
+	counts := iqbenchmark.RunCounts{Success: 3, LogicTotal: 3, LogicPassed: 2}
+	require.NoError(t, repo.FinishRun(ctx, run.ID, time.Now(), iqbenchmark.RunStatusSuccess, counts))
+
+	got, err := repo.GetRun(ctx, run.ID)
+	require.NoError(t, err)
+	require.Equal(t, 3, got.LogicTotal)
+	require.Equal(t, 2, got.LogicPassed)
+	require.Equal(t, iqbenchmark.RunVerdictDegraded, got.Verdict)
+
+	// 纯生成模式：3 条产出、0 道可判 → generated。
+	genRun, err := repo.CreateRun(ctx, iqbenchmark.RunCreateInput{
+		TaskID: taskID, GroupID: 9, Model: "m",
+		Trigger: iqbenchmark.RunTriggerManual, InternalUserID: 1, InternalAPIKeyID: 2,
+	})
+	require.NoError(t, err)
+	require.NoError(t, repo.FinishRun(ctx, genRun.ID, time.Now(), iqbenchmark.RunStatusSuccess,
+		iqbenchmark.RunCounts{Success: 3, LogicTotal: 0, LogicPassed: 0}))
+
+	genGot, err := repo.GetRun(ctx, genRun.ID)
+	require.NoError(t, err)
+	require.Equal(t, iqbenchmark.RunVerdictGenerated, genGot.Verdict,
+		"有产出但无可判题目必须是 generated")
+}
+
+// TestIQBenchmarkCaseExpectedRoundTrip 覆盖 cases.expected 的写入与清空。
+func TestIQBenchmarkCaseExpectedRoundTrip(t *testing.T) {
+	db := iqTestDB(t)
+	ctx := context.Background()
+	repo := iqTestRepo(db)
+
+	created, err := repo.CreateCase(ctx, iqbenchmark.CaseCreateInput{
+		Name:       "with-answer",
+		Kind:       iqbenchmark.CaseKindText,
+		Prompt:     "1+1=?",
+		ExpectKind: iqbenchmark.ExpectKindText,
+		Scoring:    iqbenchmark.ScoringRule,
+		Expected:   "2",
+		Enabled:    true,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "2", created.Expected)
+
+	// 库里应是真实值而非 NULL。
+	var expected sql.NullString
+	require.NoError(t, db.QueryRowContext(ctx,
+		`SELECT expected FROM iq_benchmark_cases WHERE id = $1`, created.ID).Scan(&expected))
+	require.True(t, expected.Valid)
+	require.Equal(t, "2", expected.String)
+
+	// 改成图片题后清空答案 → 必须清成 NULL（而不是空串），
+	// 否则「不可判分」与「参考答案是空串」这两种语义会被合并。
+	//
+	// 这里必须同时把 kind 改成 image：文本类的自定义题不允许没有
+	// expected（库层有 CHECK，服务层也会拒），所以「清空」这个动作
+	// 只有在题目变成不可判分的类型时才成立。
+	updated, err := repo.UpdateCase(ctx, created.ID, iqbenchmark.CaseUpdateInput{
+		Name:       "with-answer",
+		Kind:       iqbenchmark.CaseKindImage,
+		Prompt:     "画一只鹈鹕",
+		ExpectKind: iqbenchmark.ExpectKindImageURL,
+		Scoring:    iqbenchmark.ScoringRule,
+		Expected:   "",
+		Enabled:    true,
+	})
+	require.NoError(t, err)
+	require.Empty(t, updated.Expected)
+
+	var cleared sql.NullString
+	require.NoError(t, db.QueryRowContext(ctx,
+		`SELECT expected FROM iq_benchmark_cases WHERE id = $1`, created.ID).Scan(&cleared))
+	require.False(t, cleared.Valid, "清空 expected 必须写 NULL，而不是空串")
+}
+
+// TestIQBenchmarkTextCaseWithoutExpectedIsRejected 断言库层拦住缺答案的文本题。
+//
+// 服务层已经会拒，但库层这道是防绕过（运维手工 SQL、将来的批量导入）。
+// 两条一起覆盖，才算「双保险都真的生效」。
+func TestIQBenchmarkTextCaseWithoutExpectedIsRejected(t *testing.T) {
+	db := iqTestDB(t)
+	ctx := context.Background()
+
+	_, err := db.ExecContext(ctx, `
+		INSERT INTO iq_benchmark_cases (name, kind, prompt, expect_kind)
+		VALUES ('no-answer', 'text', 'p', 'text')`)
+	require.Error(t, err, "自定义文本题缺 expected 必须被库拒绝")
+	require.Contains(t, err.Error(), "iq_benchmark_cases_custom_logic_expected_check")
+
+	// 图片题豁免（产出是图，没有可比的文本）。
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO iq_benchmark_cases (name, kind, prompt, expect_kind)
+		VALUES ('image-ok', 'image', 'p', 'image_url')`)
+	require.NoError(t, err, "图片题不得被要求填 expected")
+
+	// 内置题豁免（随版本发布，允许管理员之后再补）。
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO iq_benchmark_cases (name, kind, prompt, expect_kind, builtin)
+		VALUES ('builtin-ok', 'text', 'p', 'text', TRUE)`)
+	require.NoError(t, err, "内置题不得被要求填 expected")
 }

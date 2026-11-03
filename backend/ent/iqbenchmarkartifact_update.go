@@ -375,6 +375,66 @@ func (_u *IQBenchmarkArtifactUpdate) SetNillableStatus(v *string) *IQBenchmarkAr
 	return _u
 }
 
+// SetVerdict sets the "verdict" field.
+func (_u *IQBenchmarkArtifactUpdate) SetVerdict(v string) *IQBenchmarkArtifactUpdate {
+	_u.mutation.SetVerdict(v)
+	return _u
+}
+
+// SetNillableVerdict sets the "verdict" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdate) SetNillableVerdict(v *string) *IQBenchmarkArtifactUpdate {
+	if v != nil {
+		_u.SetVerdict(*v)
+	}
+	return _u
+}
+
+// ClearVerdict clears the value of the "verdict" field.
+func (_u *IQBenchmarkArtifactUpdate) ClearVerdict() *IQBenchmarkArtifactUpdate {
+	_u.mutation.ClearVerdict()
+	return _u
+}
+
+// SetRenderVerdict sets the "render_verdict" field.
+func (_u *IQBenchmarkArtifactUpdate) SetRenderVerdict(v string) *IQBenchmarkArtifactUpdate {
+	_u.mutation.SetRenderVerdict(v)
+	return _u
+}
+
+// SetNillableRenderVerdict sets the "render_verdict" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdate) SetNillableRenderVerdict(v *string) *IQBenchmarkArtifactUpdate {
+	if v != nil {
+		_u.SetRenderVerdict(*v)
+	}
+	return _u
+}
+
+// ClearRenderVerdict clears the value of the "render_verdict" field.
+func (_u *IQBenchmarkArtifactUpdate) ClearRenderVerdict() *IQBenchmarkArtifactUpdate {
+	_u.mutation.ClearRenderVerdict()
+	return _u
+}
+
+// SetErrorKind sets the "error_kind" field.
+func (_u *IQBenchmarkArtifactUpdate) SetErrorKind(v string) *IQBenchmarkArtifactUpdate {
+	_u.mutation.SetErrorKind(v)
+	return _u
+}
+
+// SetNillableErrorKind sets the "error_kind" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdate) SetNillableErrorKind(v *string) *IQBenchmarkArtifactUpdate {
+	if v != nil {
+		_u.SetErrorKind(*v)
+	}
+	return _u
+}
+
+// ClearErrorKind clears the value of the "error_kind" field.
+func (_u *IQBenchmarkArtifactUpdate) ClearErrorKind() *IQBenchmarkArtifactUpdate {
+	_u.mutation.ClearErrorKind()
+	return _u
+}
+
 // SetErrorCode sets the "error_code" field.
 func (_u *IQBenchmarkArtifactUpdate) SetErrorCode(v string) *IQBenchmarkArtifactUpdate {
 	_u.mutation.SetErrorCode(v)
@@ -709,6 +769,21 @@ func (_u *IQBenchmarkArtifactUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Verdict(); ok {
+		if err := iqbenchmarkartifact.VerdictValidator(v); err != nil {
+			return &ValidationError{Name: "verdict", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.verdict": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.RenderVerdict(); ok {
+		if err := iqbenchmarkartifact.RenderVerdictValidator(v); err != nil {
+			return &ValidationError{Name: "render_verdict", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.render_verdict": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ErrorKind(); ok {
+		if err := iqbenchmarkartifact.ErrorKindValidator(v); err != nil {
+			return &ValidationError{Name: "error_kind", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.error_kind": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.ErrorCode(); ok {
 		if err := iqbenchmarkartifact.ErrorCodeValidator(v); err != nil {
 			return &ValidationError{Name: "error_code", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.error_code": %w`, err)}
@@ -845,6 +920,24 @@ func (_u *IQBenchmarkArtifactUpdate) sqlSave(ctx context.Context) (_node int, er
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Verdict(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldVerdict, field.TypeString, value)
+	}
+	if _u.mutation.VerdictCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldVerdict, field.TypeString)
+	}
+	if value, ok := _u.mutation.RenderVerdict(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldRenderVerdict, field.TypeString, value)
+	}
+	if _u.mutation.RenderVerdictCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldRenderVerdict, field.TypeString)
+	}
+	if value, ok := _u.mutation.ErrorKind(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldErrorKind, field.TypeString, value)
+	}
+	if _u.mutation.ErrorKindCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldErrorKind, field.TypeString)
 	}
 	if value, ok := _u.mutation.ErrorCode(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldErrorCode, field.TypeString, value)
@@ -1290,6 +1383,66 @@ func (_u *IQBenchmarkArtifactUpdateOne) SetNillableStatus(v *string) *IQBenchmar
 	return _u
 }
 
+// SetVerdict sets the "verdict" field.
+func (_u *IQBenchmarkArtifactUpdateOne) SetVerdict(v string) *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.SetVerdict(v)
+	return _u
+}
+
+// SetNillableVerdict sets the "verdict" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdateOne) SetNillableVerdict(v *string) *IQBenchmarkArtifactUpdateOne {
+	if v != nil {
+		_u.SetVerdict(*v)
+	}
+	return _u
+}
+
+// ClearVerdict clears the value of the "verdict" field.
+func (_u *IQBenchmarkArtifactUpdateOne) ClearVerdict() *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.ClearVerdict()
+	return _u
+}
+
+// SetRenderVerdict sets the "render_verdict" field.
+func (_u *IQBenchmarkArtifactUpdateOne) SetRenderVerdict(v string) *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.SetRenderVerdict(v)
+	return _u
+}
+
+// SetNillableRenderVerdict sets the "render_verdict" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdateOne) SetNillableRenderVerdict(v *string) *IQBenchmarkArtifactUpdateOne {
+	if v != nil {
+		_u.SetRenderVerdict(*v)
+	}
+	return _u
+}
+
+// ClearRenderVerdict clears the value of the "render_verdict" field.
+func (_u *IQBenchmarkArtifactUpdateOne) ClearRenderVerdict() *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.ClearRenderVerdict()
+	return _u
+}
+
+// SetErrorKind sets the "error_kind" field.
+func (_u *IQBenchmarkArtifactUpdateOne) SetErrorKind(v string) *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.SetErrorKind(v)
+	return _u
+}
+
+// SetNillableErrorKind sets the "error_kind" field if the given value is not nil.
+func (_u *IQBenchmarkArtifactUpdateOne) SetNillableErrorKind(v *string) *IQBenchmarkArtifactUpdateOne {
+	if v != nil {
+		_u.SetErrorKind(*v)
+	}
+	return _u
+}
+
+// ClearErrorKind clears the value of the "error_kind" field.
+func (_u *IQBenchmarkArtifactUpdateOne) ClearErrorKind() *IQBenchmarkArtifactUpdateOne {
+	_u.mutation.ClearErrorKind()
+	return _u
+}
+
 // SetErrorCode sets the "error_code" field.
 func (_u *IQBenchmarkArtifactUpdateOne) SetErrorCode(v string) *IQBenchmarkArtifactUpdateOne {
 	_u.mutation.SetErrorCode(v)
@@ -1637,6 +1790,21 @@ func (_u *IQBenchmarkArtifactUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Verdict(); ok {
+		if err := iqbenchmarkartifact.VerdictValidator(v); err != nil {
+			return &ValidationError{Name: "verdict", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.verdict": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.RenderVerdict(); ok {
+		if err := iqbenchmarkartifact.RenderVerdictValidator(v); err != nil {
+			return &ValidationError{Name: "render_verdict", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.render_verdict": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.ErrorKind(); ok {
+		if err := iqbenchmarkartifact.ErrorKindValidator(v); err != nil {
+			return &ValidationError{Name: "error_kind", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.error_kind": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.ErrorCode(); ok {
 		if err := iqbenchmarkartifact.ErrorCodeValidator(v); err != nil {
 			return &ValidationError{Name: "error_code", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkArtifact.error_code": %w`, err)}
@@ -1790,6 +1958,24 @@ func (_u *IQBenchmarkArtifactUpdateOne) sqlSave(ctx context.Context) (_node *IQB
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Verdict(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldVerdict, field.TypeString, value)
+	}
+	if _u.mutation.VerdictCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldVerdict, field.TypeString)
+	}
+	if value, ok := _u.mutation.RenderVerdict(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldRenderVerdict, field.TypeString, value)
+	}
+	if _u.mutation.RenderVerdictCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldRenderVerdict, field.TypeString)
+	}
+	if value, ok := _u.mutation.ErrorKind(); ok {
+		_spec.SetField(iqbenchmarkartifact.FieldErrorKind, field.TypeString, value)
+	}
+	if _u.mutation.ErrorKindCleared() {
+		_spec.ClearField(iqbenchmarkartifact.FieldErrorKind, field.TypeString)
 	}
 	if value, ok := _u.mutation.ErrorCode(); ok {
 		_spec.SetField(iqbenchmarkartifact.FieldErrorCode, field.TypeString, value)

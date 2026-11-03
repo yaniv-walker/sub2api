@@ -89,6 +89,11 @@ func ExpectKind(v string) predicate.IQBenchmarkCase {
 	return predicate.IQBenchmarkCase(sql.FieldEQ(FieldExpectKind, v))
 }
 
+// Expected applies equality check predicate on the "expected" field. It's identical to ExpectedEQ.
+func Expected(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldEQ(FieldExpected, v))
+}
+
 // Scoring applies equality check predicate on the "scoring" field. It's identical to ScoringEQ.
 func Scoring(v string) predicate.IQBenchmarkCase {
 	return predicate.IQBenchmarkCase(sql.FieldEQ(FieldScoring, v))
@@ -532,6 +537,81 @@ func ExpectKindEqualFold(v string) predicate.IQBenchmarkCase {
 // ExpectKindContainsFold applies the ContainsFold predicate on the "expect_kind" field.
 func ExpectKindContainsFold(v string) predicate.IQBenchmarkCase {
 	return predicate.IQBenchmarkCase(sql.FieldContainsFold(FieldExpectKind, v))
+}
+
+// ExpectedEQ applies the EQ predicate on the "expected" field.
+func ExpectedEQ(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldEQ(FieldExpected, v))
+}
+
+// ExpectedNEQ applies the NEQ predicate on the "expected" field.
+func ExpectedNEQ(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldNEQ(FieldExpected, v))
+}
+
+// ExpectedIn applies the In predicate on the "expected" field.
+func ExpectedIn(vs ...string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldIn(FieldExpected, vs...))
+}
+
+// ExpectedNotIn applies the NotIn predicate on the "expected" field.
+func ExpectedNotIn(vs ...string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldNotIn(FieldExpected, vs...))
+}
+
+// ExpectedGT applies the GT predicate on the "expected" field.
+func ExpectedGT(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldGT(FieldExpected, v))
+}
+
+// ExpectedGTE applies the GTE predicate on the "expected" field.
+func ExpectedGTE(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldGTE(FieldExpected, v))
+}
+
+// ExpectedLT applies the LT predicate on the "expected" field.
+func ExpectedLT(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldLT(FieldExpected, v))
+}
+
+// ExpectedLTE applies the LTE predicate on the "expected" field.
+func ExpectedLTE(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldLTE(FieldExpected, v))
+}
+
+// ExpectedContains applies the Contains predicate on the "expected" field.
+func ExpectedContains(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldContains(FieldExpected, v))
+}
+
+// ExpectedHasPrefix applies the HasPrefix predicate on the "expected" field.
+func ExpectedHasPrefix(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldHasPrefix(FieldExpected, v))
+}
+
+// ExpectedHasSuffix applies the HasSuffix predicate on the "expected" field.
+func ExpectedHasSuffix(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldHasSuffix(FieldExpected, v))
+}
+
+// ExpectedIsNil applies the IsNil predicate on the "expected" field.
+func ExpectedIsNil() predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldIsNull(FieldExpected))
+}
+
+// ExpectedNotNil applies the NotNil predicate on the "expected" field.
+func ExpectedNotNil() predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldNotNull(FieldExpected))
+}
+
+// ExpectedEqualFold applies the EqualFold predicate on the "expected" field.
+func ExpectedEqualFold(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldEqualFold(FieldExpected, v))
+}
+
+// ExpectedContainsFold applies the ContainsFold predicate on the "expected" field.
+func ExpectedContainsFold(v string) predicate.IQBenchmarkCase {
+	return predicate.IQBenchmarkCase(sql.FieldContainsFold(FieldExpected, v))
 }
 
 // ScoringEQ applies the EQ predicate on the "scoring" field.

@@ -1322,16 +1322,28 @@ func init() {
 	iqbenchmarkartifactDescStatus := iqbenchmarkartifactFields[18].Descriptor()
 	// iqbenchmarkartifact.StatusValidator is a validator for the "status" field. It is called by the builders before save.
 	iqbenchmarkartifact.StatusValidator = iqbenchmarkartifactDescStatus.Validators[0].(func(string) error)
+	// iqbenchmarkartifactDescVerdict is the schema descriptor for verdict field.
+	iqbenchmarkartifactDescVerdict := iqbenchmarkartifactFields[19].Descriptor()
+	// iqbenchmarkartifact.VerdictValidator is a validator for the "verdict" field. It is called by the builders before save.
+	iqbenchmarkartifact.VerdictValidator = iqbenchmarkartifactDescVerdict.Validators[0].(func(string) error)
+	// iqbenchmarkartifactDescRenderVerdict is the schema descriptor for render_verdict field.
+	iqbenchmarkartifactDescRenderVerdict := iqbenchmarkartifactFields[20].Descriptor()
+	// iqbenchmarkartifact.RenderVerdictValidator is a validator for the "render_verdict" field. It is called by the builders before save.
+	iqbenchmarkartifact.RenderVerdictValidator = iqbenchmarkartifactDescRenderVerdict.Validators[0].(func(string) error)
+	// iqbenchmarkartifactDescErrorKind is the schema descriptor for error_kind field.
+	iqbenchmarkartifactDescErrorKind := iqbenchmarkartifactFields[21].Descriptor()
+	// iqbenchmarkartifact.ErrorKindValidator is a validator for the "error_kind" field. It is called by the builders before save.
+	iqbenchmarkartifact.ErrorKindValidator = iqbenchmarkartifactDescErrorKind.Validators[0].(func(string) error)
 	// iqbenchmarkartifactDescErrorCode is the schema descriptor for error_code field.
-	iqbenchmarkartifactDescErrorCode := iqbenchmarkartifactFields[19].Descriptor()
+	iqbenchmarkartifactDescErrorCode := iqbenchmarkartifactFields[22].Descriptor()
 	// iqbenchmarkartifact.ErrorCodeValidator is a validator for the "error_code" field. It is called by the builders before save.
 	iqbenchmarkartifact.ErrorCodeValidator = iqbenchmarkartifactDescErrorCode.Validators[0].(func(string) error)
 	// iqbenchmarkartifactDescSource is the schema descriptor for source field.
-	iqbenchmarkartifactDescSource := iqbenchmarkartifactFields[26].Descriptor()
+	iqbenchmarkartifactDescSource := iqbenchmarkartifactFields[29].Descriptor()
 	// iqbenchmarkartifact.SourceValidator is a validator for the "source" field. It is called by the builders before save.
 	iqbenchmarkartifact.SourceValidator = iqbenchmarkartifactDescSource.Validators[0].(func(string) error)
 	// iqbenchmarkartifactDescModerationStatus is the schema descriptor for moderation_status field.
-	iqbenchmarkartifactDescModerationStatus := iqbenchmarkartifactFields[28].Descriptor()
+	iqbenchmarkartifactDescModerationStatus := iqbenchmarkartifactFields[31].Descriptor()
 	// iqbenchmarkartifact.DefaultModerationStatus holds the default value on creation for the moderation_status field.
 	iqbenchmarkartifact.DefaultModerationStatus = iqbenchmarkartifactDescModerationStatus.Default.(string)
 	// iqbenchmarkartifact.ModerationStatusValidator is a validator for the "moderation_status" field. It is called by the builders before save.
@@ -1386,29 +1398,29 @@ func init() {
 	// iqbenchmarkcase.ExpectKindValidator is a validator for the "expect_kind" field. It is called by the builders before save.
 	iqbenchmarkcase.ExpectKindValidator = iqbenchmarkcaseDescExpectKind.Validators[0].(func(string) error)
 	// iqbenchmarkcaseDescScoring is the schema descriptor for scoring field.
-	iqbenchmarkcaseDescScoring := iqbenchmarkcaseFields[6].Descriptor()
+	iqbenchmarkcaseDescScoring := iqbenchmarkcaseFields[7].Descriptor()
 	// iqbenchmarkcase.DefaultScoring holds the default value on creation for the scoring field.
 	iqbenchmarkcase.DefaultScoring = iqbenchmarkcaseDescScoring.Default.(string)
 	// iqbenchmarkcase.ScoringValidator is a validator for the "scoring" field. It is called by the builders before save.
 	iqbenchmarkcase.ScoringValidator = iqbenchmarkcaseDescScoring.Validators[0].(func(string) error)
 	// iqbenchmarkcaseDescLlmJudgeEnabled is the schema descriptor for llm_judge_enabled field.
-	iqbenchmarkcaseDescLlmJudgeEnabled := iqbenchmarkcaseFields[7].Descriptor()
+	iqbenchmarkcaseDescLlmJudgeEnabled := iqbenchmarkcaseFields[8].Descriptor()
 	// iqbenchmarkcase.DefaultLlmJudgeEnabled holds the default value on creation for the llm_judge_enabled field.
 	iqbenchmarkcase.DefaultLlmJudgeEnabled = iqbenchmarkcaseDescLlmJudgeEnabled.Default.(bool)
 	// iqbenchmarkcaseDescBuiltin is the schema descriptor for builtin field.
-	iqbenchmarkcaseDescBuiltin := iqbenchmarkcaseFields[8].Descriptor()
+	iqbenchmarkcaseDescBuiltin := iqbenchmarkcaseFields[9].Descriptor()
 	// iqbenchmarkcase.DefaultBuiltin holds the default value on creation for the builtin field.
 	iqbenchmarkcase.DefaultBuiltin = iqbenchmarkcaseDescBuiltin.Default.(bool)
 	// iqbenchmarkcaseDescEnabled is the schema descriptor for enabled field.
-	iqbenchmarkcaseDescEnabled := iqbenchmarkcaseFields[9].Descriptor()
+	iqbenchmarkcaseDescEnabled := iqbenchmarkcaseFields[10].Descriptor()
 	// iqbenchmarkcase.DefaultEnabled holds the default value on creation for the enabled field.
 	iqbenchmarkcase.DefaultEnabled = iqbenchmarkcaseDescEnabled.Default.(bool)
 	// iqbenchmarkcaseDescSortOrder is the schema descriptor for sort_order field.
-	iqbenchmarkcaseDescSortOrder := iqbenchmarkcaseFields[10].Descriptor()
+	iqbenchmarkcaseDescSortOrder := iqbenchmarkcaseFields[11].Descriptor()
 	// iqbenchmarkcase.DefaultSortOrder holds the default value on creation for the sort_order field.
 	iqbenchmarkcase.DefaultSortOrder = iqbenchmarkcaseDescSortOrder.Default.(int)
 	// iqbenchmarkcaseDescAllowUserTest is the schema descriptor for allow_user_test field.
-	iqbenchmarkcaseDescAllowUserTest := iqbenchmarkcaseFields[11].Descriptor()
+	iqbenchmarkcaseDescAllowUserTest := iqbenchmarkcaseFields[12].Descriptor()
 	// iqbenchmarkcase.DefaultAllowUserTest holds the default value on creation for the allow_user_test field.
 	iqbenchmarkcase.DefaultAllowUserTest = iqbenchmarkcaseDescAllowUserTest.Default.(bool)
 	iqbenchmarkrunMixin := schema.IQBenchmarkRun{}.Mixin()
@@ -1486,6 +1498,22 @@ func init() {
 	iqbenchmarkrun.DefaultStatus = iqbenchmarkrunDescStatus.Default.(string)
 	// iqbenchmarkrun.StatusValidator is a validator for the "status" field. It is called by the builders before save.
 	iqbenchmarkrun.StatusValidator = iqbenchmarkrunDescStatus.Validators[0].(func(string) error)
+	// iqbenchmarkrunDescVerdict is the schema descriptor for verdict field.
+	iqbenchmarkrunDescVerdict := iqbenchmarkrunFields[17].Descriptor()
+	// iqbenchmarkrun.VerdictValidator is a validator for the "verdict" field. It is called by the builders before save.
+	iqbenchmarkrun.VerdictValidator = iqbenchmarkrunDescVerdict.Validators[0].(func(string) error)
+	// iqbenchmarkrunDescLogicTotal is the schema descriptor for logic_total field.
+	iqbenchmarkrunDescLogicTotal := iqbenchmarkrunFields[18].Descriptor()
+	// iqbenchmarkrun.DefaultLogicTotal holds the default value on creation for the logic_total field.
+	iqbenchmarkrun.DefaultLogicTotal = iqbenchmarkrunDescLogicTotal.Default.(int)
+	// iqbenchmarkrun.LogicTotalValidator is a validator for the "logic_total" field. It is called by the builders before save.
+	iqbenchmarkrun.LogicTotalValidator = iqbenchmarkrunDescLogicTotal.Validators[0].(func(int) error)
+	// iqbenchmarkrunDescLogicPassed is the schema descriptor for logic_passed field.
+	iqbenchmarkrunDescLogicPassed := iqbenchmarkrunFields[19].Descriptor()
+	// iqbenchmarkrun.DefaultLogicPassed holds the default value on creation for the logic_passed field.
+	iqbenchmarkrun.DefaultLogicPassed = iqbenchmarkrunDescLogicPassed.Default.(int)
+	// iqbenchmarkrun.LogicPassedValidator is a validator for the "logic_passed" field. It is called by the builders before save.
+	iqbenchmarkrun.LogicPassedValidator = iqbenchmarkrunDescLogicPassed.Validators[0].(func(int) error)
 	iqbenchmarktaskMixin := schema.IQBenchmarkTask{}.Mixin()
 	iqbenchmarktaskMixinFields0 := iqbenchmarktaskMixin[0].Fields()
 	_ = iqbenchmarktaskMixinFields0

@@ -34,6 +34,8 @@ type IQBenchmarkCase struct {
 	Params map[string]interface{} `json:"params,omitempty"`
 	// image_url / svg / markdown / text
 	ExpectKind string `json:"expect_kind,omitempty"`
+	// Expected holds the value of the "expected" field.
+	Expected *string `json:"expected,omitempty"`
 	// manual / rule / manual_rule / llm_judge
 	Scoring string `json:"scoring,omitempty"`
 	// LlmJudgeEnabled holds the value of the "llm_judge_enabled" field.
@@ -60,7 +62,7 @@ func (*IQBenchmarkCase) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case iqbenchmarkcase.FieldID, iqbenchmarkcase.FieldSortOrder:
 			values[i] = new(sql.NullInt64)
-		case iqbenchmarkcase.FieldName, iqbenchmarkcase.FieldKind, iqbenchmarkcase.FieldPrompt, iqbenchmarkcase.FieldSystemPrompt, iqbenchmarkcase.FieldExpectKind, iqbenchmarkcase.FieldScoring:
+		case iqbenchmarkcase.FieldName, iqbenchmarkcase.FieldKind, iqbenchmarkcase.FieldPrompt, iqbenchmarkcase.FieldSystemPrompt, iqbenchmarkcase.FieldExpectKind, iqbenchmarkcase.FieldExpected, iqbenchmarkcase.FieldScoring:
 			values[i] = new(sql.NullString)
 		case iqbenchmarkcase.FieldCreatedAt, iqbenchmarkcase.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -135,6 +137,13 @@ func (_m *IQBenchmarkCase) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field expect_kind", values[i])
 			} else if value.Valid {
 				_m.ExpectKind = value.String
+			}
+		case iqbenchmarkcase.FieldExpected:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field expected", values[i])
+			} else if value.Valid {
+				_m.Expected = new(string)
+				*_m.Expected = value.String
 			}
 		case iqbenchmarkcase.FieldScoring:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -233,6 +242,11 @@ func (_m *IQBenchmarkCase) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("expect_kind=")
 	builder.WriteString(_m.ExpectKind)
+	builder.WriteString(", ")
+	if v := _m.Expected; v != nil {
+		builder.WriteString("expected=")
+		builder.WriteString(*v)
+	}
 	builder.WriteString(", ")
 	builder.WriteString("scoring=")
 	builder.WriteString(_m.Scoring)

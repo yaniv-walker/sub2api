@@ -175,6 +175,91 @@ const (
 	RenderKindText     = "text"
 )
 
+// 产出判定（item verdict）。与 Status 正交：
+//
+//	Status  说「这次调用跑成没跑成」；
+//	Verdict 说「模型答得对不对」。
+//
+// 二者必须分开。一次调用可以既 success 又 degraded（返回 200、有正文、
+// 但答案与 expected 不符）—— 旧模型把这两种信息压在 status 一个字段里，
+// 结果是通过率只能表达「调用成功率」，无法表达「模型变笨了」。
+const (
+	// VerdictOK 判分通过。
+	VerdictOK = "ok"
+	// VerdictDegraded 有判定依据且判分未通过，或根本没有产出。
+	VerdictDegraded = "degraded"
+	// VerdictGenerated 有产出，但本题没有判定依据（图片题 / 无 expected）。
+	// 它是「不能判定」，不是「判定为好」—— 进分母，不进分子。
+	VerdictGenerated = "generated"
+	// VerdictUnknown 连产出都没有，无从判定。
+	VerdictUnknown = "unknown"
+)
+
+// Run 级判定（四态）。由该 run 下所有产出的 verdict 汇总得出。
+const (
+	// RunVerdictNormal 全部可判题目都通过。
+	RunVerdictNormal = "normal"
+	// RunVerdictDegraded 存在判分未通过或调用失败的题目。
+	RunVerdictDegraded = "degraded"
+	// RunVerdictUnknown 没有一道题可判（例如题目全被删除）。
+	RunVerdictUnknown = "unknown"
+	// RunVerdictGenerated 纯生成模式：本次只出图不判分（logic_total == 0）。
+	RunVerdictGenerated = "generated"
+)
+
+// 渲染判定（render_verdict）。与 verdict 独立：
+// 答案对但渲染形态坏掉（例如该出 SVG 却吐了纯文本），是两类不同的降级。
+const (
+	RenderVerdictOK        = VerdictOK
+	RenderVerdictDegraded  = VerdictDegraded
+	RenderVerdictGenerated = VerdictGenerated
+	RenderVerdictUnknown   = VerdictUnknown
+)
+
+// 错误归类（error_kind）：面向「上游错误形态」的 12 类归一化。
+//
+// 与既有的 error_code 是**两个维度**，并存而不替代：
+//
+//	error_code 是「我们自己的失败原因」，被 QuotaExhausted 用来驱动熔断；
+//	error_kind 是「上游怎么坏的」，只用于展示与统计。
+//
+// 之所以不能合并：把 error_kind 塞进 error_code 会改动
+// ExecuteResult.QuotaExhausted 的判定，进而改掉限流/熔断语义。
+// 存成两列，等于只增不改。
+const (
+	ErrorKindAuthFailed         = "auth_failed"
+	ErrorKindForbidden          = "forbidden"
+	ErrorKindNotFound           = "not_found"
+	ErrorKindTimeout            = "timeout"
+	ErrorKindRateLimited        = "rate_limited"
+	ErrorKindGatewayTimeout     = "gateway_timeout"
+	ErrorKindServerError        = "server_error"
+	ErrorKindGeneric            = "generic"
+	ErrorKindStreamBroken       = "stream_broken"
+	ErrorKindResponseIncomplete = "response_incomplete"
+	ErrorKindQuotaExceeded      = "quota_exceeded"
+	ErrorKindEmptyResponse      = "empty_response"
+)
+
+// ErrorKinds 是全部 12 类的稳定清单。
+//
+// 单测用它断言「列出来的都被处理、没列出来的不会出现」，
+// 避免 switch 里悄悄多出一个类而迁移的 CHECK 拦不住。
+var ErrorKinds = []string{
+	ErrorKindAuthFailed,
+	ErrorKindForbidden,
+	ErrorKindNotFound,
+	ErrorKindTimeout,
+	ErrorKindRateLimited,
+	ErrorKindGatewayTimeout,
+	ErrorKindServerError,
+	ErrorKindGeneric,
+	ErrorKindStreamBroken,
+	ErrorKindResponseIncomplete,
+	ErrorKindQuotaExceeded,
+	ErrorKindEmptyResponse,
+}
+
 // 内部错误码。这些码只在管理端可见，公开侧只下发脱敏后的 error_summary。
 const (
 	ErrCodeNoCases             = "no_cases"
@@ -300,17 +385,23 @@ type UsageSnapshotByRequestIDs struct {
 
 // Case 是检测题目。
 type Case struct {
-	ID              int64          `json:"id"`
-	Name            string         `json:"name"`
-	Kind            string         `json:"kind"`
-	Prompt          string         `json:"prompt"`
-	SystemPrompt    string         `json:"system_prompt"`
-	Params          map[string]any `json:"params"`
-	ExpectKind      string         `json:"expect_kind"`
-	Scoring         string         `json:"scoring"`
-	LLMJudgeEnabled bool           `json:"llm_judge_enabled"`
-	Builtin         bool           `json:"builtin"`
-	Enabled         bool           `json:"enabled"`
+	ID           int64          `json:"id"`
+	Name         string         `json:"name"`
+	Kind         string         `json:"kind"`
+	Prompt       string         `json:"prompt"`
+	SystemPrompt string         `json:"system_prompt"`
+	Params       map[string]any `json:"params"`
+	ExpectKind   string         `json:"expect_kind"`
+	// Expected 是 logic 类题目的参考答案。
+	//
+	// 空字符串表示「本题不可判分」（图片题、开放式生成题都是这种）。
+	// 非空时执行侧按归一化后的等值比较给出 verdict；
+	// 自定义 logic 题必须非空，否则判不了，见 validateCase。
+	Expected        string `json:"expected"`
+	Scoring         string `json:"scoring"`
+	LLMJudgeEnabled bool   `json:"llm_judge_enabled"`
+	Builtin         bool   `json:"builtin"`
+	Enabled         bool   `json:"enabled"`
 	// AllowUserTest 决定该题是否开放给用户自测。
 	//
 	// 默认 false：开放是逐个题目的显式决定，因为自测消耗的是**用户自己的额度**，
@@ -361,8 +452,16 @@ type Run struct {
 	InternalUserID    int64      `json:"-"`
 	InternalAPIKeyID  int64      `json:"-"`
 	Status            string     `json:"status"`
-	CostCollectedAt   *time.Time `json:"-"`
-	CreatedAt         time.Time  `json:"created_at"`
+	// Verdict 是本次运行的汇总判定（normal / degraded / unknown / generated）。
+	Verdict string `json:"verdict"`
+	// LogicTotal / LogicPassed 是「可判题目」的分母与分子。
+	//
+	// 与 SuccessCount 等的区别：后者数的是调用成败，
+	// 这里数的是判定结果。纯生成模式（只出图）下 LogicTotal 为 0。
+	LogicTotal      int        `json:"logic_total"`
+	LogicPassed     int        `json:"logic_passed"`
+	CostCollectedAt *time.Time `json:"-"`
+	CreatedAt       time.Time  `json:"created_at"`
 }
 
 // Artifact 是单次执行的产出。
@@ -389,13 +488,19 @@ type Artifact struct {
 	OutputTokens     int            `json:"-"`
 	Cost             float64        `json:"-"`
 	Status           string         `json:"status"`
-	ErrorCode        string         `json:"-"`
-	ErrorSummary     string         `json:"-"`
-	Score            *float64       `json:"score"`
-	ScoredBy         *int64         `json:"-"`
-	ScoredAt         *time.Time     `json:"-"`
-	BlobKey          string         `json:"-"`
-	CreatedAt        time.Time      `json:"created_at"`
+	// Verdict 是本题判定（ok / degraded / generated / unknown）。
+	Verdict string `json:"verdict"`
+	// RenderVerdict 是渲染形态判定，与 Verdict 独立。
+	RenderVerdict string `json:"render_verdict"`
+	// ErrorKind 是面向上游错误形态的 12 类归一化，与 ErrorCode 并存。
+	ErrorKind    string     `json:"error_kind"`
+	ErrorCode    string     `json:"-"`
+	ErrorSummary string     `json:"-"`
+	Score        *float64   `json:"score"`
+	ScoredBy     *int64     `json:"-"`
+	ScoredAt     *time.Time `json:"-"`
+	BlobKey      string     `json:"-"`
+	CreatedAt    time.Time  `json:"created_at"`
 	// Source 是来源标记（scheduled / user_test）。
 	Source string `json:"source"`
 	// TriggeredByUserID 是触发自测的用户；定时检测为 0（对应 NULL）。

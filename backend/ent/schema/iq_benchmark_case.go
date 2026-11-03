@@ -56,6 +56,18 @@ func (IQBenchmarkCase) Fields() []ent.Field {
 		field.String("expect_kind").
 			MaxLen(16).
 			Comment("image_url / svg / markdown / text"),
+		// expected 是 logic 类题目的参考答案。
+		//
+		// 可空：图片题与开放式生成题没有可比的文本答案，
+		// 用 NULL 表示「本题不可判分」。这与「答案是空字符串」不同 ——
+		// 后者是合法的判分依据（模型也该答空）。
+		//
+		// 自定义（非内置）的非图片题必须有值，见 migration 253 的
+		// iq_benchmark_cases_custom_logic_expected_check 与服务层 validateCase。
+		field.String("expected").
+			SchemaType(map[string]string{"postgres": "text"}).
+			Optional().
+			Nillable(),
 		field.String("scoring").
 			MaxLen(16).
 			Default("manual").

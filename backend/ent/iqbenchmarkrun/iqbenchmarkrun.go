@@ -51,6 +51,12 @@ const (
 	FieldInternalAPIKeyID = "internal_api_key_id"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
+	// FieldVerdict holds the string denoting the verdict field in the database.
+	FieldVerdict = "verdict"
+	// FieldLogicTotal holds the string denoting the logic_total field in the database.
+	FieldLogicTotal = "logic_total"
+	// FieldLogicPassed holds the string denoting the logic_passed field in the database.
+	FieldLogicPassed = "logic_passed"
 	// FieldCostCollectedAt holds the string denoting the cost_collected_at field in the database.
 	FieldCostCollectedAt = "cost_collected_at"
 	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
@@ -81,6 +87,9 @@ var Columns = []string{
 	FieldInternalUserID,
 	FieldInternalAPIKeyID,
 	FieldStatus,
+	FieldVerdict,
+	FieldLogicTotal,
+	FieldLogicPassed,
 	FieldCostCollectedAt,
 	FieldDeletedAt,
 }
@@ -140,6 +149,16 @@ var (
 	DefaultStatus string
 	// StatusValidator is a validator for the "status" field. It is called by the builders before save.
 	StatusValidator func(string) error
+	// VerdictValidator is a validator for the "verdict" field. It is called by the builders before save.
+	VerdictValidator func(string) error
+	// DefaultLogicTotal holds the default value on creation for the "logic_total" field.
+	DefaultLogicTotal int
+	// LogicTotalValidator is a validator for the "logic_total" field. It is called by the builders before save.
+	LogicTotalValidator func(int) error
+	// DefaultLogicPassed holds the default value on creation for the "logic_passed" field.
+	DefaultLogicPassed int
+	// LogicPassedValidator is a validator for the "logic_passed" field. It is called by the builders before save.
+	LogicPassedValidator func(int) error
 )
 
 // OrderOption defines the ordering options for the IQBenchmarkRun queries.
@@ -243,6 +262,21 @@ func ByInternalAPIKeyID(opts ...sql.OrderTermOption) OrderOption {
 // ByStatus orders the results by the status field.
 func ByStatus(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldStatus, opts...).ToFunc()
+}
+
+// ByVerdict orders the results by the verdict field.
+func ByVerdict(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVerdict, opts...).ToFunc()
+}
+
+// ByLogicTotal orders the results by the logic_total field.
+func ByLogicTotal(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLogicTotal, opts...).ToFunc()
+}
+
+// ByLogicPassed orders the results by the logic_passed field.
+func ByLogicPassed(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLogicPassed, opts...).ToFunc()
 }
 
 // ByCostCollectedAt orders the results by the cost_collected_at field.

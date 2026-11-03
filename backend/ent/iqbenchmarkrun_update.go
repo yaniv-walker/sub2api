@@ -362,6 +362,68 @@ func (_u *IQBenchmarkRunUpdate) SetNillableStatus(v *string) *IQBenchmarkRunUpda
 	return _u
 }
 
+// SetVerdict sets the "verdict" field.
+func (_u *IQBenchmarkRunUpdate) SetVerdict(v string) *IQBenchmarkRunUpdate {
+	_u.mutation.SetVerdict(v)
+	return _u
+}
+
+// SetNillableVerdict sets the "verdict" field if the given value is not nil.
+func (_u *IQBenchmarkRunUpdate) SetNillableVerdict(v *string) *IQBenchmarkRunUpdate {
+	if v != nil {
+		_u.SetVerdict(*v)
+	}
+	return _u
+}
+
+// ClearVerdict clears the value of the "verdict" field.
+func (_u *IQBenchmarkRunUpdate) ClearVerdict() *IQBenchmarkRunUpdate {
+	_u.mutation.ClearVerdict()
+	return _u
+}
+
+// SetLogicTotal sets the "logic_total" field.
+func (_u *IQBenchmarkRunUpdate) SetLogicTotal(v int) *IQBenchmarkRunUpdate {
+	_u.mutation.ResetLogicTotal()
+	_u.mutation.SetLogicTotal(v)
+	return _u
+}
+
+// SetNillableLogicTotal sets the "logic_total" field if the given value is not nil.
+func (_u *IQBenchmarkRunUpdate) SetNillableLogicTotal(v *int) *IQBenchmarkRunUpdate {
+	if v != nil {
+		_u.SetLogicTotal(*v)
+	}
+	return _u
+}
+
+// AddLogicTotal adds value to the "logic_total" field.
+func (_u *IQBenchmarkRunUpdate) AddLogicTotal(v int) *IQBenchmarkRunUpdate {
+	_u.mutation.AddLogicTotal(v)
+	return _u
+}
+
+// SetLogicPassed sets the "logic_passed" field.
+func (_u *IQBenchmarkRunUpdate) SetLogicPassed(v int) *IQBenchmarkRunUpdate {
+	_u.mutation.ResetLogicPassed()
+	_u.mutation.SetLogicPassed(v)
+	return _u
+}
+
+// SetNillableLogicPassed sets the "logic_passed" field if the given value is not nil.
+func (_u *IQBenchmarkRunUpdate) SetNillableLogicPassed(v *int) *IQBenchmarkRunUpdate {
+	if v != nil {
+		_u.SetLogicPassed(*v)
+	}
+	return _u
+}
+
+// AddLogicPassed adds value to the "logic_passed" field.
+func (_u *IQBenchmarkRunUpdate) AddLogicPassed(v int) *IQBenchmarkRunUpdate {
+	_u.mutation.AddLogicPassed(v)
+	return _u
+}
+
 // SetCostCollectedAt sets the "cost_collected_at" field.
 func (_u *IQBenchmarkRunUpdate) SetCostCollectedAt(v time.Time) *IQBenchmarkRunUpdate {
 	_u.mutation.SetCostCollectedAt(v)
@@ -495,6 +557,21 @@ func (_u *IQBenchmarkRunUpdate) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Verdict(); ok {
+		if err := iqbenchmarkrun.VerdictValidator(v); err != nil {
+			return &ValidationError{Name: "verdict", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.verdict": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.LogicTotal(); ok {
+		if err := iqbenchmarkrun.LogicTotalValidator(v); err != nil {
+			return &ValidationError{Name: "logic_total", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.logic_total": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.LogicPassed(); ok {
+		if err := iqbenchmarkrun.LogicPassedValidator(v); err != nil {
+			return &ValidationError{Name: "logic_passed", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.logic_passed": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -602,6 +679,24 @@ func (_u *IQBenchmarkRunUpdate) sqlSave(ctx context.Context) (_node int, err err
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(iqbenchmarkrun.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Verdict(); ok {
+		_spec.SetField(iqbenchmarkrun.FieldVerdict, field.TypeString, value)
+	}
+	if _u.mutation.VerdictCleared() {
+		_spec.ClearField(iqbenchmarkrun.FieldVerdict, field.TypeString)
+	}
+	if value, ok := _u.mutation.LogicTotal(); ok {
+		_spec.SetField(iqbenchmarkrun.FieldLogicTotal, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedLogicTotal(); ok {
+		_spec.AddField(iqbenchmarkrun.FieldLogicTotal, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.LogicPassed(); ok {
+		_spec.SetField(iqbenchmarkrun.FieldLogicPassed, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedLogicPassed(); ok {
+		_spec.AddField(iqbenchmarkrun.FieldLogicPassed, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.CostCollectedAt(); ok {
 		_spec.SetField(iqbenchmarkrun.FieldCostCollectedAt, field.TypeTime, value)
@@ -969,6 +1064,68 @@ func (_u *IQBenchmarkRunUpdateOne) SetNillableStatus(v *string) *IQBenchmarkRunU
 	return _u
 }
 
+// SetVerdict sets the "verdict" field.
+func (_u *IQBenchmarkRunUpdateOne) SetVerdict(v string) *IQBenchmarkRunUpdateOne {
+	_u.mutation.SetVerdict(v)
+	return _u
+}
+
+// SetNillableVerdict sets the "verdict" field if the given value is not nil.
+func (_u *IQBenchmarkRunUpdateOne) SetNillableVerdict(v *string) *IQBenchmarkRunUpdateOne {
+	if v != nil {
+		_u.SetVerdict(*v)
+	}
+	return _u
+}
+
+// ClearVerdict clears the value of the "verdict" field.
+func (_u *IQBenchmarkRunUpdateOne) ClearVerdict() *IQBenchmarkRunUpdateOne {
+	_u.mutation.ClearVerdict()
+	return _u
+}
+
+// SetLogicTotal sets the "logic_total" field.
+func (_u *IQBenchmarkRunUpdateOne) SetLogicTotal(v int) *IQBenchmarkRunUpdateOne {
+	_u.mutation.ResetLogicTotal()
+	_u.mutation.SetLogicTotal(v)
+	return _u
+}
+
+// SetNillableLogicTotal sets the "logic_total" field if the given value is not nil.
+func (_u *IQBenchmarkRunUpdateOne) SetNillableLogicTotal(v *int) *IQBenchmarkRunUpdateOne {
+	if v != nil {
+		_u.SetLogicTotal(*v)
+	}
+	return _u
+}
+
+// AddLogicTotal adds value to the "logic_total" field.
+func (_u *IQBenchmarkRunUpdateOne) AddLogicTotal(v int) *IQBenchmarkRunUpdateOne {
+	_u.mutation.AddLogicTotal(v)
+	return _u
+}
+
+// SetLogicPassed sets the "logic_passed" field.
+func (_u *IQBenchmarkRunUpdateOne) SetLogicPassed(v int) *IQBenchmarkRunUpdateOne {
+	_u.mutation.ResetLogicPassed()
+	_u.mutation.SetLogicPassed(v)
+	return _u
+}
+
+// SetNillableLogicPassed sets the "logic_passed" field if the given value is not nil.
+func (_u *IQBenchmarkRunUpdateOne) SetNillableLogicPassed(v *int) *IQBenchmarkRunUpdateOne {
+	if v != nil {
+		_u.SetLogicPassed(*v)
+	}
+	return _u
+}
+
+// AddLogicPassed adds value to the "logic_passed" field.
+func (_u *IQBenchmarkRunUpdateOne) AddLogicPassed(v int) *IQBenchmarkRunUpdateOne {
+	_u.mutation.AddLogicPassed(v)
+	return _u
+}
+
 // SetCostCollectedAt sets the "cost_collected_at" field.
 func (_u *IQBenchmarkRunUpdateOne) SetCostCollectedAt(v time.Time) *IQBenchmarkRunUpdateOne {
 	_u.mutation.SetCostCollectedAt(v)
@@ -1115,6 +1272,21 @@ func (_u *IQBenchmarkRunUpdateOne) check() error {
 			return &ValidationError{Name: "status", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.Verdict(); ok {
+		if err := iqbenchmarkrun.VerdictValidator(v); err != nil {
+			return &ValidationError{Name: "verdict", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.verdict": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.LogicTotal(); ok {
+		if err := iqbenchmarkrun.LogicTotalValidator(v); err != nil {
+			return &ValidationError{Name: "logic_total", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.logic_total": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.LogicPassed(); ok {
+		if err := iqbenchmarkrun.LogicPassedValidator(v); err != nil {
+			return &ValidationError{Name: "logic_passed", err: fmt.Errorf(`ent: validator failed for field "IQBenchmarkRun.logic_passed": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -1239,6 +1411,24 @@ func (_u *IQBenchmarkRunUpdateOne) sqlSave(ctx context.Context) (_node *IQBenchm
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(iqbenchmarkrun.FieldStatus, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Verdict(); ok {
+		_spec.SetField(iqbenchmarkrun.FieldVerdict, field.TypeString, value)
+	}
+	if _u.mutation.VerdictCleared() {
+		_spec.ClearField(iqbenchmarkrun.FieldVerdict, field.TypeString)
+	}
+	if value, ok := _u.mutation.LogicTotal(); ok {
+		_spec.SetField(iqbenchmarkrun.FieldLogicTotal, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedLogicTotal(); ok {
+		_spec.AddField(iqbenchmarkrun.FieldLogicTotal, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.LogicPassed(); ok {
+		_spec.SetField(iqbenchmarkrun.FieldLogicPassed, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedLogicPassed(); ok {
+		_spec.AddField(iqbenchmarkrun.FieldLogicPassed, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.CostCollectedAt(); ok {
 		_spec.SetField(iqbenchmarkrun.FieldCostCollectedAt, field.TypeTime, value)
