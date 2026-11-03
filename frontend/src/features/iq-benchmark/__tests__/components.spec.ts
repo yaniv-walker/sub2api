@@ -90,15 +90,25 @@ describe('ArtifactCard', () => {
     expect(wrapper.text()).not.toContain('leaked')
   })
 
-  it('renders SVG through an <img> data URI, never inline', () => {
+  it('renders SVG through a sandboxed iframe, never inline and never via <img>', () => {
+    // 方案已从「<img> + data URI」换成「sandbox="" 的 iframe」。
+    // 断言同步改过来，否则这条测试会一直盯着一个已经不存在的实现，
+    // 而真正的回退（有人把 iframe 换回 <img>）反而没人拦。
     const svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>'
     const wrapper = mount(ArtifactCard, {
       props: { artifact: artifact({ render_kind: 'svg', content: svg }) },
     })
-    const img = wrapper.get('img')
-    expect(img.attributes('src')!.startsWith('data:image/svg+xml;charset=utf-8,')).toBe(true)
-    // 关键：SVG 不得作为 DOM 元素内联注入。
+    const frame = wrapper.get('.iq-svg-visible')
+    expect(frame.attributes('sandbox')).toBe('')
+    expect(frame.attributes('srcdoc')).toContain('<rect')
+    // 关键：SVG 不得作为 DOM 元素内联注入宿主页面。
     expect(wrapper.element.querySelector('svg')).toBeNull()
+    // 也不再走 <img> data URI 那条路。
+    expect(wrapper.element.querySelector('img')).toBeNull()
+    // 任何 iframe 都不许带 allow-scripts。
+    for (const iframe of wrapper.findAll('iframe')) {
+      expect(iframe.attributes('sandbox') ?? '').not.toContain('allow-scripts')
+    }
   })
 
   it('renders image_url artifacts with the plain URL', () => {

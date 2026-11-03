@@ -7,7 +7,6 @@ import {
   resolveRenderKind,
   sanitizeHTML,
   sanitizeSVG,
-  svgToDataURI,
   truncateText,
 } from '../sanitize'
 
@@ -104,30 +103,14 @@ describe('isUsableSVG', () => {
   })
 })
 
-describe('svgToDataURI', () => {
-  it('builds an image/svg+xml data URI', () => {
-    const uri = svgToDataURI('<svg xmlns="http://www.w3.org/2000/svg"><rect/></svg>')
-    expect(uri.startsWith('data:image/svg+xml;charset=utf-8,')).toBe(true)
-    expect(uri).toContain('svg')
-  })
-
-  it('never produces a data URI for content whose script was stripped to nothing useful', () => {
-    // 脚本被剥离后仍可能留下空 svg，但绝不能包含脚本本身。
-    const uri = svgToDataURI('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')
-    expect(uri).not.toContain('alert')
-    expect(uri).not.toContain('script')
-  })
-
-  it('returns an empty string for empty input', () => {
-    expect(svgToDataURI('')).toBe('')
-    expect(svgToDataURI(undefined)).toBe('')
-  })
-
-  it('percent-encodes so the URI cannot break out of the src attribute', () => {
-    const uri = svgToDataURI('<svg xmlns="http://www.w3.org/2000/svg"><text>a"b</text></svg>')
-    // 双引号必须被编码，否则会截断 src 属性。
-    expect(uri).not.toContain('"')
-    expect(uri).toContain('%22')
+// svgToDataURI 已随 <img> 方案一并移除（SVG 改走 sandbox="" 的 iframe）。
+// 这里保留一条「它不该回来」的守卫：data URI 方案的问题是它对 SVG 的
+// 样式与高度完全没有控制力，且一旦有人重新用它，就等于绕开了新加的
+// sandbox 隔离层 —— 而两套方案并存时最容易发生的就是这种回退。
+describe('svgToDataURI removal', () => {
+  it('is no longer exported from sanitize.ts', async () => {
+    const mod = await import('../sanitize')
+    expect('svgToDataURI' in mod).toBe(false)
   })
 })
 

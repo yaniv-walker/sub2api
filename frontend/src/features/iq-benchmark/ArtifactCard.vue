@@ -26,12 +26,24 @@
         />
       </template>
 
-      <template v-else-if="resolvedKind === 'svg' && svgURI">
-        <!-- <img> 而非内联 SVG：浏览器保证 <img> 里的 SVG 不执行脚本 -->
-        <img
-          :src="svgURI"
-          :alt="artifact.case_name"
-          class="max-h-72 w-full cursor-zoom-in object-contain p-2"
+      <template v-else-if="resolvedKind === 'svg' && svgContent">
+        <!--
+          SVG 走 sandbox="" 的 iframe，而不是 <img> 或内联注入。
+
+          为什么不继续用 <img>：<img> 里的 SVG 确实不执行脚本，但它
+          也吃不到 SVG 自己的样式（外链字体、渐变在某些情况下会失效），
+          而且没法按内容高度自适应 —— 长的 SVG 会被裁掉。
+          iframe + sandbox="" 给的是同样的脚本隔离，同时是一个真正的
+          独立文档，SVG 自己怎么写都按原样渲染。
+
+          注意 DOMPurify **没有**被移除：svgContent 仍是清洗后的结果。
+          sandbox 是加在清洗之上的第二层，不是替换它。
+        -->
+        <SVGFrame
+          :svg="svgContent"
+          :title="artifact.case_name"
+          :fallback-height="240"
+          class="max-h-72 w-full cursor-zoom-in p-2"
           @click="$emit('preview', artifact)"
         />
       </template>
@@ -151,9 +163,11 @@ import { formatCost, formatDuration, formatTokens } from './filters'
 import {
   markdownToSafeHTML,
   resolveRenderKind,
-  svgToDataURI,
+  sanitizeSVG,
   truncateText,
 } from './sanitize'
+import { sliceSVG } from './svgFrame'
+import SVGFrame from './SVGFrame.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -182,8 +196,8 @@ const resolvedKind = computed(() =>
   resolveRenderKind(props.artifact.render_kind, props.artifact.content, props.artifact.image_url),
 )
 
-/** SVG → data URI（经 DOMPurify 清洗）。 */
-const svgURI = computed(() => (blocked.value ? '' : svgToDataURI(props.artifact.content)))
+/** SVG → 清洗后的片段（交给 SVGFrame 用 iframe 隔离渲染）。 */
+const svgContent = computed(() => (blocked.value ? '' : sliceSVG(sanitizeSVG(props.artifact.content))))
 
 /** Markdown → 安全 HTML。 */
 const safeHTML = computed(() => (blocked.value ? '' : markdownToSafeHTML(props.artifact.content)))

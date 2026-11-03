@@ -71,11 +71,12 @@
                 referrerpolicy="no-referrer"
                 class="max-h-56 object-contain"
               />
-              <img
-                v-else-if="svgURI(item)"
-                :src="svgURI(item)"
-                :alt="item.case_name"
-                class="max-h-56 object-contain"
+              <!-- 与其他两处一致：SVG 走 sandbox="" 的 iframe 隔离渲染 -->
+              <SVGFrame
+                v-else-if="svgContent(item)"
+                :svg="svgContent(item)"
+                :title="item.case_name"
+                :fallback-height="160"
               />
               <pre
                 v-else
@@ -110,7 +111,9 @@ import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import type { IQPublicArtifact } from './types'
 import { formatDuration, groupByCase, MAX_COMPARE_ITEMS } from './filters'
-import { svgToDataURI, truncateText } from './sanitize'
+import { sanitizeSVG, truncateText } from './sanitize'
+import { sliceSVG } from './svgFrame'
+import SVGFrame from './SVGFrame.vue'
 
 const props = defineProps<{
   selectedIds: number[]
@@ -147,8 +150,10 @@ function isBlocked(item: IQPublicArtifact): boolean {
   return item.is_unsafe || item.status === 'blocked'
 }
 
-function svgURI(item: IQPublicArtifact): string {
+function svgContent(item: IQPublicArtifact): string {
   if (isBlocked(item)) return ''
-  return svgToDataURI(item.content)
+  // 先清洗再切片：清洗保证脚本/外链被剥离，切片保证围栏与
+  // 尾部说明文字不会混进画布。两步都不能省（见 sanitize.ts / svgFrame.ts）。
+  return sliceSVG(sanitizeSVG(item.content))
 }
 </script>

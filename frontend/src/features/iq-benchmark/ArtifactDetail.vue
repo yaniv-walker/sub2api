@@ -38,8 +38,18 @@
               />
             </template>
 
-            <template v-else-if="resolvedKind === 'svg' && svgURI">
-              <img :src="svgURI" :alt="artifact.case_name" class="mx-auto max-h-[50vh] object-contain" />
+            <!--
+              SVG 走与卡片相同的 sandbox="" iframe（见 SVGFrame.vue）：
+              <img> 虽然也不执行脚本，但吃不到 SVG 自有样式，
+              而且无法按内容高度自适应，长图会被裁掉。
+            -->
+            <template v-else-if="resolvedKind === 'svg' && svgContent">
+              <SVGFrame
+                :svg="svgContent"
+                :title="artifact.case_name"
+                :fallback-height="320"
+                class="mx-auto max-h-[50vh]"
+              />
             </template>
 
             <template v-else-if="resolvedKind === 'markdown' && safeHTML">
@@ -104,7 +114,9 @@ import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import type { IQPublicArtifact } from './types'
 import { formatCost, formatDuration, formatTokens } from './filters'
-import { markdownToSafeHTML, resolveRenderKind, svgToDataURI } from './sanitize'
+import { markdownToSafeHTML, resolveRenderKind, sanitizeSVG } from './sanitize'
+import { sliceSVG } from './svgFrame'
+import SVGFrame from './SVGFrame.vue'
 
 const props = defineProps<{ artifact: IQPublicArtifact | null }>()
 
@@ -122,7 +134,9 @@ const resolvedKind = computed(() => {
   return resolveRenderKind(a.render_kind, a.content, a.image_url)
 })
 
-const svgURI = computed(() => (blocked.value ? '' : svgToDataURI(props.artifact?.content)))
+const svgContent = computed(() =>
+  blocked.value ? '' : sliceSVG(sanitizeSVG(props.artifact?.content)),
+)
 const safeHTML = computed(() => (blocked.value ? '' : markdownToSafeHTML(props.artifact?.content)))
 
 const formattedDate = computed(() => {

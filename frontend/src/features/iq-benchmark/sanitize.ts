@@ -54,19 +54,6 @@ export function isUsableSVG(raw: string | undefined): boolean {
   return /^<svg[\s>]/i.test(cleaned)
 }
 
-/**
- * 把 SVG 文本转成可以直接放进 <img src> 的 data URI。
- *
- * 走 <img> 而不是内联 SVG 是关键：<img> 里的 SVG 不会执行脚本，
- * 也无法发起同源请求，是浏览器层面的强制隔离。
- */
-export function svgToDataURI(raw: string | undefined): string {
-  const cleaned = sanitizeSVG(raw)
-  if (!cleaned) return ''
-  // encodeURIComponent 比 base64 更省事且对中文更友好。
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(cleaned)}`
-}
-
 /** 清洗 Markdown 渲染后的 HTML。 */
 export function sanitizeHTML(raw: string | undefined): string {
   if (!raw) return ''
