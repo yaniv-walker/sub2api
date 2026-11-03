@@ -507,6 +507,13 @@ type CaseRequest struct {
 	Enabled         bool           `json:"enabled"`
 	AllowUserTest   bool           `json:"allow_user_test"`
 	SortOrder       int            `json:"sort_order"`
+	// Expected 是参考答案（logic 题的判分依据）。
+	//
+	// 之前这个字段缺失，导致 service 层的 ErrMissingExpected 校验
+	// 永远不可能被满足 —— 管理员建自定义文本题时无法填参考答案，
+	// 于是要么被拒（400）要么只能建成不可判分的题。
+	// 两种结果都让「四态判定」在自定义题上失效。
+	Expected string `json:"expected"`
 }
 
 // toCreateInput 映射为新建入参。
@@ -523,6 +530,7 @@ func (r CaseRequest) toCreateInput() service.CaseCreateInput {
 		Enabled:         r.Enabled,
 		AllowUserTest:   r.AllowUserTest,
 		SortOrder:       r.SortOrder,
+		Expected:        r.Expected,
 	}
 }
 
@@ -540,6 +548,7 @@ func (r CaseRequest) toUpdateInput() service.CaseUpdateInput {
 		Enabled:         r.Enabled,
 		AllowUserTest:   r.AllowUserTest,
 		SortOrder:       r.SortOrder,
+		Expected:        r.Expected,
 	}
 }
 

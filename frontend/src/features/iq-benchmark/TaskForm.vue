@@ -45,19 +45,34 @@
         </span>
       </label>
       <div class="max-h-48 overflow-auto rounded-lg border border-gray-200 p-2 dark:border-dark-600">
-        <label
-          v-for="item in caseOptions"
-          :key="item.id"
-          class="flex items-center gap-2 rounded px-1 py-1 text-xs hover:bg-gray-50 dark:hover:bg-dark-800"
-        >
-          <input
-            type="checkbox"
-            :checked="form.case_ids.includes(item.id)"
-            @change="toggleCase(item.id)"
-          />
-          <span class="truncate">{{ item.name }}</span>
-          <span class="ml-auto shrink-0 text-gray-400">{{ t(`iqBenchmark.kind.${item.kind}`) }}</span>
-        </label>
+        <!--
+          按判分口径分两段列出（logic / render）。
+          这里不用 <optgroup>：多选是 checkbox 列表，不是 <select>。
+          分段的理由与自测对话框一致 —— 两组的 verdict 口径不同，
+          混在一列里会让人以为通过率能合着算。
+        -->
+        <template v-for="group in caseGroupSections" :key="group.key">
+          <p
+            v-if="group.items.length > 0"
+            class="px-1 pt-1 pb-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-400"
+          >
+            {{ t(`iqBenchmark.caseGroup.${group.key}`) }}
+            <span class="font-normal normal-case">({{ group.items.length }})</span>
+          </p>
+          <label
+            v-for="item in group.items"
+            :key="item.id"
+            class="flex items-center gap-2 rounded px-1 py-1 text-xs hover:bg-gray-50 dark:hover:bg-dark-800"
+          >
+            <input
+              type="checkbox"
+              :checked="form.case_ids.includes(item.id)"
+              @change="toggleCase(item.id)"
+            />
+            <span class="truncate">{{ item.name }}</span>
+            <span class="ml-auto shrink-0 text-gray-400">{{ t(`iqBenchmark.kind.${item.kind}`) }}</span>
+          </label>
+        </template>
         <p v-if="caseOptions.length === 0" class="p-2 text-xs text-gray-400">
           {{ t('iqBenchmark.empty.cases') }}
         </p>
@@ -104,6 +119,7 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchTargets } from './api'
+import { splitCasesByGroup } from './caseSelector'
 import type { IQAdminTask, IQPublicCase, IQTargetGroup, IQTargets, IQTaskInput } from './types'
 
 const props = withDefaults(
@@ -133,6 +149,21 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+/**
+ * 题目候选按判分口径分段（logic / render）。
+ *
+ * 顺序固定为 logic 在前：定时任务的主用途是「看模型答对率有没有退化」，
+ * render 题的 verdict 恒为 generated，把它排在前面会让人误以为
+ * 一次运行什么都没判出来。
+ */
+const caseGroupSections = computed(() => {
+  const split = splitCasesByGroup(props.caseOptions)
+  return [
+    { key: 'logic' as const, items: split.logic },
+    { key: 'render' as const, items: split.render },
+  ]
+})
 
 interface FormState {
   name: string

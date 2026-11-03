@@ -42,6 +42,14 @@ export default {
       markdown: 'Markdown',
     },
 
+    // Prompts split by scoring basis: logic ones have a reference answer,
+    // render ones only produce an image and are never scored. Grouping keeps
+    // pass rates from being compared across two different verdict rules.
+    caseGroup: {
+      logic: 'Scored',
+      render: 'Generation only',
+    },
+
     status: {
       success: 'Success',
       failed: 'Failed',
@@ -216,6 +224,8 @@ export default {
       apiKeyDisabled: 'Disabled',
       case: 'Prompt',
       casePlaceholder: 'Pick a prompt',
+      renderOnlyHint:
+        'This prompt only generates an image and is never scored: the result is marked "generated" and excluded from the pass rate.',
       model: 'Model',
       modelPlaceholder: 'Pick a model available in this group',
       group: 'Group',
@@ -365,6 +375,10 @@ export default {
         builtinUndeletable: 'Built-in prompts cannot be deleted',
         inUse: 'This prompt is used by an enabled task and cannot be deleted',
         paramsHint: 'Optional extra request parameters as JSON.',
+        expected: 'Reference answer',
+        expectedHint:
+          'The only scoring basis: a normalized match against this answer counts as passed. Leave it empty and the prompt cannot be scored, so it is excluded from the pass rate.',
+        expectedRequired: 'Text and code prompts require a reference answer to be scorable.',
       },
 
       artifacts: {

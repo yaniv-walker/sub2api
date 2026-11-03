@@ -42,6 +42,13 @@ export default {
       markdown: 'Markdown',
     },
 
+    // 题目按判分口径分两组：logic 有参考答案可判，render 只出图不判分。
+    // 分组展示是为了不让「通过率」跨组混算 —— 两组的 verdict 口径不同。
+    caseGroup: {
+      logic: '判分题',
+      render: '生成题',
+    },
+
     status: {
       success: '成功',
       failed: '失败',
@@ -215,6 +222,7 @@ export default {
       apiKeyDisabled: '已停用',
       case: '题目',
       casePlaceholder: '请选择题目',
+      renderOnlyHint: '这道题只出图、不判分：结果会标为「已生成」，通过率不会把它计入。',
       model: '模型',
       modelPlaceholder: '选择该分组可用的模型',
       group: '分组',
@@ -360,6 +368,10 @@ export default {
         builtinUndeletable: '内置题目不可删除',
         inUse: '该题目正被启用中的任务使用，无法删除',
         paramsHint: '可选，JSON 格式的额外请求参数。',
+        expected: '参考答案',
+        expectedHint:
+          '判分的唯一依据：模型回答经归一化后与此处等值即判为通过。留空则该题不可判分，通过率不会把它计入。',
+        expectedRequired: '文本/代码题必须填写参考答案，否则无法判分。',
       },
 
       artifacts: {

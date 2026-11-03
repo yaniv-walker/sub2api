@@ -36,15 +36,43 @@
             </select>
           </label>
 
-          <!-- 题目 -->
+          <!--
+            题目：按判分口径分两组（logic / render）。
+            平铺会让用户以为两组的「通过率」能混着算 —— 图片题的
+            verdict 恒为 generated，没有可比的参考答案，混在一起列
+            只会让人误解结果。
+          -->
           <label class="block">
             <span class="mb-1 block text-xs font-medium">{{ t('iqBenchmark.userTest.case') }}</span>
             <select v-model.number="form.case_id" class="input w-full">
               <option :value="0" disabled>{{ t('iqBenchmark.userTest.casePlaceholder') }}</option>
-              <option v-for="c in cases" :key="c.id" :value="c.id">
-                {{ c.name }} · {{ t(`iqBenchmark.kind.${c.kind}`) }}
-              </option>
+              <optgroup
+                v-if="groupedCases.logic.length > 0"
+                :label="t('iqBenchmark.caseGroup.logic')"
+              >
+                <option v-for="c in groupedCases.logic" :key="c.id" :value="c.id">
+                  {{ c.name }} · {{ t(`iqBenchmark.kind.${c.kind}`) }}
+                </option>
+              </optgroup>
+              <optgroup
+                v-if="groupedCases.render.length > 0"
+                :label="t('iqBenchmark.caseGroup.render')"
+              >
+                <option v-for="c in groupedCases.render" :key="c.id" :value="c.id">
+                  {{ c.name }} · {{ t(`iqBenchmark.kind.${c.kind}`) }}
+                </option>
+              </optgroup>
             </select>
+            <!--
+              图片/渲染类题不判分：提前说清楚，避免用户提交后
+              看到 verdict=generated 以为是系统出错。
+            -->
+            <p
+              v-if="selectedCaseIsRenderOnly"
+              class="mt-1 text-[10px] text-amber-600 dark:text-amber-400"
+            >
+              {{ t('iqBenchmark.userTest.renderOnlyHint') }}
+            </p>
           </label>
 
           <!-- 分组：Key 绑了分组时锁定（后端会忽略这里的值） -->
@@ -124,6 +152,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchMyAPIKeys, fetchMyTargets, fetchPublicCases, submitUserTest } from './api'
 import type { IQPublicCase, IQTargetGroup, IQUserAPIKey, IQUserTest } from './types'
+import { caseGroupOf, splitCasesByGroup } from './caseSelector'
 import { userTestErrorKeyOf } from './userTestError'
 
 const props = defineProps<{
@@ -154,6 +183,20 @@ const form = reactive({
   case_id: 0,
   group_id: 0,
   model: '',
+})
+
+/** 题目按判分口径分组展示（见 caseSelector.ts）。 */
+const groupedCases = computed(() => splitCasesByGroup(cases.value))
+
+/**
+ * 当前选中的是不是「只出图、不判分」的题。
+ *
+ * 这类题的 verdict 恒为 generated —— 不是失败，而是没有判定依据。
+ * 提前提示一句，用户看到结果时才知道自己没有「考砸」。
+ */
+const selectedCaseIsRenderOnly = computed(() => {
+  const selected = cases.value.find((c) => c.id === form.case_id)
+  return selected ? caseGroupOf(selected) === 'render' : false
 })
 
 /** 只有 active 的 Key 可选：disabled 的提交必然被后端拒绝。 */

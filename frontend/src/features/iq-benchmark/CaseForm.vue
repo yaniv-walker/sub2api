@@ -35,6 +35,25 @@
       <textarea v-model="form.system_prompt" class="input min-h-[4rem]" rows="3"></textarea>
     </div>
 
+    <!--
+      参考答案。图片题与已发布的内置题不显示：
+        - 图片题产出是图，没有可比的文本（后端 IsImageCase 也豁免）；
+        - 内置题豁免是为了让管理员能先建题再补答案，
+          强制填写会挡住「先上线基准题」这条路径。
+      其余情况必填 —— 没有参考答案就没有判分依据，
+      那道题的 verdict 恒为 generated，通过率对它永远不计入。
+    -->
+    <div v-if="needsExpected">
+      <label class="input-label">{{ t('iqBenchmark.admin.cases.expected') }}</label>
+      <textarea v-model="form.expected" class="input min-h-[4rem]" rows="3"></textarea>
+      <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+        {{ t('iqBenchmark.admin.cases.expectedHint') }}
+      </p>
+      <p v-if="expectedMissing" class="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+        {{ t('iqBenchmark.admin.cases.expectedRequired') }}
+      </p>
+    </div>
+
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <div>
         <label class="input-label">{{ t('iqBenchmark.admin.cases.sortOrder') }}</label>
@@ -100,6 +119,7 @@ interface FormState {
   system_prompt: string
   sort_order: number
   enabled: boolean
+  expected: string
   allow_user_test: boolean
 }
 
@@ -114,6 +134,7 @@ function blank(): FormState {
     system_prompt: '',
     sort_order: 0,
     enabled: true,
+    expected: '',
     // 默认关闭（与后端一致）：自测花的是用户自己的额度，
     // 开放应由管理员逐题决定。
     allow_user_test: false,
@@ -138,6 +159,7 @@ watch(
       system_prompt: next.system_prompt ?? '',
       sort_order: next.sort_order,
       enabled: next.enabled,
+      expected: next.expected ?? '',
       allow_user_test: next.allow_user_test ?? false,
     })
   },
@@ -151,8 +173,33 @@ const kindMismatch = computed(() => {
   return imageCase !== expectsImage
 })
 
+/**
+ * 是否需要展示「参考答案」输入框。
+ *
+ * 图片题不需要（产出是图，没有可比的文本）。
+ * 内置题不强制（允许先建题再补答案），但**仍然展示** ——
+ * 管理员编辑内置题时应该能看到并修正已有答案，藏起来会让
+ * 「补上 expected」这件事无处可做。
+ */
+const needsExpected = computed(() => form.kind !== 'image')
+
+/**
+ * 是否缺了必填的参考答案。
+ *
+ * 判据必须与后端 validateCase 完全一致，否则会出现
+ * 「前端放行、后端 400」这种最难排查的组合：
+ *   后端条件是 `!builtin && !IsImageCase(kind) && expected == ""`。
+ */
+const expectedMissing = computed(
+  () => !isBuiltin.value && form.kind !== 'image' && form.expected.trim().length === 0,
+)
+
 const canSubmit = computed(
-  () => form.name.trim().length > 0 && form.prompt.trim().length > 0 && !kindMismatch.value,
+  () =>
+    form.name.trim().length > 0 &&
+    form.prompt.trim().length > 0 &&
+    !kindMismatch.value &&
+    !expectedMissing.value,
 )
 
 function submit(): void {
@@ -165,6 +212,7 @@ function submit(): void {
     system_prompt: form.system_prompt,
     sort_order: form.sort_order,
     enabled: form.enabled,
+    expected: form.expected.trim(),
     allow_user_test: form.allow_user_test,
     params: props.initial?.params ?? {},
     scoring: props.initial?.scoring ?? 'manual',

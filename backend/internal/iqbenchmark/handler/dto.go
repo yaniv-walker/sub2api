@@ -33,8 +33,13 @@ type AdminCaseDTO struct {
 	Enabled         bool           `json:"enabled"`
 	AllowUserTest   bool           `json:"allow_user_test"`
 	SortOrder       int            `json:"sort_order"`
-	CreatedAt       time.Time      `json:"created_at"`
-	UpdatedAt       time.Time      `json:"updated_at"`
+	// Expected 是参考答案（logic 题的判分依据）。
+	//
+	// 只在管理侧下发，公开侧不给：它就是答案本身，公开了等于把
+	// 测验答案贴在题面上，用户自测的「通过」也就没有意义了。
+	Expected  string    `json:"expected"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // AdminTaskDTO 是管理侧的任务 DTO。
@@ -318,6 +323,7 @@ func toAdminCase(c *iqbenchmark.Case) AdminCaseDTO {
 		Enabled:         c.Enabled,
 		AllowUserTest:   c.AllowUserTest,
 		SortOrder:       c.SortOrder,
+		Expected:        c.Expected,
 		CreatedAt:       c.CreatedAt,
 		UpdatedAt:       c.UpdatedAt,
 	}

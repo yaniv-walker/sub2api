@@ -275,6 +275,8 @@ export interface IQAdminCase extends IQPublicCase {
   enabled: boolean
   /** allow_user_test 已由 IQPublicCase 提供，此处不重复声明。 */
   sort_order: number
+  /** 参考答案；空串表示本题不可判分（图片题 / 开放式生成题）。 */
+  expected: string
   created_at: string
   updated_at: string
 }
@@ -480,6 +482,14 @@ export interface IQCaseInput {
   /** 是否开放给用户自测。 */
   allow_user_test?: boolean
   sort_order?: number
+  /**
+   * 参考答案。
+   *
+   * 空串表示「本题不可判分」（图片题、开放式生成题）。非空时执行侧按
+   * 归一化后的等值比较给出 verdict。自定义的文本/代码题必须提供 ——
+   * 没有参考答案就没有判分依据，通过率会退化成「调用成功率」。
+   */
+  expected?: string
 }
 
 /** 创建/更新任务入参。 */

@@ -42,6 +42,12 @@ var forbiddenPublicJSONFields = []string{
 	"task_id", "run_id", "case_ids", "case_snapshot",
 	// 存储与原始响应
 	"raw_response_ref", "blob_key", "content_sha256", "request_params", "params", "system_prompt",
+	// 判分依据
+	// expected 就是答案本身。一旦下发到公开侧，「这题通过没通过」
+	// 就变成「有没有照着答案抄」，通过率彻底失去意义。
+	// 它是本轮新增字段里最容易顺手带出去的一个（管理侧与公开侧
+	// 共用 iqbenchmark.Case），所以显式列进来。
+	"expected",
 	// 运维与安全诊断信息
 	"unsafe_flags", "error_code", "notes", "lease_owner", "lease_expires_at",
 	"status_reason", "scored_by", "scoring", "llm_judge_enabled",
@@ -137,6 +143,36 @@ func TestPublicCaseDTOHasNoPromptInternals(t *testing.T) {
 		[]string{"id", "name", "kind", "expect_kind", "prompt", "allow_user_test"},
 		names,
 		"PublicCaseDTO 字段集合固定；新增字段需同步更新 design.md 第 9.2 节")
+}
+
+// TestAdminCaseDTOCarriesExpected 断言参考答案在管理侧可见、可写。
+//
+// 背景：本轮给题目加了 expected（判分依据），但 AdminCaseDTO 与
+// CaseRequest 一开始都漏了它。漏掉的后果不是「少一个字段」，而是
+// service 层的 ErrMissingExpected 校验**永远无法被满足** ——
+// 管理员建自定义文本题时填不了参考答案，请求必然 400；而如果
+// 绕过校验建题，那道题就永远判不了分，四态判定在自定义题上失效。
+//
+// 所以这里断言的是「这条链路通了」：读得到（toAdminCase 带了 Expected）
+// 且写得到（CaseRequest 有 expected json tag）。
+func TestAdminCaseDTOCarriesExpected(t *testing.T) {
+	require.Contains(t, jsonFieldNames(reflect.TypeOf(AdminCaseDTO{})), "expected",
+		"管理侧必须能读到参考答案，否则编辑题目时会把已有答案清空")
+
+	reqFields := jsonFieldNames(reflect.TypeOf(CaseRequest{}))
+	require.Contains(t, reqFields, "expected",
+		"管理侧必须能提交参考答案，否则 ErrMissingExpected 校验永远无法通过")
+
+	// 反向断言：公开侧绝不能带 expected（它就是答案本身）。
+	require.NotContains(t, jsonFieldNames(reflect.TypeOf(PublicCaseDTO{})), "expected")
+}
+
+// TestCaseRequestMapsExpectedBothWays 断言 expected 在两条映射路径上
+// 都不会被静默丢弃 —— 只加字段不加映射是这类 bug 的常见形态。
+func TestCaseRequestMapsExpectedBothWays(t *testing.T) {
+	req := CaseRequest{Name: "n", Kind: "text", Prompt: "p", ExpectKind: "text", Expected: "42"}
+	require.Equal(t, "42", req.toCreateInput().Expected, "新建路径丢掉了 expected")
+	require.Equal(t, "42", req.toUpdateInput().Expected, "更新路径丢掉了 expected")
 }
 
 // TestPublicOverviewBucketDTOGroupIdentityIsExposeOnly 断言趋势桶只暴露
