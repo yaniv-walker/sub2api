@@ -388,7 +388,9 @@ func (h *AdminHandler) GetOverview(c *gin.Context) {
 	if !h.ensureEnabled(c) {
 		return
 	}
-	overview, err := h.Gallery.GetOverview(c.Request.Context(), 50, adminSource(c))
+	// 管理侧传 false：不套分组白名单。管理员本来就要看到「被隐藏的分组
+	// 也存在」——否则他根本没法判断白名单配得对不对。
+	overview, err := h.Gallery.GetOverview(c.Request.Context(), 50, adminSource(c), false)
 	if err != nil {
 		writeError(c, err)
 		return

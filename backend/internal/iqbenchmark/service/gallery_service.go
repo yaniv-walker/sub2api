@@ -24,6 +24,12 @@ type GalleryService struct {
 	// Targets 解析「分组 + 模型」候选集合并做目标二次校验。
 	// 允许为 nil（既有单测可不构造），为 nil 时跳过目标校验。
 	Targets *TargetsService
+	// Settings 提供「可展示分组」白名单等配置。
+	//
+	// 允许为 nil：为 nil 时**公开侧看不到任何分组**（fail-closed）。
+	// 这是刻意的默认 —— 白名单缺失时宁可变空，也不要把内部分组
+	// 拓扑默认摊开。管理侧不受影响（它本来就要看全部）。
+	Settings *SettingsProvider
 }
 
 // NewGalleryService 构造作品展服务。
@@ -34,6 +40,28 @@ func NewGalleryService(store Store, logger *slog.Logger) *GalleryService {
 		logger = slog.Default()
 	}
 	return &GalleryService{Store: store, Logger: logger, Now: time.Now}
+}
+
+// WithSettings 注入配置提供者（返回自身，便于链式构造）。
+func (s *GalleryService) WithSettings(settings *SettingsProvider) *GalleryService {
+	if s != nil {
+		s.Settings = settings
+	}
+	return s
+}
+
+// exposure 返回当前的可展示分组白名单快照。
+//
+// 单独抽出来是为了让「读配置」这件事只有一个写法：任何需要判断
+// 「这个分组能不能公开」的地方都调它，而不是各自去读 s.Settings
+// —— 后者迟早会在某处漏掉 nil 检查而 panic。
+func (s *GalleryService) exposure(ctx context.Context) iqbenchmark.Settings {
+	if s == nil || s.Settings == nil {
+		// 未注入配置：返回零值 Settings，ExposeGroups 为空
+		// ⇒ GroupExposed 恒 false，公开侧看不到任何分组。
+		return iqbenchmark.Settings{}
+	}
+	return s.Settings.Get(ctx)
 }
 
 // WithTargets 注入目标解析器（返回自身，便于链式构造）。
@@ -382,6 +410,23 @@ func (s *GalleryService) ListArtifacts(ctx context.Context, q ArtifactListQuery)
 		// 这比返回 400 更符合「筛选器」的直觉，也不会泄露合法取值集合。
 		filter.ModerationStatus = st
 	}
+	// 公开侧还要套一层「分组白名单」。
+	//
+	// 用 ModeratedOnly 作为「这是公开侧」的判据，与上面审核口径复用
+	// 同一个信号源：分开判据会出现「审核按公开侧算、白名单按管理侧算」
+	// 这种半公开状态，那正是最容易泄露的形态。
+	if q.ModeratedOnly {
+		exposed := s.exposure(ctx).ExposeGroupIDs()
+		if len(exposed) == 0 {
+			// 白名单为空 ⇒ 直接返回空页，不查库。
+			// 这样既省一次查询，也保证「没配置就绝对看不到东西」
+			// 不依赖仓储层是否记得处理空集合。
+			return &iqbenchmark.ArtifactListResult{
+				Items: []iqbenchmark.Artifact{}, Total: 0, Page: page, PageSize: pageSize,
+			}, nil
+		}
+		filter.GroupIDs = exposed
+	}
 	return s.Store.ListArtifacts(ctx, filter)
 }
 
@@ -429,16 +474,38 @@ func (s *GalleryService) Compare(ctx context.Context, ids []int64) ([]iqbenchmar
 // source 的归一化在服务层完成（fail-closed 到 scheduled），
 // 因此即使调用方忘了传或传了脏值，统计口径也不会被放大成全量。
 // 要全量必须显式传 SourceAll。
-func (s *GalleryService) GetOverview(ctx context.Context, bucketLimit int, source string) (*iqbenchmark.Overview, error) {
+//
+// 公开侧的分组白名单也会作用到这里：总览的分桶按「分组 × 模型」聚合，
+// 不套白名单等于把被隐藏分组的模型名、数量、耗时全部泄出去 ——
+// 列表藏起来了、统计却还在报数，是最典型的一类侧信道泄漏。
+// 管理侧传 restrictToExposed=false 拿全量。
+func (s *GalleryService) GetOverview(ctx context.Context, bucketLimit int, source string, restrictToExposed bool) (*iqbenchmark.Overview, error) {
 	if bucketLimit <= 0 {
 		bucketLimit = 50
 	}
+	var exposed []int64
+	if restrictToExposed {
+		exposed = s.exposure(ctx).ExposeGroupIDs()
+		if len(exposed) == 0 {
+			// 白名单为空：返回全零总览，不查库。
+			// 注意这里仍然返回 CaseCount（题目数与分组无关），
+			// 否则公开页会以为「连题都没有」而隐藏整个入口。
+			counts, err := s.Store.GetOverviewCounts(ctx, iqbenchmark.SourceFilterToRepo(source), []int64{})
+			if err != nil {
+				return nil, err
+			}
+			return &iqbenchmark.Overview{
+				CaseCount: counts.CaseCount,
+				Buckets:   []iqbenchmark.OverviewBucket{},
+			}, nil
+		}
+	}
 	repoSource := iqbenchmark.SourceFilterToRepo(source)
-	counts, err := s.Store.GetOverviewCounts(ctx, repoSource)
+	counts, err := s.Store.GetOverviewCounts(ctx, repoSource, exposed)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := s.Store.GetOverviewBuckets(ctx, bucketLimit, repoSource)
+	rows, err := s.Store.GetOverviewBuckets(ctx, bucketLimit, repoSource, exposed)
 	if err != nil {
 		return nil, err
 	}

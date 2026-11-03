@@ -683,6 +683,15 @@ func (r *Repository) ListArtifacts(ctx context.Context, f iqbenchmark.ArtifactLi
 	if f.GroupID != nil {
 		query = query.Where(iqbenchmarkartifact.GroupIDEQ(*f.GroupID))
 	}
+	// 分组白名单：非空时只查这些分组。
+	//
+	// 空切片在这里表示「不限制」而不是「什么都不能看」—— 后者由
+	// 服务层在调用前就返回空页拦掉。这样仓储层不需要区分
+	// 「nil 表示不限」与「空表示全禁」两种空值语义，
+	// 少一处歧义就少一处将来被改错的地方。
+	if len(f.GroupIDs) > 0 {
+		query = query.Where(iqbenchmarkartifact.GroupIDIn(f.GroupIDs...))
+	}
 	if strings.TrimSpace(f.Model) != "" {
 		query = query.Where(iqbenchmarkartifact.ModelEQ(f.Model))
 	}
@@ -933,28 +942,55 @@ func (r *Repository) HardDeleteRunsSoftDeletedBefore(ctx context.Context, cutoff
 // source 为空表示不过滤（全量口径）；非空时只统计该来源。
 // 用 $1 参数直接拼进 WHERE 的写法（NULLIF）保持「一条 SQL 同时支持
 // 过滤与不过滤」，避免为每种口径准备一份几乎相同的查询。
-func (r *Repository) GetOverviewCounts(ctx context.Context, source string) (OverviewCounts, error) {
+//
+// groupIDs 是分组白名单：非空时三条产出计数都只统计这些分组。
+// 必须与 GetOverviewBuckets 用同一套白名单，否则会出现「分桶里没有
+// 这个分组，总数却把它算进去了」这种自相矛盾的数字 —— 那比直接
+// 报数更糟，因为读者会以为是自己看错了。
+func (r *Repository) GetOverviewCounts(ctx context.Context, source string, groupIDs []int64) (OverviewCounts, error) {
 	var out OverviewCounts
+	// pq.Array(nil) 编成 NULL，SQL 里用 ($2::bigint[] IS NULL OR ...)
+	// 区分「不限」与「限制到空集合」。
 	err := r.db.QueryRowContext(ctx, `
 		SELECT
 			(SELECT COUNT(*) FROM iq_benchmark_artifacts
-			  WHERE deleted_at IS NULL AND ($1 = '' OR source = $1)),
+			  WHERE deleted_at IS NULL AND ($1 = '' OR source = $1)
+			    AND ($2::bigint[] IS NULL OR group_id = ANY($2))),
 			(SELECT COUNT(*) FROM iq_benchmark_artifacts
-			  WHERE deleted_at IS NULL AND render_kind = 'image_url' AND ($1 = '' OR source = $1)),
+			  WHERE deleted_at IS NULL AND render_kind = 'image_url' AND ($1 = '' OR source = $1)
+			    AND ($2::bigint[] IS NULL OR group_id = ANY($2))),
 			(SELECT COUNT(*) FROM iq_benchmark_artifacts
-			  WHERE deleted_at IS NULL AND render_kind <> 'image_url' AND ($1 = '' OR source = $1)),
+			  WHERE deleted_at IS NULL AND render_kind <> 'image_url' AND ($1 = '' OR source = $1)
+			    AND ($2::bigint[] IS NULL OR group_id = ANY($2))),
 			(SELECT COUNT(*) FROM iq_benchmark_cases WHERE enabled = TRUE),
 			(SELECT COUNT(*) FROM iq_benchmark_tasks),
 			(SELECT COUNT(*) FROM iq_benchmark_tasks WHERE enabled = TRUE)
-	`, source).Scan(&out.TotalArtifacts, &out.ImageArtifacts, &out.TextArtifacts, &out.CaseCount, &out.TaskCount, &out.RunningTasks)
+	`, source, pq.Array(overviewGroupArray(groupIDs))).Scan(&out.TotalArtifacts, &out.ImageArtifacts,
+		&out.TextArtifacts, &out.CaseCount, &out.TaskCount, &out.RunningTasks)
 	if err != nil {
 		return out, err
 	}
 	return out, nil
 }
 
+// overviewGroupArray 把分组白名单转成 SQL 参数。
+//
+// 空切片转成 nil（→ SQL NULL → 表示「不限」），这是仓储层的既定约定：
+// 「限制到空集合」在服务层就已经返回空页，不会走到这里。
+// 统一成 nil 而不是空数组，避免 pq 把 []int64{} 编成 '{}' 后
+// 让 ANY 恒假、把「不限」意外变成「全禁」。
+func overviewGroupArray(groupIDs []int64) []int64 {
+	if len(groupIDs) == 0 {
+		return nil
+	}
+	return groupIDs
+}
+
 // GetOverviewBuckets 按「分组 × 模型」聚合产出。
-func (r *Repository) GetOverviewBuckets(ctx context.Context, limit int, source string) ([]OverviewBucketRow, error) {
+//
+// groupIDs 是分组白名单，语义与 GetOverviewCounts 一致：
+// 空 ⇒ 不限（管理侧）；非空 ⇒ 只聚合这些分组（公开侧）。
+func (r *Repository) GetOverviewBuckets(ctx context.Context, limit int, source string, groupIDs []int64) ([]OverviewBucketRow, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -968,10 +1004,11 @@ func (r *Repository) GetOverviewBuckets(ctx context.Context, limit int, source s
 		       MAX(created_at) AS last_run_at
 		FROM iq_benchmark_artifacts
 		WHERE deleted_at IS NULL AND ($2 = '' OR source = $2)
+		  AND ($3::bigint[] IS NULL OR group_id = ANY($3))
 		GROUP BY group_id, model
 		ORDER BY MAX(created_at) DESC
 		LIMIT $1
-	`, limit, source)
+	`, limit, source, pq.Array(overviewGroupArray(groupIDs)))
 	if err != nil {
 		return nil, err
 	}

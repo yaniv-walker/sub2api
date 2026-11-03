@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark"
+	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/ratelimit"
 	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 )
@@ -31,6 +32,9 @@ func NewUserHandler(gallery *service.GalleryService, settings *iqbenchmark.Setti
 // options 依据配置生成公开侧选项。
 func (h *UserHandler) options(c *gin.Context) PublicArtifactOptions {
 	opts := PublicArtifactOptions{}
+	// ViewerUserID 与配置无关，必须无条件设置：漏了它 is_mine 恒为 false，
+	// 用户会看不到「这条是我测的」角标，而这种缺失很难被察觉。
+	opts.ViewerUserID = ratelimit.UserIDFromContext(c)
 	if h.Settings == nil {
 		return opts
 	}
@@ -43,26 +47,36 @@ func (h *UserHandler) options(c *gin.Context) PublicArtifactOptions {
 
 // GetOverview 返回作品展总览。
 //
-// 公开侧不下发分组名与分组 ID（暴露内部路由拓扑），只给模型名与统计数字。
+// 公开侧只下发**管理员自填**的分组展示名与分组 ID，绝不下发上游分组名：
+// 上游命名往往能看出渠道来源。未在白名单里的分组由服务层直接过滤掉，
+// 白名单为空时整个页面为空（fail-closed）。
 //
 // 统计口径（用户裁决）：默认 scheduled，可通过 ?source= 查询其他口径。
 // 默认值刻意**不含**用户自测 —— 否则一次自测刷量就能让「模型排行」失真。
 func (h *UserHandler) GetOverview(c *gin.Context) {
-	overview, err := h.Gallery.GetOverview(c.Request.Context(), 50, publicSource(c))
+	overview, err := h.Gallery.GetOverview(c.Request.Context(), 50, publicSource(c), true)
 	if err != nil {
 		writeError(c, err)
 		return
+	}
+	// 展示名从同一份配置里取：白名单是「哪些分组可见」的唯一来源，
+	// 名字也从它取，避免出现「service 说可见、handler 却查不到名字」。
+	exposed := iqbenchmark.Settings{}
+	if h.Settings != nil {
+		exposed = h.Settings.Get(c.Request.Context())
 	}
 	buckets := make([]PublicOverviewBucketDTO, 0, len(overview.Buckets))
 	for i := range overview.Buckets {
 		b := overview.Buckets[i]
 		buckets = append(buckets, PublicOverviewBucketDTO{
-			Model:       b.Model,
-			Total:       b.Total,
-			Success:     b.SuccessCount,
-			Failed:      b.FailedCount,
-			AvgDuration: b.AvgDurationM,
-			LastRunAt:   b.LastRunAt,
+			GroupID:         b.GroupID,
+			GroupExposeName: exposed.ExposeNameOf(b.GroupID),
+			Model:           b.Model,
+			Total:           b.Total,
+			Success:         b.SuccessCount,
+			Failed:          b.FailedCount,
+			AvgDuration:     b.AvgDurationM,
+			LastRunAt:       b.LastRunAt,
 		})
 	}
 	response.Success(c, PublicOverviewDTO{

@@ -184,6 +184,15 @@ func (s *UserTestService) Submit(ctx context.Context, in iqbenchmark.UserTestSub
 	if s.Targets == nil {
 		return nil, iqbenchmark.ErrTargetGroupUnavailable
 	}
+	// 分组白名单：提交路径必须独立校验，不能只靠 MyTargets 过滤候选。
+	// 前端候选被过滤掉只是「看不见」，直接 POST 仍然能指定任意 group_id；
+	// 少了这道判断，白名单就只是个 UI 装饰。
+	//
+	// 用与 MyTargets 完全相同的判据，保证「下拉里能选到的」与
+	// 「提交能通过的」永远一致 —— 不一致会让用户看到必被拒的选项。
+	if !settings.GroupExposed(groupID) {
+		return nil, iqbenchmark.ErrTargetGroupUnavailable
+	}
 	group, err := s.Targets.ActiveGroup(ctx, groupID)
 	if err != nil {
 		return nil, err
@@ -353,6 +362,11 @@ func (s *UserTestService) MyTargets(ctx context.Context, userID, apiKeyID int64)
 
 	if boundGroupID > 0 {
 		// Key 绑了分组：只返回那一个分组（Submit 会强制用它）。
+		// 但仍然要过白名单：白名单是「这个分组能不能公开被测」的安全边界，
+		// Key 绑定只是「用户手上有这把钥匙」，不能代替管理员授权。
+		if !s.exposedGroups(ctx).GroupExposed(boundGroupID) {
+			return &Targets{Groups: []TargetGroup{}, Truncated: false}, nil
+		}
 		filtered := make([]TargetGroup, 0, 1)
 		for _, g := range all.Groups {
 			if g.ID == boundGroupID {
@@ -362,7 +376,26 @@ func (s *UserTestService) MyTargets(ctx context.Context, userID, apiKeyID int64)
 		}
 		return &Targets{Groups: filtered, Truncated: false}, nil
 	}
-	return all, nil
+
+	// 没绑 Key：只返回白名单内的分组。
+	// 之前这里直接返回 all，等于把站点的全部分组拓扑摊给任何登录用户 ——
+	// 与注释里「不返回全部分组」的意图相反，属实现与注释不一致，此处修正。
+	exposed := s.exposedGroups(ctx)
+	filtered := make([]TargetGroup, 0, len(all.Groups))
+	for _, g := range all.Groups {
+		if exposed.GroupExposed(g.ID) {
+			filtered = append(filtered, g)
+		}
+	}
+	return &Targets{Groups: filtered, Truncated: all.Truncated}, nil
+}
+
+// exposedGroups 返回当前配置快照（未注入配置时返回零值 ⇒ 白名单为空 ⇒ 全禁）。
+func (s *UserTestService) exposedGroups(ctx context.Context) iqbenchmark.Settings {
+	if s == nil || s.Settings == nil {
+		return iqbenchmark.Settings{}
+	}
+	return s.Settings.Get(ctx)
 }
 
 // runSync 同步执行（仅单测与关闭异步时使用）。

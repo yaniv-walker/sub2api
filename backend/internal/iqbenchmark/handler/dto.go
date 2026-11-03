@@ -149,11 +149,32 @@ type PublicArtifactDTO struct {
 	Content    string `json:"content,omitempty"`
 	Truncated  bool   `json:"truncated"`
 	Status     string `json:"status"`
+	// Verdict 是本题的四态判定：ok / degraded / generated / unknown。
+	//
+	// 与 Status 并存：Status 说「调用成不成」，Verdict 说「答得对不对」。
+	// 一条 status=success 的产出完全可能是 degraded（调用成功但答错），
+	// 那正是模型变笨时唯一能看出来的信号。
+	Verdict string `json:"verdict"`
+	// RenderVerdict 是渲染形态的判定，与 Verdict 独立：
+	// 一道文本题可以答对但渲染坏掉，两者不该互相污染。
+	RenderVerdict string `json:"render_verdict"`
+	// ErrorKind 是 12 类归一化后的上游错误类别。
+	//
+	// 只下发归一化类别，**不下发** error_code（内部错误码含供应商与
+	// 路由信息）。ErrorKind 的取值集合是固定的 12 个，不含任何内部细节，
+	// 前端据此做统计与筛选都安全。
+	ErrorKind string `json:"error_kind,omitempty"`
 	// ErrorSummary 是脱敏后的失败描述（绝不回显内部错误码）。
 	ErrorSummary string   `json:"error_summary,omitempty"`
 	Score        *float64 `json:"score,omitempty"`
 	DurationMS   int      `json:"duration_ms"`
 	IsUnsafe     bool     `json:"is_unsafe"`
+	// IsMine 表示这条产出是不是当前登录用户自己发起的自测。
+	//
+	// 由**服务端**计算：客户端没有任何字段可以推导出它。
+	// 刻意不下发 user_id / api_key_id 让前端自己比 —— 那等于把
+	// 「谁的产出」这份信息整个交给客户端，只是换个地方泄露。
+	IsMine bool `json:"is_mine"`
 	// Source 是产出属主口径：scheduled（定时检测）或 user_test（用户自测）。
 	//
 	// 公开侧下发它是为了让前端能打「用户自测」角标 —— 用户有权知道
@@ -196,12 +217,28 @@ type PublicOverviewDTO struct {
 
 // PublicOverviewBucketDTO 是「模型 × 通过率」聚合行。
 //
-// 分组名不下发（暴露内部路由拓扑），只下发模型名与统计数字。
+// 下发 GroupID 与 GroupExposeName（管理员自填的展示名），**不下发**上游
+// 分组名。理由：公开侧要按「分组分墙」，墙必须有个名字；但上游分组名
+// 往往能看出渠道来源（如「claude-code-高倍率」）。所以名字由管理员在
+// 白名单里另填一份，上游名永远不出后台。
+//
+// GroupExposeName 为空表示管理员没给这个分组起名 —— 前端应跳过这堵墙，
+// 后端不回退成上游分组名（回退等于把「忘了填」变成「泄露」）。
 type PublicOverviewBucketDTO struct {
-	Model       string     `json:"model"`
-	Total       int64      `json:"total"`
-	Success     int64      `json:"success"`
-	Failed      int64      `json:"failed"`
+	GroupID         int64  `json:"group_id"`
+	GroupExposeName string `json:"group_name,omitempty"`
+	Model           string `json:"model"`
+	Total           int64  `json:"total"`
+	Success         int64  `json:"success"`
+	Failed          int64  `json:"failed"`
+	// Verdict 是本行的四态判定汇总（normal / degraded / generated / unknown）。
+	//
+	// 与 Success/Failed 并列而不是替代：那两个回答「调用跑通没有」，
+	// Verdict 回答「模型答对没有」。模型悄悄变笨时前者仍然好看，
+	// 所以必须两个都给，让读者自己看出差异。
+	Verdict     string     `json:"verdict"`
+	Passed      int64      `json:"passed"`
+	LogicTotal  int64      `json:"logic_total"`
 	AvgDuration float64    `json:"avg_duration_ms"`
 	LastRunAt   *time.Time `json:"last_run_at,omitempty"`
 }
@@ -377,6 +414,11 @@ type PublicArtifactOptions struct {
 	ExposeTokens bool
 	// ScoringEnabled 为 false 时不下发 score（避免用户看到无法理解的分数）。
 	ScoringEnabled bool
+	// ViewerUserID 是当前登录用户；用于计算 is_mine。
+	//
+	// 只有 ID 参与比较，**不**下发：前端拿到的是布尔值，
+	// 拿不到「这条属于谁」。
+	ViewerUserID int64
 }
 
 // toPublicArtifact 映射公开侧产出。
@@ -392,19 +434,23 @@ func toPublicArtifact(a *iqbenchmark.Artifact, opts PublicArtifactOptions) Publi
 	caseName, caseKind := caseMetaFromSnapshot(a.CaseSnapshot)
 
 	dto := PublicArtifactDTO{
-		ID:           a.ID,
-		CaseID:       a.CaseID,
-		CaseName:     caseName,
-		CaseKind:     caseKind,
-		Model:        a.Model,
-		RenderKind:   a.RenderKind,
-		Truncated:    a.ContentTruncated,
-		Status:       a.Status,
-		DurationMS:   a.DurationMS,
-		IsUnsafe:     a.Status == iqbenchmark.ArtifactStatusBlocked,
-		Source:       publicArtifactSource(a.Source),
-		CreatedAt:    a.CreatedAt,
-		ErrorSummary: publicErrorSummary(a),
+		ID:            a.ID,
+		CaseID:        a.CaseID,
+		CaseName:      caseName,
+		CaseKind:      caseKind,
+		Model:         a.Model,
+		RenderKind:    a.RenderKind,
+		Truncated:     a.ContentTruncated,
+		Status:        a.Status,
+		Verdict:       publicVerdict(a.Verdict),
+		RenderVerdict: publicRenderVerdict(a.RenderVerdict),
+		ErrorKind:     publicErrorKind(a),
+		DurationMS:    a.DurationMS,
+		IsUnsafe:      a.Status == iqbenchmark.ArtifactStatusBlocked,
+		IsMine:        a.TriggeredByUserID > 0 && a.TriggeredByUserID == opts.ViewerUserID,
+		Source:        publicArtifactSource(a.Source),
+		CreatedAt:     a.CreatedAt,
+		ErrorSummary:  publicErrorSummary(a),
 	}
 
 	// 被阻断的产出：不下发正文与图片，只留状态与脱敏摘要。
@@ -430,6 +476,57 @@ func toPublicArtifact(a *iqbenchmark.Artifact, opts PublicArtifactOptions) Publi
 		dto.OutputTokens = &out
 	}
 	return dto
+}
+
+// publicVerdict 归一化公开侧的判定字段。
+//
+// 空值兜底为 unknown 而不是 ok：判定字段是「这次答得对不对」的唯一
+// 表达，未知时给 ok 等于免费发一张通过票。历史上没有这个字段的行
+// （迁移 253 之前）确实是「没判过」，unknown 是如实描述。
+func publicVerdict(verdict string) string {
+	switch verdict {
+	case iqbenchmark.VerdictOK, iqbenchmark.VerdictDegraded,
+		iqbenchmark.VerdictGenerated, iqbenchmark.VerdictUnknown:
+		return verdict
+	default:
+		return iqbenchmark.VerdictUnknown
+	}
+}
+
+// publicRenderVerdict 归一化公开侧的渲染判定。
+func publicRenderVerdict(verdict string) string {
+	switch verdict {
+	case iqbenchmark.RenderVerdictOK, iqbenchmark.RenderVerdictDegraded,
+		iqbenchmark.RenderVerdictGenerated, iqbenchmark.RenderVerdictUnknown:
+		return verdict
+	default:
+		return iqbenchmark.RenderVerdictUnknown
+	}
+}
+
+// publicErrorKind 归一化公开侧的错误类别。
+//
+// 只下发 12 类里的已知取值；空串保持为空（omitempty 会省掉这个键），
+// 未知取值一律塌缩成 generic 而不是原样下发 —— 原样下发等于把
+// 内部错误字符串直通到公网，那正是白名单要拦的东西。
+func publicErrorKind(a *iqbenchmark.Artifact) string {
+	if a == nil {
+		return ""
+	}
+	kind := a.ErrorKind
+	if kind == "" {
+		// 兼容迁移 253 之前的行：那时只有 error_code，
+		// 用映射表反推一个展示类别。代码注释里明确这条路径的用途
+		// 是「读旧数据」，不参与任何控制流。
+		kind = iqbenchmark.ErrorKindFromCode(a.ErrorCode)
+	}
+	if kind == "" {
+		return ""
+	}
+	if !iqbenchmark.IsKnownErrorKind(kind) {
+		return iqbenchmark.ErrorKindGeneric
+	}
+	return kind
 }
 
 // publicArtifactSource 归一化公开侧的来源字段。

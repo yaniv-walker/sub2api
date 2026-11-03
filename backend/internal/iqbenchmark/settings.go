@@ -123,6 +123,21 @@ type Settings struct {
 	// ExposeTokensToUser 控制公开侧是否下发 token 数，默认 false。
 	ExposeTokensToUser bool `json:"expose_tokens_to_user"`
 
+	// ExposeGroups 是「哪些分组允许在公开作品展上露出」的白名单。
+	//
+	// 为什么需要它：公开作品展按分组分墙展示，而分组名本身会暴露内部
+	// 路由拓扑（例如「claude-code-高倍率」这种命名）。没有白名单时，
+	// 任何新建的内部测试分组都会立刻出现在公开页面上。
+	//
+	// 语义（用户裁决）：
+	//   - 空列表 = **什么都不显示**（fail-closed）。管理员必须先显式勾选，
+	//     公开侧才看得到东西。代价是升级后画廊起初是空的，这是刻意选择：
+	//     宁可让人以为「功能没启用」，也不要默认把内部拓扑贴出去。
+	//   - 非空 = 只有列在其中的分组可见 / 可自测。
+	//
+	// 存 ID 而不是名字：分组改名是常规操作，存名字会在改名后静默失效。
+	ExposeGroups []ExposeGroup `json:"expose_groups"`
+
 	RetentionDays          int `json:"retention_days"`
 	MaxArtifacts           int `json:"max_artifacts"`
 	CleanupIntervalMinutes int `json:"cleanup_interval_minutes"`
@@ -144,6 +159,67 @@ type Settings struct {
 	// UserTestDailyCostBudget 是单用户每日自测成本上限（USD）。
 	// 0 表示不限制（用户裁决：默认不限制，允许用户自行收紧）。
 	UserTestDailyCostBudget float64 `json:"user_test_daily_cost_budget"`
+}
+
+// ExposeGroup 是一个「允许公开露出」的分组配置。
+//
+// 只存 ID 与管理员自己填的展示名，**不存**上游分组名 ——
+// 展示名是这次唯一允许出现在公开页面上的标识，它由管理员决定，
+// 可以写成「模型 A 组」这种不含任何拓扑信息的名字。
+type ExposeGroup struct {
+	// GroupID 是上游分组 ID。
+	GroupID int64 `json:"group_id"`
+	// ExposeName 是公开侧展示用的名字（管理员自填）。
+	//
+	// 为空时公开侧**不展示该分组的墙**（而不是回退成上游分组名）：
+	// 回退会让「忘了填名字」变成「泄露拓扑」，这个默认值赌不起。
+	ExposeName string `json:"expose_name"`
+	// SortOrder 控制公开页的分墙顺序，小的在前。
+	SortOrder int `json:"sort_order"`
+}
+
+// ExposeGroupIDs 返回白名单里的分组 ID 集合。
+//
+// 白名单是安全边界，因此这里刻意返回**新切片**而不是内部引用：
+// 调用方即使就地修改也不会污染配置缓存。
+func (s Settings) ExposeGroupIDs() []int64 {
+	if len(s.ExposeGroups) == 0 {
+		return nil
+	}
+	ids := make([]int64, 0, len(s.ExposeGroups))
+	for _, g := range s.ExposeGroups {
+		if g.GroupID > 0 {
+			ids = append(ids, g.GroupID)
+		}
+	}
+	return ids
+}
+
+// GroupExposed 判断某个分组是否允许在公开侧露出。
+//
+// 这是**唯一**的白名单判定入口：TargetsService、公开列表、公开矩阵、
+// 总览聚合都必须经过它，否则迟早会出现「某一处忘了过滤」。
+// 空白名单返回 false（fail-closed）。
+func (s Settings) GroupExposed(groupID int64) bool {
+	if groupID <= 0 {
+		return false
+	}
+	for _, g := range s.ExposeGroups {
+		if g.GroupID == groupID {
+			return true
+		}
+	}
+	return false
+}
+
+// ExposeNameOf 返回某分组在公开侧应有的展示名（未配置或空名返回空串）。
+func (s Settings) ExposeNameOf(groupID int64) string {
+	for _, g := range s.ExposeGroups {
+		if g.GroupID == groupID {
+			return strings.TrimSpace(g.ExposeName)
+		}
+	}
+	return ""
 }
 
 // DefaultSettings 返回默认配置：功能关闭、限额保守。
@@ -259,7 +335,45 @@ func (s Settings) Normalize() Settings {
 	if s.UserTestDailyCostBudget < 0 {
 		s.UserTestDailyCostBudget = 0
 	}
+	s.ExposeGroups = normalizeExposeGroups(s.ExposeGroups)
 	return s
+}
+
+// normalizeExposeGroups 清掉白名单里的脏数据。
+//
+// 白名单是公开侧的安全边界，因此这里的容错方向是「宁可少显示」：
+//   - GroupID <= 0 的条目直接丢弃（通常是前端没填就提交的空行）
+//   - 重复 ID 只保留第一条（否则公开侧会出现两堵同名墙）
+//   - ExposeName 去首尾空白（空白名在公开侧视为「不展示」）
+//
+// 不对 SortOrder 做收敛：它只影响展示顺序，出现并列或负数也只是顺序
+// 不理想，不影响安全，没必要为此改写管理员的输入。
+func normalizeExposeGroups(in []ExposeGroup) []ExposeGroup {
+	if len(in) == 0 {
+		// 返回 nil 而不是空切片：让 MarshalJSON 落库时写成 null，
+		// 与「从未配置过」保持同一种形态，便于运维辨认。
+		return nil
+	}
+	seen := make(map[int64]struct{}, len(in))
+	out := make([]ExposeGroup, 0, len(in))
+	for _, g := range in {
+		if g.GroupID <= 0 {
+			continue
+		}
+		if _, dup := seen[g.GroupID]; dup {
+			continue
+		}
+		seen[g.GroupID] = struct{}{}
+		out = append(out, ExposeGroup{
+			GroupID:    g.GroupID,
+			ExposeName: strings.TrimSpace(g.ExposeName),
+			SortOrder:  g.SortOrder,
+		})
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // MarshalJSON 保证落库前已归一化，避免非法值被写进 settings 表。

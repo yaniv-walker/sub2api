@@ -35,6 +35,10 @@ type galleryStore struct {
 	lastBucketLimit    int
 	lastBucketSource   string
 	lastOverviewSource string
+	// 分组白名单的透传断言：公开侧必须把白名单传到仓储层，
+	// 而不是查完再在内存里筛（后者会让 LIMIT 先截断再丢弃）。
+	lastOverviewGroups []int64
+	lastBucketGroups   []int64
 	lastListFilter     iqbenchmark.ArtifactListFilter
 	// 记录调用顺序，用于断言「顺序不能变」。
 	order []string
@@ -79,14 +83,16 @@ func (g *galleryStore) GetArtifact(_ context.Context, id int64) (*iqbenchmark.Ar
 	return &iqbenchmark.Artifact{ID: id}, nil
 }
 
-func (g *galleryStore) GetOverviewCounts(_ context.Context, source string) (OverviewCounts, error) {
+func (g *galleryStore) GetOverviewCounts(_ context.Context, source string, groupIDs []int64) (OverviewCounts, error) {
 	g.lastOverviewSource = source
+	g.lastOverviewGroups = groupIDs
 	return OverviewCounts{}, nil
 }
 
-func (g *galleryStore) GetOverviewBuckets(_ context.Context, limit int, source string) ([]OverviewBucketRow, error) {
+func (g *galleryStore) GetOverviewBuckets(_ context.Context, limit int, source string, groupIDs []int64) ([]OverviewBucketRow, error) {
 	g.lastBucketLimit = limit
 	g.lastBucketSource = source
+	g.lastBucketGroups = groupIDs
 	return nil, nil
 }
 
@@ -225,7 +231,7 @@ func TestGetOverviewDefaultsBucketLimit(t *testing.T) {
 	store := &galleryStore{}
 	svc := NewGalleryService(store, nil)
 
-	_, err := svc.GetOverview(context.Background(), 0, iqbenchmark.SourceScheduled)
+	_, err := svc.GetOverview(context.Background(), 0, iqbenchmark.SourceScheduled, false)
 	require.NoError(t, err)
 	require.Equal(t, 50, store.lastBucketLimit, "non-positive bucketLimit must fall back to 50")
 }
@@ -251,7 +257,7 @@ func TestGetOverviewPassesSourceThrough(t *testing.T) {
 			store := &galleryStore{}
 			svc := NewGalleryService(store, nil)
 
-			_, err := svc.GetOverview(context.Background(), 10, tc.in)
+			_, err := svc.GetOverview(context.Background(), 10, tc.in, false)
 			require.NoError(t, err)
 			require.Equal(t, tc.want, store.lastOverviewSource,
 				"counts query must receive the normalized source")
@@ -266,7 +272,9 @@ func TestGetOverviewPassesSourceThrough(t *testing.T) {
 //   - ModeratedOnly 时强制只看 approved（公开侧的可见性规则）。
 func TestListArtifactsSourceAndModerationFilter(t *testing.T) {
 	store := &galleryStore{}
-	svc := NewGalleryService(store, nil)
+	// 注入非空白名单：公开路径在白名单为空时会直接返回空页而不查库，
+	// 那样后半段就测不到 source / moderation 的传递了。
+	svc := NewGalleryService(store, nil).WithSettings(testSettingsWithExposed(7))
 
 	_, err := svc.ListArtifacts(context.Background(), ArtifactListQuery{Page: 1, PageSize: 10})
 	require.NoError(t, err)
@@ -274,6 +282,8 @@ func TestListArtifactsSourceAndModerationFilter(t *testing.T) {
 		"omitted source must default to scheduled")
 	require.Empty(t, store.lastListFilter.ModerationStatus,
 		"admin path must not implicitly filter by moderation")
+	require.Nil(t, store.lastListFilter.GroupIDs,
+		"admin path must not be restricted by the public whitelist")
 
 	_, err = svc.ListArtifacts(context.Background(), ArtifactListQuery{
 		Source:        iqbenchmark.SourceAll,
@@ -285,6 +295,8 @@ func TestListArtifactsSourceAndModerationFilter(t *testing.T) {
 	require.Empty(t, store.lastListFilter.Source, "source=all must clear the filter")
 	require.Equal(t, iqbenchmark.ModerationApproved, store.lastListFilter.ModerationStatus,
 		"public path must only expose approved artifacts")
+	require.Equal(t, []int64{7}, store.lastListFilter.GroupIDs,
+		"public path must carry the group whitelist down to the repository")
 }
 
 // TestListArtifactsAdminModerationQueue 覆盖审核队列入口。
@@ -311,7 +323,9 @@ func TestListArtifactsAdminModerationQueue(t *testing.T) {
 // 的静默失效；这条断言保证两者同时出现时公开侧的收紧优先。
 func TestListArtifactsModeratedOnlyWinsOverAdminFilter(t *testing.T) {
 	store := &galleryStore{}
-	svc := NewGalleryService(store, nil)
+	// 必须注入非空白名单：公开路径在白名单为空时直接返回空页、
+	// 根本不查库，那样就测不到「审核口径优先级」这件事了。
+	svc := NewGalleryService(store, nil).WithSettings(testSettingsWithExposed(7))
 
 	_, err := svc.ListArtifacts(context.Background(), ArtifactListQuery{
 		ModeratedOnly:    true,
@@ -322,4 +336,16 @@ func TestListArtifactsModeratedOnlyWinsOverAdminFilter(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, iqbenchmark.ModerationApproved, store.lastListFilter.ModerationStatus,
 		"the public-path restriction must win over an admin status filter")
+}
+
+// testSettingsWithExposed 构造一个白名单只含指定分组的配置提供者。
+func testSettingsWithExposed(groupIDs ...int64) *SettingsProvider {
+	s := DefaultSettings()
+	s.ExposeGroups = make([]iqbenchmark.ExposeGroup, 0, len(groupIDs))
+	for i, id := range groupIDs {
+		s.ExposeGroups = append(s.ExposeGroups, iqbenchmark.ExposeGroup{
+			GroupID: id, ExposeName: "组", SortOrder: i,
+		})
+	}
+	return iqbenchmark.NewSettingsProvider(&staticSettingsStore{value: s}, nil)
 }

@@ -105,8 +105,12 @@ type Store interface {
 	// GetOverviewCounts / GetOverviewBuckets 的 source 参数为空表示全量口径。
 	// 统计口径必须由仓储层强制执行（而不是让每个调用方各自过滤），
 	// 否则漏一处就会让「按来源统计」静默失真。
-	GetOverviewCounts(ctx context.Context, source string) (OverviewCounts, error)
-	GetOverviewBuckets(ctx context.Context, limit int, source string) ([]OverviewBucketRow, error)
+	//
+	// groupIDs 是分组白名单：空表示不限（管理侧），非空表示只统计这些分组
+	// （公开侧）。它与 source 同理 —— 必须在 SQL 里过滤而不是查完再筛，
+	// 否则 LIMIT 会先截断再丢弃，分桶数量会莫名其妙地少。
+	GetOverviewCounts(ctx context.Context, source string, groupIDs []int64) (OverviewCounts, error)
+	GetOverviewBuckets(ctx context.Context, limit int, source string, groupIDs []int64) ([]OverviewBucketRow, error)
 
 	// UserTest
 	// 用户自测的请求侧状态机（产出仍写 artifacts）。

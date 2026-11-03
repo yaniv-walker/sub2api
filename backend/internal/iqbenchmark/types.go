@@ -516,12 +516,21 @@ type Artifact struct {
 // ArtifactListFilter 是作品列表的筛选条件。
 type ArtifactListFilter struct {
 	GroupID *int64
-	Model   string
-	CaseID  *int64
-	Status  string
-	Kind    string
-	Since   *time.Time
-	Until   *time.Time
+	// GroupIDs 是「分组白名单」筛选：非空时只查这些分组。
+	//
+	// 与 GroupID 并存而不是复用它（比如传切片长度 1），因为语义不同：
+	// GroupID 是管理员主动筛某个分组；GroupIDs 是安全边界强加的可见性。
+	// 混用会让「管理员筛了 A 分组，但白名单里没有 A」变成静默空结果，
+	// 排查时很难看出到底是筛空还是被拦。
+	//
+	// nil / 空切片表示不限制（管理侧）；公开侧由服务层保证非空才走到这里。
+	GroupIDs []int64
+	Model    string
+	CaseID   *int64
+	Status   string
+	Kind     string
+	Since    *time.Time
+	Until    *time.Time
 	// Source 为空表示不过滤（对应查询参数 source=all）。
 	Source string
 	// ModerationStatus 为空表示不过滤；公开侧传 approved。

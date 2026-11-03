@@ -229,6 +229,14 @@ func userTestOn() Settings {
 	s.UserTestEnabled = true
 	s.UserTestDailyLimit = 5
 	s.UserTestMaxConcurrent = 1
+	// 分组白名单：默认空的语义是「什么都不显示」（fail-closed），
+	// 而这里的测试夹具用的是分组 3 / 5。不显式登记它们，
+	// 所有自测用例都会被白名单挡掉 —— 那是正确行为，但不是这些
+	// 用例想测的东西。凡是要放宽可见性的用例，都必须显式写出来。
+	s.ExposeGroups = []iqbenchmark.ExposeGroup{
+		{GroupID: 3, ExposeName: "组三", SortOrder: 1},
+		{GroupID: 5, ExposeName: "组五", SortOrder: 2},
+	}
 	return s
 }
 

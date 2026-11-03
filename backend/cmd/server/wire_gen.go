@@ -347,13 +347,13 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	batchImageHandler := handler.ProvideBatchImageHandler(batchImagePublicService, batchImageDownloadService, batchImageCleanupService, openAIGatewayHandler)
 	repositoryRepository := repository2.New(client, db)
 	targetsService := module.ProvideTargetsService(groupRepository, gatewayService)
-	logger := provideInternalPluginLogger()
-	galleryService := module.ProvideGalleryService(repositoryRepository, targetsService, logger)
 	settingsStore, err := module.ProvideSettingsStore(settingRepository)
 	if err != nil {
 		return nil, err
 	}
+	logger := provideInternalPluginLogger()
 	settingsProvider := iqbenchmark.NewSettingsProvider(settingsStore, logger)
+	galleryService := module.ProvideGalleryService(repositoryRepository, targetsService, settingsProvider, logger)
 	gatewayClient, err := module.ProvideGatewayClient(configConfig, settingsProvider, logger)
 	if err != nil {
 		return nil, err

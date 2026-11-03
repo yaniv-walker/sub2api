@@ -196,16 +196,17 @@ func ProvideTargetsService(
 	return service.NewTargetsService(store, lister)
 }
 
-// ProvideGalleryService 构造作品展服务并注入目标解析器。
+// ProvideGalleryService 构造作品展服务并注入目标解析器与配置。
 //
 // 单独包一层是为了让 service.NewGalleryService 保持既有签名（否则所有单测
-// 调用点都要改），同时保证生产链路一定带上目标校验。
+// 调用点都要改），同时保证生产链路一定带上目标校验与分组白名单。
 func ProvideGalleryService(
 	store service.Store,
 	targets *service.TargetsService,
+	settings *iqbenchmark.SettingsProvider,
 	logger *slog.Logger,
 ) *service.GalleryService {
-	return service.NewGalleryService(store, logger).WithTargets(targets)
+	return service.NewGalleryService(store, logger).WithTargets(targets).WithSettings(settings)
 }
 
 // ProvideScheduler 构造任务调度器（构造期不启动 goroutine）。
