@@ -1168,3 +1168,88 @@ $ golangci-lint run --timeout=15m ./internal/iqbenchmark/... ./internal/server/r
 §7.9 的四条缺口现状：1、2、3 已关闭（3 在关闭过程中又挖出一个更深的
 测试盲点并一并修好）；第 4 条（成本预检用估算值）是**设计选择**，
 不是缺陷，保留说明。
+
+## 八、阶段 9（Model Degradation 对标改造）验证输出
+
+对标 `https://fast.sunshinelink.online/model-degradation` 的五步改造，
+逐项决策与理由见 `docs/iq-benchmark-degradation-alignment.md`（45 条差异表）。
+
+### 8.1 交付顺序与实际落点
+
+| 步 | 内容 | 提交 |
+|---|---|---|
+| 1 | 差异表 + 四问回复（用户确认后继续） | 文档（gitignore） |
+| 2 | 后端四态 + 12 类 error_kind + 迁移 253/254 | `168b400ab2` |
+| 3 | 可展示分组白名单（fail-closed）+ 公开四态下发 | `491b6c9f75` |
+| 4 | 监控矩阵（题目 × 模型，60 格上限） | `b842f15fdd` |
+| 5 | SVG 走 `sandbox=""` iframe + 隐藏测量帧 | `896cc67858` |
+| 6 | 参考答案打通管理侧 + 题库按判分口径分组 | `3384de5506` |
+| 7 | 可展示分组白名单的管理界面 | `d62ea0ef46` |
+
+### 8.2 验证命令与结果
+
+```
+$ go build ./...
+0
+
+$ go vet -tags='unit' ./internal/iqbenchmark/...
+0
+
+$ go test -tags='unit' -count=1 ./internal/iqbenchmark/...
+ok   iqbenchmark            0.709s
+ok   iqbenchmark/handler    0.501s
+ok   iqbenchmark/module     0.785s
+ok   iqbenchmark/ratelimit  0.629s
+ok   iqbenchmark/repository 0.451s
+ok   iqbenchmark/sanitize   0.591s
+ok   iqbenchmark/scheduler  0.543s
+ok   iqbenchmark/service    7.327s
+
+$ golangci-lint run --build-tags=unit ./internal/iqbenchmark/...
+0 issues.
+
+$ npx vue-tsc -b
+0
+
+$ npx vitest run --pool=threads          # 前端全量
+Test Files  398 passed (398)
+Tests      3326 passed (3326)
+
+$ npx vite build
+✓ built in 40.57s
+```
+
+基线对照：本轮开工前前端全量为 394 文件 / 3259 测试；
+现为 398 / 3326（+4 文件 +67 测试），无回归。
+新增测试文件：`svgFrame.spec.ts`(37)、`caseSelector.spec.ts`(12)、
+`settingsPanel.spec.ts`(11)、`matrix_test.go`(11)。
+
+### 8.3 上游接触面（未变）
+
+```
+$ git diff --numstat main-self...HEAD -- handler.go wire.go router.go
+4  0  backend/internal/handler/handler.go
+3  0  backend/internal/handler/wire.go
+2  0  backend/internal/server/router.go
+```
+
+3 文件 / 9 行新增 / 0 删除，全部是「注册一行」级。
+
+### 8.4 本轮刻意不采纳参考实现的两项
+
+1. **不引入 HTML 消毒的替代方案**（差异表 #31）：DOMPurify 保留。
+   `sandbox=""` 是**新增的第二层**，不是替换。有测试断言
+   `svgToDataURI` 不再被导出 —— 两套渲染路径并存时最容易发生的
+   就是回退，删掉比保留「降级路径」安全。
+2. **不接受用户自填 `base_url` / `api_key`**（#37-38）：量在全站未变。
+   用户自测填的是**本站签发的 Key**，从下拉选、不手输、不落前端状态。
+
+### 8.5 仍需在真实部署环境执行的一项
+
+`tasks.md` 6.9 灰度（迁移上线关闭态 → 管理员开启 + 配题/任务 →
+`run-now` 验证 → 开启用户侧）保持未勾选，与阶段 8 同因：
+它需要真实数据库与真实上游调用，无法在单测环境完成。
+
+> 升级后需注意：`expose_groups` 默认空集（fail-closed），
+> 公开画廊、监控矩阵、用户自测三处起初都会是空的。
+> 必须先在管理页「可展示分组白名单」里加分组并填展示名，才会显示。
