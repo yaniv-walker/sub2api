@@ -300,6 +300,18 @@ export default {
         scoringEnabled: 'Enable scoring',
         exposeCost: 'Show cost to users',
         exposeTokens: 'Show tokens to users',
+        exposeGroups: 'Public group allowlist',
+        exposeGroupsHint:
+          'Only the groups listed here appear in the public gallery, the monitoring matrix and user self-tests. Pick a display name that does not reveal the upstream channel.',
+        exposeGroupsAdd: 'Add group',
+        exposeGroupsEmpty:
+          'The allowlist is empty: the public gallery, the monitoring matrix and user self-tests currently see no groups at all (this is the default fail-closed behaviour).',
+        exposeGroupId: 'Group ID',
+        exposeGroupName: 'Display name',
+        exposeGroupSort: 'Order',
+        exposeGroupRemove: 'Remove',
+        exposeGroupBlankName:
+          'Some groups have no display name. They stay hidden and never fall back to the upstream group name, which could reveal the channel.',
         retentionDays: 'Artifact retention (days)',
         maxArtifacts: 'Max artifacts in total',
         cleanupInterval: 'Cleanup interval (minutes)',

@@ -400,6 +400,25 @@ export interface IQBenchmarkSettings {
   user_test_require_review: boolean
   /** 每用户每日自测成本上限；0 = 不限制。 */
   user_test_daily_cost_budget: number
+  /**
+   * 可展示 / 可被自测的分组白名单。
+   *
+   * 默认空数组 = 一个都不展示（fail-closed）。升级后画廊起初是空的，
+   * 这是有意的：宁可先什么都不显示，也不要默认把站点的分组拓扑摊开。
+   *
+   * expose_name 是管理员另填的展示名 —— 公开侧下发的就是它，
+   * 不是上游分组名（上游名往往能看出渠道来源）。为空即该分组不展示。
+   */
+  expose_groups: IQExposeGroup[]
+}
+
+/** 「可展示分组」白名单条目。 */
+export interface IQExposeGroup {
+  group_id: number
+  /** 展示名；空串表示该分组不展示（绝不回退成上游分组名）。 */
+  expose_name: string
+  /** 展示顺序，小的在前。 */
+  sort_order: number
 }
 
 /** 分页信封。 */

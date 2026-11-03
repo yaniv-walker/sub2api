@@ -297,6 +297,18 @@ export default {
         scoringEnabled: '启用评分',
         exposeCost: '向用户展示成本',
         exposeTokens: '向用户展示 Token',
+        exposeGroups: '可展示分组白名单',
+        exposeGroupsHint:
+          '只有这里列出的分组会出现在公开作品展、监控矩阵与用户自测里。展示名请自行填写一个不会暴露渠道来源的名字。',
+        exposeGroupsAdd: '添加分组',
+        exposeGroupsEmpty:
+          '白名单为空：公开作品展、监控矩阵与用户自测当前都看不到任何分组（这是默认的 fail-closed 行为）。',
+        exposeGroupId: '分组 ID',
+        exposeGroupName: '展示名',
+        exposeGroupSort: '排序',
+        exposeGroupRemove: '移除',
+        exposeGroupBlankName:
+          '有分组没填展示名。它不会被展示，也不会回退成上游分组名（上游名可能暴露渠道来源）。',
         retentionDays: '作品保留天数',
         maxArtifacts: '作品总量上限',
         cleanupInterval: '清理间隔（分钟）',

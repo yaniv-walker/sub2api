@@ -167,6 +167,84 @@
     <!-- LLM 裁判：首版不实现，字段保留但恒为关闭 -->
     <input type="hidden" :value="form.llm_judge_enabled" />
 
+    <!--
+      可展示分组白名单。
+
+      这是「公开作品展能看到哪些分组」的唯一开关，默认空集 = 什么都不显示。
+      之前这个字段只能靠手工 PUT /admin/iq-benchmark/settings 改，
+      等于实际上没人能维护它 —— 于是画廊永远是空的。
+    -->
+    <section class="space-y-2 rounded-lg border border-gray-200 p-3 dark:border-dark-600">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-semibold">{{ t('iqBenchmark.admin.settings.exposeGroups') }}</p>
+          <p class="mt-1 text-[11px] text-gray-400">
+            {{ t('iqBenchmark.admin.settings.exposeGroupsHint') }}
+          </p>
+        </div>
+        <button class="btn btn-ghost btn-sm" :disabled="readonly" @click="addExposeGroup">
+          {{ t('iqBenchmark.admin.settings.exposeGroupsAdd') }}
+        </button>
+      </div>
+
+      <p
+        v-if="form.expose_groups.length === 0"
+        class="rounded bg-amber-50 p-2 text-[11px] text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+      >
+        {{ t('iqBenchmark.admin.settings.exposeGroupsEmpty') }}
+      </p>
+
+      <div v-else class="space-y-2">
+        <div
+          v-for="(row, index) in form.expose_groups"
+          :key="index"
+          class="grid grid-cols-1 gap-2 sm:grid-cols-[8rem_1fr_6rem_auto]"
+        >
+          <div>
+            <label class="input-label">{{ t('iqBenchmark.admin.settings.exposeGroupId') }}</label>
+            <input
+              v-model.number="row.group_id"
+              type="number"
+              min="1"
+              class="input"
+              :disabled="readonly"
+            />
+          </div>
+          <div>
+            <label class="input-label">{{ t('iqBenchmark.admin.settings.exposeGroupName') }}</label>
+            <input v-model="row.expose_name" class="input" :disabled="readonly" maxlength="60" />
+          </div>
+          <div>
+            <label class="input-label">{{ t('iqBenchmark.admin.settings.exposeGroupSort') }}</label>
+            <input
+              v-model.number="row.sort_order"
+              type="number"
+              class="input"
+              :disabled="readonly"
+            />
+          </div>
+          <div class="flex items-end">
+            <button
+              class="btn btn-ghost btn-sm text-red-600 dark:text-red-400"
+              :disabled="readonly"
+              :aria-label="t('iqBenchmark.admin.settings.exposeGroupRemove')"
+              @click="removeExposeGroup(index)"
+            >
+              {{ t('iqBenchmark.admin.settings.exposeGroupRemove') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 空名条目的后果要说清楚：它不会被「回退成上游分组名」显示 -->
+      <p
+        v-if="hasBlankExposeName"
+        class="text-[11px] text-amber-600 dark:text-amber-400"
+      >
+        {{ t('iqBenchmark.admin.settings.exposeGroupBlankName') }}
+      </p>
+    </section>
+
     <div class="flex items-center justify-end gap-2">
       <span v-if="saved" class="text-xs text-emerald-600 dark:text-emerald-400">
         {{ t('iqBenchmark.admin.settings.saved') }}
@@ -179,7 +257,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { IQBenchmarkSettings } from './types'
 
@@ -231,6 +309,8 @@ function defaults(): IQBenchmarkSettings {
     user_test_max_concurrent: 1,
     user_test_require_review: true,
     user_test_daily_cost_budget: 0,
+    // 与后端一致：默认空集 = 一个分组都不展示（fail-closed）。
+    expose_groups: [],
   }
 }
 
@@ -242,12 +322,50 @@ watch(
     Object.assign(form, next ? { ...next } : defaults())
     // 首版固定不启用 LLM 裁判：无论后端回什么值都不改。
     form.llm_judge_enabled = false
+    // 后端可能返回 null（JSON 里 null 与 [] 都会出现），
+    // 统一成数组，否则模板里的 .length 会炸。
+    if (!Array.isArray(form.expose_groups)) form.expose_groups = []
+    // 深拷贝每一行：reactive 表单直接引用 props 里的对象时，
+    // 编辑会就地改动父组件的状态，取消保存也回不去。
+    form.expose_groups = form.expose_groups.map((row) => ({ ...row }))
   },
   { immediate: true },
 )
 
+/** 有白名单条目但展示名为空 —— 后端不会展示它，也不回退成上游名。 */
+const hasBlankExposeName = computed(() =>
+  form.expose_groups.some((row) => row.group_id > 0 && row.expose_name.trim() === ''),
+)
+
+function addExposeGroup(): void {
+  if (props.readonly) return
+  // sort_order 递增排列，新行排在最后。
+  const nextSort =
+    form.expose_groups.length === 0
+      ? 0
+      : Math.max(...form.expose_groups.map((r) => r.sort_order || 0)) + 10
+  form.expose_groups.push({ group_id: 0, expose_name: '', sort_order: nextSort })
+}
+
+function removeExposeGroup(index: number): void {
+  if (props.readonly) return
+  form.expose_groups.splice(index, 1)
+}
+
 function submit(): void {
   if (props.readonly) return
-  emit('submit', { ...form, llm_judge_enabled: false })
+  emit('submit', {
+    ...form,
+    llm_judge_enabled: false,
+    // 提交前剔除无效行（group_id <= 0）：后端 Normalize 也会丢，
+    // 但在前端先丢掉，管理员能看到「我填的行没生效」而不是静默消失。
+    expose_groups: form.expose_groups
+      .filter((row) => Number.isFinite(row.group_id) && row.group_id > 0)
+      .map((row) => ({
+        group_id: row.group_id,
+        expose_name: row.expose_name.trim(),
+        sort_order: Number.isFinite(row.sort_order) ? row.sort_order : 0,
+      })),
+  })
 }
 </script>
