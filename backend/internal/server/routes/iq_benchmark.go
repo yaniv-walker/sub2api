@@ -84,6 +84,8 @@ func RegisterIQBenchmarkRoutes(
 	{
 		gallery.GET("/overview", handlers.User.GetOverview)
 		gallery.GET("/cases", handlers.User.ListCases)
+		// 监控矩阵：固定 60 格的看板，不走分页（与列表同一套筛选口径）。
+		gallery.GET("/matrix", handlers.User.GetMatrix)
 
 		artifacts := gallery.Group("/artifacts")
 		{

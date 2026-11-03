@@ -18,6 +18,7 @@ import type {
   IQArtifactFilters,
   IQBenchmarkSettings,
   IQCaseInput,
+  IQMatrix,
   IQPage,
   IQPublicArtifact,
   IQPublicCase,
@@ -83,6 +84,35 @@ export async function fetchArtifacts(filters: IQArtifactFilters): Promise<IQPage
     { params: toParams(filters) },
   )
   return normalizePage(data.data)
+}
+
+/**
+ * 公开：监控矩阵（题目 × 模型，固定 60 格上限）。
+ *
+ * 不走分页：矩阵是看板，翻页只会看到半个矩阵。筛选口径与列表一致
+ * （含 source 与分组），因此两处看到的「当前条件」永远是同一套。
+ *
+ * page/page_size 刻意不下发：`toParams` 会带上它们，而矩阵端点不接受
+ * 分页参数 —— 多传虽无害，但会让「矩阵与列表用同一套筛选」这件事
+ * 在代码里变得难以确认，所以这里显式剔除。
+ */
+export async function fetchMatrix(filters: IQArtifactFilters): Promise<IQMatrix> {
+  const params = toParams(filters)
+  delete params.page
+  delete params.page_size
+  delete params.moderation
+  const { data } = await apiClient.get<Envelope<IQMatrix>>(`${USER_BASE}/matrix`, { params })
+  const payload = data.data
+  if (!payload) {
+    return { cases: [], models: [], cells: [], total: 0, truncated: false }
+  }
+  return {
+    cases: payload.cases ?? [],
+    models: payload.models ?? [],
+    cells: payload.cells ?? [],
+    total: payload.total ?? 0,
+    truncated: Boolean(payload.truncated),
+  }
 }
 
 /** 公开：单件作品详情。 */

@@ -88,6 +88,61 @@ func (h *UserHandler) GetOverview(c *gin.Context) {
 	})
 }
 
+// GetMatrix 返回监控矩阵（题目 × 模型，固定 60 格上限）。
+//
+// 与 ListArtifacts 共用同一套筛选与白名单口径，只是形状不同：
+// 列表是分页流，矩阵是看板。刻意不做分页 ——
+// 翻到第 2 页看到半个矩阵只会让人以为数据缺了。
+func (h *UserHandler) GetMatrix(c *gin.Context) {
+	q := service.MatrixQuery{
+		Model:  c.Query("model"),
+		CaseID: parseOptionalInt64(c.Query("case_id")),
+		Status: c.Query("status"),
+		Kind:   c.Query("kind"),
+		Source: publicSource(c),
+	}
+	if v := parseOptionalInt64(c.Query("group_id")); v != nil {
+		q.GroupID = v
+	}
+	if v := parseOptionalInt64(c.Query("since")); v != nil {
+		t := time.Unix(*v, 0)
+		q.Since = &t
+	}
+	if v := parseOptionalInt64(c.Query("until")); v != nil {
+		t := time.Unix(*v, 0)
+		q.Until = &t
+	}
+	matrix, err := h.Gallery.GetMatrix(c.Request.Context(), q)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+	cases := make([]PublicMatrixAxisDTO, 0, len(matrix.Cases))
+	for _, axis := range matrix.Cases {
+		cases = append(cases, PublicMatrixAxisDTO{ID: axis.ID, Name: axis.Name, Kind: axis.Kind})
+	}
+	cells := make([]PublicMatrixCellDTO, 0, len(matrix.Cells))
+	for _, cell := range matrix.Cells {
+		cells = append(cells, PublicMatrixCellDTO{
+			CaseID:     cell.CaseID,
+			CaseName:   cell.CaseName,
+			Model:      cell.Model,
+			State:      cell.State,
+			ArtifactID: cell.ArtifactID,
+			Verdict:    cell.Verdict,
+			ErrorKind:  cell.ErrorKind,
+			CreatedAt:  cell.CreatedAt,
+		})
+	}
+	response.Success(c, PublicMatrixDTO{
+		Cases:     cases,
+		Models:    matrix.Models,
+		Cells:     cells,
+		Total:     matrix.Total,
+		Truncated: matrix.Truncated,
+	})
+}
+
 // ListArtifacts 分页列出作品。
 //
 // page_size > 50 直接 400（不静默截断）。

@@ -215,6 +215,60 @@ type PublicOverviewDTO struct {
 	Buckets        []PublicOverviewBucketDTO `json:"buckets"`
 }
 
+// ---------- 监控矩阵 ----------
+
+// PublicMatrixCellDTO 是矩阵里一个「题目 × 模型」单元格。
+//
+// 单元格的粒度是**最新的那一条产出**，不是「一次 run」。
+// 这个选择和参考实现不同，原因是我们的自测链路根本不产生 run 行
+// （见 user_test_service.go：ExecuteInput 的 RunID/TaskID 恒为 0）。
+// 若按 run 归档，用户自测的作品会整体缺席矩阵，
+// 而那恰恰是这个功能最常看的一部分数据。
+type PublicMatrixCellDTO struct {
+	CaseID   int64  `json:"case_id"`
+	CaseName string `json:"case_name"`
+	Model    string `json:"model"`
+	// State 是四态之一：passed / error / incorrect / empty。
+	//
+	// 由 verdict + status 合成，只在这四个值里取值：
+	//   passed     verdict=ok
+	//   incorrect  verdict=degraded
+	//   error      status 非 success（调用没跑通）
+	//   empty      没有产出，或该格被截断没取到
+	// 刻意不引入第五个值：矩阵靠颜色一眼看出问题，多一个颜色的
+	// 信息量远小于它带来的辨认成本。
+	State string `json:"state"`
+	// ArtifactID 指向可点开的那条产出；0 表示空格子。
+	ArtifactID int64 `json:"artifact_id"`
+	// Verdict / ErrorKind 保留原始语义，供 tooltip 显示细节。
+	Verdict   string     `json:"verdict,omitempty"`
+	ErrorKind string     `json:"error_kind,omitempty"`
+	CreatedAt *time.Time `json:"created_at,omitempty"`
+}
+
+// PublicMatrixDTO 是监控矩阵。
+//
+// 固定上限 60 格（参考实现的常量）。**不**复用 MaxPublicPageSize=50：
+// 矩阵是固定形状的看板，不是分页列表，把 50 那个上限套上来会让
+// 6 模型 × 10 题这种最常见的配置莫名少一行。
+type PublicMatrixDTO struct {
+	// Cases / Models 是矩阵的坐标轴，顺序即展示顺序。
+	Cases  []PublicMatrixAxisDTO `json:"cases"`
+	Models []string              `json:"models"`
+	Cells  []PublicMatrixCellDTO `json:"cells"`
+	// Total 是本次实际覆盖的单元格数（<= 60），用于前端判断是否被截断。
+	Total int `json:"total"`
+	// Truncated 为真表示题目×模型超过 60 格，只取了前面一部分。
+	Truncated bool `json:"truncated"`
+}
+
+// PublicMatrixAxisDTO 是矩阵的行轴（题目）。
+type PublicMatrixAxisDTO struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Kind string `json:"kind"`
+}
+
 // PublicOverviewBucketDTO 是「模型 × 通过率」聚合行。
 //
 // 下发 GroupID 与 GroupExposeName（管理员自填的展示名），**不下发**上游

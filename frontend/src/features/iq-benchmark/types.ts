@@ -111,6 +111,41 @@ export interface IQPublicCase {
   allow_user_test: boolean
 }
 
+/**
+ * 单题判定四态。
+ *
+ * 与 status 是两件事，不能互相推出：
+ *   status   = 这次调用跑通了没有（网络/上游/超时）
+ *   verdict  = 模型答对了没有
+ *
+ * 一条 status='success' 的产出完全可能是 degraded ——
+ * 那正是「模型悄悄变笨」时唯一能看出来的信号。
+ */
+export type IQVerdict = 'ok' | 'degraded' | 'generated' | 'unknown'
+
+/** 运行级判定四态（与单题的区别是多了 normal 这个汇总态）。 */
+export type IQRunVerdict = 'normal' | 'degraded' | 'unknown' | 'generated'
+
+/**
+ * 12 类归一化后的上游错误。
+ *
+ * 这些是**展示用**的分类，不是内部错误码。内部 error_code 含供应商与
+ * 路由信息，后端不下发；前端只可能见到这 12 个值。
+ */
+export type IQErrorKind =
+  | 'auth_failed'
+  | 'forbidden'
+  | 'not_found'
+  | 'timeout'
+  | 'rate_limited'
+  | 'gateway_timeout'
+  | 'server_error'
+  | 'generic'
+  | 'stream_broken'
+  | 'response_incomplete'
+  | 'quota_exceeded'
+  | 'empty_response'
+
 /** 公开侧作品。 */
 export interface IQPublicArtifact {
   id: number
@@ -126,6 +161,12 @@ export interface IQPublicArtifact {
   /** 内容是否被截断（前端据此提示）。 */
   truncated: boolean
   status: IQArtifactStatus
+  /** 单题判定四态。缺失时后端已兜底为 unknown，前端仍按 unknown 处理。 */
+  verdict: IQVerdict
+  /** 渲染形态判定，与 verdict 独立：可以答对但渲染坏掉。 */
+  render_verdict: IQVerdict
+  /** 归一化错误类别；成功作品不下发。 */
+  error_kind?: IQErrorKind
   /** 脱敏后的失败说明；成功作品为空。 */
   error_summary?: string
   /** 仅在管理员开启评分配置时下发。 */
@@ -133,6 +174,13 @@ export interface IQPublicArtifact {
   duration_ms: number
   /** 是否被安全扫描拦截（blocked）。 */
   is_unsafe: boolean
+  /**
+   * 这条产出是不是**当前登录用户**自己发起的自测。
+   *
+   * 服务端算好的布尔值：前端拿不到 user_id / api_key_id，
+   * 因此无法（也不需要）自己判断归属。
+   */
+  is_mine: boolean
   /**
    * 产出属主：定时检测（scheduled）或用户自测（user_test）。
    *
@@ -147,12 +195,24 @@ export interface IQPublicArtifact {
   output_tokens?: number
 }
 
-/** 公开侧概览聚合行。 */
+/**
+ * 公开侧概览聚合行。
+ *
+ * group_name 是**管理员自填的展示名**（expose_name），不是上游分组名。
+ * 为空表示管理员没给这个分组起名 —— 前端应跳过这堵墙，不要自己造名字。
+ */
 export interface IQPublicOverviewBucket {
+  group_id: number
+  group_name?: string
   model: string
   total: number
   success: number
   failed: number
+  /** 该行的四态汇总。 */
+  verdict: IQVerdict
+  /** 判定口径的分子分母：passed / logic_total。 */
+  passed: number
+  logic_total: number
   avg_duration_ms: number
   last_run_at?: string
 }
@@ -164,6 +224,45 @@ export interface IQPublicOverview {
   text_artifacts: number
   case_count: number
   buckets: IQPublicOverviewBucket[]
+}
+
+/**
+ * 监控矩阵单元格的四种状态。
+ *
+ * 只有四种，刻意不再细分：矩阵的价值是「一眼扫过去看出哪里红了」，
+ * 每多一种颜色，辨认成本就涨一截，而信息增量很小。
+ */
+export type IQMatrixCellState = 'passed' | 'error' | 'incorrect' | 'empty'
+
+/** 矩阵单元格。 */
+export interface IQMatrixCell {
+  case_id: number
+  case_name: string
+  model: string
+  state: IQMatrixCellState
+  /** 可点开的那条产出；0 表示空格子。 */
+  artifact_id: number
+  verdict?: IQVerdict
+  error_kind?: IQErrorKind
+  created_at?: string
+}
+
+/** 矩阵行轴（题目）。 */
+export interface IQMatrixAxis {
+  id: number
+  name: string
+  kind: string
+}
+
+/** 监控矩阵。 */
+export interface IQMatrix {
+  cases: IQMatrixAxis[]
+  models: string[]
+  cells: IQMatrixCell[]
+  /** 实际覆盖的格子数（<= 60）。 */
+  total: number
+  /** 题目 × 模型超过 60 格时为真，前端须提示「当前只展示了一部分」。 */
+  truncated: boolean
 }
 
 /** 管理侧题目（字段完整）。 */

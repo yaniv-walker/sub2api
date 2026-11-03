@@ -118,6 +118,62 @@ export default {
       empty: 'No statistics yet',
     },
 
+    matrix: {
+      title: 'Monitoring matrix',
+      subtitle: 'Follows the filters above',
+      caseAxis: 'Prompt',
+      modelAxis: 'Model',
+      empty: 'Nothing to show under the current filters',
+      truncated: 'Over 60 cells; showing {shown} of them',
+      state: {
+        passed: 'Pass',
+        incorrect: 'Wrong',
+        error: 'Error',
+        empty: 'None',
+      },
+      legend: {
+        passed: 'Passed',
+        incorrect: 'Incorrect',
+        error: 'Failed',
+        empty: 'No data',
+      },
+      tooltip: {
+        base: '{case} × {model}: {state}',
+        empty: '{case} × {model}: no result yet',
+      },
+    },
+
+    verdict: {
+      label: 'Verdict',
+      state: {
+        ok: 'Passed',
+        degraded: 'Degraded',
+        generated: 'Free-form',
+        unknown: 'Not judged',
+        normal: 'Normal',
+      },
+      errorKind: {
+        auth_failed: 'Auth failed',
+        forbidden: 'Forbidden',
+        not_found: 'Model not found',
+        timeout: 'Timed out',
+        rate_limited: 'Rate limited',
+        gateway_timeout: 'Gateway timeout',
+        server_error: 'Upstream 5xx',
+        generic: 'Other error',
+        stream_broken: 'Stream broken',
+        response_incomplete: 'Incomplete response',
+        quota_exceeded: 'Quota exhausted',
+        empty_response: 'Empty response',
+      },
+    },
+
+    wall: {
+      title: 'Group walls',
+      unnamed: 'Unnamed group',
+      hidden: 'This group is not publicly shown',
+    },
+
     empty: {
       artifacts: 'No artifacts yet — waiting for the first run',
       filtered: 'No artifacts match the current filters',

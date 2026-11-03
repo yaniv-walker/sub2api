@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
@@ -548,3 +549,248 @@ func normalizePaging(page, pageSize int) (int, int) {
 }
 
 func trimSpace(s string) string { return strings.TrimSpace(s) }
+
+// ---------- 监控矩阵 ----------
+
+// MatrixMaxCells 是矩阵的硬上限（参考实现的常量）。
+//
+// 与 MaxPublicPageSize=50 是**两个不同的东西**，不要合并：
+// 50 是分页列表的每页上限，60 是矩阵这个固定形状看板的格子预算。
+// 把 50 套到矩阵上，会让「6 模型 × 10 题」这种最常见配置莫名少一行。
+const MatrixMaxCells = 60
+
+// MatrixQuery 是矩阵的筛选条件。
+//
+// 与 ArtifactListQuery 一样跟随 source 口径，但有意**不**接受分页：
+// 矩阵是看板，分页没有意义（翻到第 2 页看到半个矩阵只会让人困惑）。
+type MatrixQuery struct {
+	Model  string
+	CaseID *int64
+	Status string
+	Kind   string
+	Source string
+	Since  *time.Time
+	Until  *time.Time
+	// GroupID 限定单个分组（前端的分组墙点进来时用）。
+	GroupID *int64
+}
+
+// MatrixCell 是矩阵中的一个单元格（领域层）。
+type MatrixCell struct {
+	CaseID     int64
+	CaseName   string
+	Model      string
+	State      string
+	ArtifactID int64
+	Verdict    string
+	ErrorKind  string
+	CreatedAt  *time.Time
+}
+
+// MatrixAxisCase 是矩阵的行轴。
+type MatrixAxisCase struct {
+	ID   int64
+	Name string
+	Kind string
+}
+
+// Matrix 是矩阵结果。
+type Matrix struct {
+	Cases     []MatrixAxisCase
+	Models    []string
+	Cells     []MatrixCell
+	Total     int
+	Truncated bool
+}
+
+// 矩阵单元格的四态取值。
+const (
+	// MatrixStatePassed 表示判分通过。
+	MatrixStatePassed = "passed"
+	// MatrixStateIncorrect 表示调用成功但答错（模型变笨的直接信号）。
+	MatrixStateIncorrect = "incorrect"
+	// MatrixStateError 表示调用没跑通（网络/上游/超时/拦截）。
+	MatrixStateError = "error"
+	// MatrixStateEmpty 表示没有产出。
+	MatrixStateEmpty = "empty"
+)
+
+// MatrixStateFor 把一条产出（或「没有产出」）折算成单元格状态。
+//
+// 这是矩阵唯一的判定入口，优先级刻意如此：
+//  1. 先看 status —— 调用都没跑通时，verdict 说什么都不算数。
+//     verdict 可能是 unknown（没判过），但 status=failed 的格子
+//     必须显示成 error，否则用户会以为「只是没判定」而非「挂了」。
+//  2. 再看 verdict —— ok 才算 passed，其余（degraded/generated/unknown）
+//     一律 incorrect。这里对 generated 也判 incorrect 是有意的：
+//     模型没按格式回答、直接自由发挥，就是没通过这道题。
+//
+// 没有产出（artifactID=0）返回 empty。
+func MatrixStateFor(status, verdict string, artifactID int64) string {
+	if artifactID <= 0 {
+		return MatrixStateEmpty
+	}
+	if status != iqbenchmark.ArtifactStatusSuccess {
+		return MatrixStateError
+	}
+	if verdict == iqbenchmark.VerdictOK {
+		return MatrixStatePassed
+	}
+	return MatrixStateIncorrect
+}
+
+// BuildMatrix 从产出列表合成矩阵。
+//
+// 输入是「按 created_at DESC 排好序」的产出（仓储层就是这么返回的），
+// 因此每个单元格取**第一次遇到**的那条即为最新。
+//
+// 坐标轴由数据本身决定而不是由配置决定：题目轴取出现过的 case，
+// 模型轴取出现过的 model。这样矩阵永远与筛选结果自洽 ——
+// 用配置生成轴会出现「轴上有一行但全是空格子」的观感问题。
+func BuildMatrix(items []iqbenchmark.Artifact, maxCells int) *Matrix {
+	if maxCells <= 0 {
+		maxCells = MatrixMaxCells
+	}
+
+	caseOrder := make([]int64, 0, 8)
+	caseMeta := make(map[int64]MatrixAxisCase, 8)
+	modelOrder := make([]string, 0, 8)
+	modelSeen := make(map[string]struct{}, 8)
+	// 已占用的单元格：key = caseID + "\x00" + model。
+	occupied := make(map[string]struct{}, len(items))
+	cells := make([]MatrixCell, 0, len(items))
+	// dropped 记录「因为触顶而没被放进矩阵」的格子数。
+	//
+	// 用它判截断而不是用 len(Cases)*len(Models) 反推：
+	// 触顶 break 之后轴只会包含已处理的那几道题，
+	// 用轴相乘会算出一个恰好等于上限的数，于是 100 格被截到 60 格
+	// 这种情况反而报「没截断」。这个 bug 一犯，用户就会以为
+	// 矩阵是完整的，少掉的模型根本不会被发现。
+	dropped := 0
+
+	for i := range items {
+		it := items[i]
+		if it.CaseID <= 0 || strings.TrimSpace(it.Model) == "" {
+			continue
+		}
+		if _, seen := caseMeta[it.CaseID]; !seen {
+			caseOrder = append(caseOrder, it.CaseID)
+			name, kind := matrixCaseMeta(it.CaseSnapshot, it.CaseID)
+			caseMeta[it.CaseID] = MatrixAxisCase{ID: it.CaseID, Name: name, Kind: kind}
+		}
+		if _, seen := modelSeen[it.Model]; !seen {
+			modelSeen[it.Model] = struct{}{}
+			modelOrder = append(modelOrder, it.Model)
+		}
+
+		// 同一格只保留最新一条（列表已按时间倒序）。
+		key := matrixCellKey(it.CaseID, it.Model)
+		if _, dup := occupied[key]; dup {
+			continue
+		}
+		occupied[key] = struct{}{}
+
+		if len(cells) >= maxCells {
+			dropped++
+			continue
+		}
+
+		created := it.CreatedAt
+		cells = append(cells, MatrixCell{
+			CaseID:     it.CaseID,
+			CaseName:   caseMeta[it.CaseID].Name,
+			Model:      it.Model,
+			State:      MatrixStateFor(it.Status, it.Verdict, it.ID),
+			ArtifactID: it.ID,
+			Verdict:    it.Verdict,
+			ErrorKind:  it.ErrorKind,
+			CreatedAt:  &created,
+		})
+	}
+
+	out := &Matrix{
+		Cases:     make([]MatrixAxisCase, 0, len(caseOrder)),
+		Models:    modelOrder,
+		Cells:     cells,
+		Total:     len(cells),
+		Truncated: dropped > 0,
+	}
+	for _, id := range caseOrder {
+		out.Cases = append(out.Cases, caseMeta[id])
+	}
+	return out
+}
+
+func matrixCellKey(caseID int64, model string) string {
+	return strconv.FormatInt(caseID, 10) + "\x00" + model
+}
+
+// matrixCaseMeta 从快照里取题名与类型，缺失时给可辨识的兜底。
+func matrixCaseMeta(snapshot map[string]any, caseID int64) (string, string) {
+	name := ""
+	kind := ""
+	if snapshot != nil {
+		if v, ok := snapshot["name"].(string); ok {
+			name = strings.TrimSpace(v)
+		}
+		if v, ok := snapshot["kind"].(string); ok {
+			kind = strings.TrimSpace(v)
+		}
+	}
+	if name == "" {
+		// 不给空名字：矩阵行轴上出现空白行会让人以为数据坏了。
+		name = fmt.Sprintf("#%d", caseID)
+	}
+	return name, kind
+}
+
+// GetMatrix 拉取矩阵数据。
+//
+// 复用 ListArtifacts 的查询路径（含分组白名单与审核口径），
+// 不另写一套 SQL —— 否则矩阵与列表会慢慢漂移成两个真相。
+//
+// 取数上限是 maxCells 的两倍：同一格可能有多个模型/多条历史，
+// 多取一些才能在去重后仍填满矩阵；上限仍然存在，避免被恶意宽筛拖垮。
+func (s *GalleryService) GetMatrix(ctx context.Context, q MatrixQuery) (*Matrix, error) {
+	exposed := s.exposure(ctx).ExposeGroupIDs()
+	if len(exposed) == 0 {
+		// 白名单为空：空矩阵，不查库（与列表、总览同一口径）。
+		return &Matrix{Cases: []MatrixAxisCase{}, Models: []string{}, Cells: []MatrixCell{}}, nil
+	}
+
+	groupIDs := exposed
+	if q.GroupID != nil {
+		// 请求点了某个分组：必须仍在白名单内，否则收紧不回退。
+		if !containsInt64(exposed, *q.GroupID) {
+			return &Matrix{Cases: []MatrixAxisCase{}, Models: []string{}, Cells: []MatrixCell{}}, nil
+		}
+		groupIDs = []int64{*q.GroupID}
+	}
+
+	result, err := s.Store.ListArtifacts(ctx, iqbenchmark.ArtifactListFilter{
+		GroupIDs:         groupIDs,
+		Model:            trimSpace(q.Model),
+		CaseID:           q.CaseID,
+		Status:           trimSpace(q.Status),
+		Kind:             trimSpace(q.Kind),
+		Source:           iqbenchmark.SourceFilterToRepo(q.Source),
+		Since:            q.Since,
+		Until:            q.Until,
+		ModerationStatus: iqbenchmark.ModerationApproved,
+		Page:             1,
+		PageSize:         MatrixMaxCells * 2,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return BuildMatrix(result.Items, MatrixMaxCells), nil
+}
+
+func containsInt64(list []int64, want int64) bool {
+	for _, v := range list {
+		if v == want {
+			return true
+		}
+	}
+	return false
+}

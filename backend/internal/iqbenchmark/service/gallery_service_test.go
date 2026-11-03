@@ -40,6 +40,10 @@ type galleryStore struct {
 	lastOverviewGroups []int64
 	lastBucketGroups   []int64
 	lastListFilter     iqbenchmark.ArtifactListFilter
+	// listCalls 记录 ListArtifacts 被调用的次数。
+	// 「白名单为空时不得查库」这类断言靠它来证明 —— 只看返回值的话，
+	// 「查了但过滤掉了」与「压根没查」是分不出来的。
+	listCalls int
 	// 记录调用顺序，用于断言「顺序不能变」。
 	order []string
 }
@@ -69,6 +73,7 @@ func (g *galleryStore) DeleteCase(_ context.Context, id int64) error {
 
 func (g *galleryStore) ListArtifacts(_ context.Context, f iqbenchmark.ArtifactListFilter) (*iqbenchmark.ArtifactListResult, error) {
 	g.lastListFilter = f
+	g.listCalls++
 	return &iqbenchmark.ArtifactListResult{Page: f.Page, PageSize: f.PageSize}, nil
 }
 

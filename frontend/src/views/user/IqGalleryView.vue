@@ -81,6 +81,14 @@
           @remove="removeFromSelection"
         />
 
+        <!--
+          监控矩阵与作品列表**共用同一份 feed.filters**。
+          这是刻意的：两处若各自维护筛选状态，用户切页签时看到的
+          条件就会不一致，而「矩阵说 3 个模型挂了、列表却只有 1 个模型」
+          这种矛盾比不提供矩阵更糟。
+        -->
+        <MonitorMatrix :matrix="matrix" :loading="feed.loading.value" @select="openArtifactByID" />
+
         <ArtifactGrid
           :items="feed.items.value"
           :loading="feed.loading.value"
@@ -106,36 +114,67 @@
           </div>
         </div>
 
-        <div class="card overflow-x-auto">
-          <table class="w-full text-xs">
-            <thead>
-              <tr class="border-b border-gray-200 text-left text-gray-400 dark:border-dark-700">
-                <th class="p-2">{{ t('iqBenchmark.overview.model') }}</th>
-                <th class="p-2">{{ t('iqBenchmark.overview.total') }}</th>
-                <th class="p-2">{{ t('iqBenchmark.overview.successRate') }}</th>
-                <th class="p-2">{{ t('iqBenchmark.overview.avgDuration') }}</th>
-                <th class="p-2">{{ t('iqBenchmark.overview.lastRunAt') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="bucket in overview?.buckets ?? []"
-                :key="bucket.model"
-                class="border-b border-gray-100 last:border-0 dark:border-dark-800"
-              >
-                <td class="p-2 font-medium">{{ bucket.model }}</td>
-                <td class="p-2 tabular-nums">{{ bucket.total }}</td>
-                <td class="p-2 tabular-nums">
-                  {{ formatPercent(successRate(bucket.success, bucket.total)) }}
-                </td>
-                <td class="p-2 tabular-nums">{{ formatDuration(bucket.avg_duration_ms) }}</td>
-                <td class="p-2 tabular-nums">{{ formatTime(bucket.last_run_at) }}</td>
-              </tr>
-              <tr v-if="(overview?.buckets ?? []).length === 0">
-                <td colspan="5" class="p-6 text-center text-gray-400">{{ t('iqBenchmark.overview.empty') }}</td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- 分组作品墙：一堵墙一张表，按 group_id 分块 -->
+        <div v-if="walls.length > 0" class="flex flex-col gap-4">
+          <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            {{ t('iqBenchmark.wall.title') }}
+          </h2>
+          <div
+            v-for="wall in walls"
+            :key="wall.groupId"
+            class="card overflow-x-auto"
+          >
+            <div class="flex items-center justify-between border-b border-gray-100 px-4 py-2 dark:border-dark-700">
+              <h3 class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ wall.name }}</h3>
+              <span class="text-xs text-gray-400">{{ wall.rows.length }}</span>
+            </div>
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="border-b border-gray-200 text-left text-gray-400 dark:border-dark-700">
+                  <th class="p-2">{{ t('iqBenchmark.overview.model') }}</th>
+                  <th class="p-2">{{ t('iqBenchmark.overview.total') }}</th>
+                  <th class="p-2">{{ t('iqBenchmark.overview.successRate') }}</th>
+                  <!--
+                    通过率与判定通过率并列显示，而不是只留一个。
+                    两者的差值就是「调用成功但答错」的比例 ——
+                    模型变笨时正是这个差值先变大。
+                  -->
+                  <th class="p-2">{{ t('iqBenchmark.verdict.label') }}</th>
+                  <th class="p-2">{{ t('iqBenchmark.overview.avgDuration') }}</th>
+                  <th class="p-2">{{ t('iqBenchmark.overview.lastRunAt') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="bucket in wall.rows"
+                  :key="bucket.model"
+                  class="border-b border-gray-100 last:border-0 dark:border-dark-800"
+                >
+                  <td class="p-2 font-medium">{{ bucket.model }}</td>
+                  <td class="p-2 tabular-nums">{{ bucket.total }}</td>
+                  <td class="p-2 tabular-nums">
+                    {{ formatPercent(successRate(bucket.success, bucket.total)) }}
+                  </td>
+                  <td class="p-2 tabular-nums">
+                    <span
+                      class="rounded px-1.5 py-0.5 text-[11px]"
+                      :class="verdictClass(bucket.verdict)"
+                    >
+                      {{ t(`iqBenchmark.verdict.state.${bucket.verdict}`) }}
+                    </span>
+                    <span v-if="bucket.logic_total > 0" class="ml-1 text-gray-400">
+                      {{ formatPercent(bucket.passed / bucket.logic_total) }}
+                    </span>
+                  </td>
+                  <td class="p-2 tabular-nums">{{ formatDuration(bucket.avg_duration_ms) }}</td>
+                  <td class="p-2 tabular-nums">{{ formatTime(bucket.last_run_at) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div v-else class="card p-6 text-center text-xs text-gray-400">
+          {{ t('iqBenchmark.overview.empty') }}
         </div>
       </section>
     </div>
@@ -154,23 +193,27 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import ArtifactGrid from '@/features/iq-benchmark/ArtifactGrid.vue'
 import ArtifactDetail from '@/features/iq-benchmark/ArtifactDetail.vue'
 import ComparePanel from '@/features/iq-benchmark/ComparePanel.vue'
 import FilterBar from '@/features/iq-benchmark/FilterBar.vue'
+import MonitorMatrix from '@/features/iq-benchmark/MonitorMatrix.vue'
 import UserTestDialog from '@/features/iq-benchmark/UserTestDialog.vue'
 import { useArtifactFeed } from '@/features/iq-benchmark/useArtifactFeed'
 import {
+  fetchArtifact,
   fetchArtifacts,
   fetchCompare,
+  fetchMatrix,
   fetchMyTargets,
   fetchOverview,
   fetchPublicCases,
 } from '@/features/iq-benchmark/api'
 import type {
+  IQMatrix,
   IQPublicArtifact,
   IQPublicCase,
   IQPublicOverview,
@@ -198,6 +241,55 @@ const cases = ref<IQPublicCase[]>([])
 const overview = ref<IQPublicOverview | null>(null)
 const detailTarget = ref<IQPublicArtifact | null>(null)
 
+/**
+ * 监控矩阵数据。
+ *
+ * 用空矩阵而不是 null 作为初值：模板里就不必到处写 `matrix?.`，
+ * 而「还没加载」与「加载了但没有数据」在渲染上是同一件事（一片灰）。
+ */
+const matrix = ref<IQMatrix>({ cases: [], models: [], cells: [], total: 0, truncated: false })
+
+/**
+ * 矩阵与列表共用 feed.filters，因此在筛选变化后必须重新拉矩阵。
+ *
+ * 单独 watch 而不是塞进 useArtifactFeed：那个 composable 的职责是
+ * 「分页列表的单飞 + 防抖 + 限流冷却」，矩阵既不分页、也没有自己的
+ * 加载态，硬塞进去会让它的状态机变复杂。代价是矩阵每次筛选都发一次
+ * 请求 —— 这正是期望行为（矩阵与列表必须同步）。
+ */
+watch(
+  () => ({ ...feed.filters }),
+  async () => {
+    await reloadMatrix()
+  },
+  { deep: true },
+)
+
+/** 拉取矩阵；失败时保留上一次的数据而不是清空（避免闪成空白）。 */
+async function reloadMatrix(): Promise<void> {
+  try {
+    matrix.value = await fetchMatrix(feed.filters)
+  } catch {
+    // 静默失败：矩阵是辅助看板，它挂了不该盖住主列表的错误提示。
+    // 保留旧数据总比闪成「没有数据」诚实。
+  }
+}
+
+/**
+ * 从矩阵格子点开作品详情。
+ *
+ * 矩阵只带回 artifact_id，所以要单独取一次完整对象 ——
+ * 让它复用 openDetail 的同一份弹层，而不是再写一个详情视图。
+ */
+async function openArtifactByID(artifactId: number): Promise<void> {
+  try {
+    const artifact = await fetchArtifact(artifactId)
+    if (artifact) openDetail(artifact)
+  } catch {
+    // 作品可能刚被删除或转为待审：此时不弹详情即可，不值得报错。
+  }
+}
+
 /** 自测入口是否可用（探测 /user-tests/targets 的结果）。 */
 const selfTestAvailable = ref(false)
 const showUserTest = ref(false)
@@ -214,11 +306,57 @@ const overviewStats = computed(() => [
   { label: t('iqBenchmark.overview.caseCount'), value: String(overview.value?.case_count ?? 0) },
 ])
 
+/**
+ * 把扁平的分桶按分组拆成「墙」。
+ *
+ * 后端已经保证只在白名单内的分组才会出现，且 group_name 是管理员
+ * 自填的展示名（可能为空）。这里**不**为空的展示名编造一个 ——
+ * 空名字意味着管理员还没给它起名，前端随便补一个反而会掩盖配置缺失。
+ * 这种情况下用分组 ID 兜底，至少能让人去后台找到那一行。
+ */
+const walls = computed(() => {
+  const buckets = overview.value?.buckets ?? []
+  const grouped = new Map<number, { groupId: number; name: string; rows: typeof buckets }>()
+  for (const bucket of buckets) {
+    const groupId = bucket.group_id ?? 0
+    const existing = grouped.get(groupId)
+    if (existing) {
+      existing.rows.push(bucket)
+      continue
+    }
+    grouped.set(groupId, {
+      groupId,
+      name: bucket.group_name?.trim() || `#${groupId}`,
+      rows: [bucket],
+    })
+  }
+  return [...grouped.values()]
+})
+
+/** 判定四态的徽标配色。 */
+function verdictClass(verdict: string): string {
+  switch (verdict) {
+    case 'ok':
+    case 'normal':
+      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+    case 'degraded':
+      return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+    case 'generated':
+      return 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'
+    default:
+      return 'bg-gray-100 text-gray-500 dark:bg-dark-800 dark:text-gray-400'
+  }
+}
+
 onMounted(async () => {
   // 题目与概览是轻量请求，失败不影响主列表展示。
   const [caseList, overviewData] = await Promise.allSettled([fetchPublicCases(), fetchOverview()])
   if (caseList.status === 'fulfilled') cases.value = caseList.value
   if (overviewData.status === 'fulfilled') overview.value = overviewData.value
+
+  // 矩阵与列表同源，首屏必须一起拉：等到 watch 首次触发是不行的
+  // （filters 在初值上不会变化，watch 不会跑），那样首屏矩阵永远是空的。
+  await reloadMatrix()
 
   // 探测自测可用性。失败（含 404 = 未开启）一律当作不可用：
   // 这里刻意**吞掉错误**，因为它只是决定要不要显示一个按钮，

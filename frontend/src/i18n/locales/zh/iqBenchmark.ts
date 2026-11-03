@@ -118,6 +118,62 @@ export default {
       empty: '暂无统计数据',
     },
 
+    matrix: {
+      title: '监控矩阵',
+      subtitle: '跟随上方筛选条件',
+      caseAxis: '题目',
+      modelAxis: '模型',
+      empty: '当前筛选条件下没有可展示的数据',
+      truncated: '数据超过 60 格，当前只展示 {shown} 格',
+      state: {
+        passed: '通过',
+        incorrect: '答错',
+        error: '失败',
+        empty: '无',
+      },
+      legend: {
+        passed: '通过',
+        incorrect: '答错',
+        error: '失败',
+        empty: '无数据',
+      },
+      tooltip: {
+        base: '{case} × {model}：{state}',
+        empty: '{case} × {model}：暂无产出',
+      },
+    },
+
+    verdict: {
+      label: '判定',
+      state: {
+        ok: '通过',
+        degraded: '降级',
+        generated: '自由发挥',
+        unknown: '未判定',
+        normal: '正常',
+      },
+      errorKind: {
+        auth_failed: '鉴权失败',
+        forbidden: '无权访问',
+        not_found: '模型不存在',
+        timeout: '超时',
+        rate_limited: '被限流',
+        gateway_timeout: '网关超时',
+        server_error: '上游 5xx',
+        generic: '其他错误',
+        stream_broken: '流中断',
+        response_incomplete: '响应不完整',
+        quota_exceeded: '额度耗尽',
+        empty_response: '空响应',
+      },
+    },
+
+    wall: {
+      title: '分组作品墙',
+      unnamed: '未命名分组',
+      hidden: '该分组未开放展示',
+    },
+
     empty: {
       artifacts: '暂无作品，等待首次检测完成',
       filtered: '当前筛选条件下没有作品',
