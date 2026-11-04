@@ -47,6 +47,33 @@ const modelsError = ref('')
 /** 是否显示模型下拉。 */
 const modelOpen = ref(false)
 
+/**
+ * 关闭下拉的延时句柄。
+ *
+ * 为什么不能直接 @blur 关掉：点「刷新」按钮时输入框先失焦，
+ * 下拉当场关闭；等请求回来列表已经有数据了，但框是关着的，
+ * 用户永远看不到选项 —— 表现为「接口明明拉到了，前端却不显示」。
+ * 所以失焦后延一小会儿再关，期间如果重新聚焦或点到列表项就取消。
+ */
+let closeTimer: ReturnType<typeof setTimeout> | null = null
+
+/** 取消待执行的关闭（重新聚焦、或即将选中某项时用）。 */
+function cancelClose() {
+  if (closeTimer !== null) {
+    clearTimeout(closeTimer)
+    closeTimer = null
+  }
+}
+
+/** 失焦后延时关闭，给「点按钮」「点列表项」留出落点时间。 */
+function scheduleClose() {
+  cancelClose()
+  closeTimer = setTimeout(() => {
+    modelOpen.value = false
+    closeTimer = null
+  }, 150)
+}
+
 const protocolOptions = computed(() =>
   PROTOCOLS.map((p) => ({
     value: p,
@@ -111,6 +138,10 @@ async function loadModels() {
     models.value = result.models ?? []
     if (result.error) {
       modelsError.value = result.error
+    } else if (models.value.length > 0) {
+      // 拉到就用打开下拉展示。否则用户点了刷新按钮，输入框已经失焦、
+      // 下拉被 blur 关掉，而列表此时才回来 —— 看到的仍是空框。
+      modelOpen.value = true
     }
   } catch {
     // 拉取失败不阻断：用户手输即可。
@@ -123,6 +154,7 @@ async function loadModels() {
 
 /** 选中一个模型。 */
 function pickModel(name: string) {
+  cancelClose()
   props.state.modelId = name
   modelOpen.value = false
 }
@@ -219,8 +251,8 @@ const timeoutLabel = computed(() => t('modelDegradation.form.renderTimeoutUnit')
             autocomplete="off"
             spellcheck="false"
             :placeholder="t('modelDegradation.form.modelPlaceholder')"
-            @focus="modelOpen = true"
-            @blur="modelOpen = false"
+            @focus="cancelClose(); modelOpen = true"
+            @blur="scheduleClose"
           />
           <button
             type="button"
