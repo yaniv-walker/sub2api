@@ -4,6 +4,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler/admin"
 	iqbenchmarkhandler "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/handler"
+	mdhandler "github.com/Wei-Shaw/sub2api/internal/modeldegradation/handler"
 	"github.com/Wei-Shaw/sub2api/internal/securityaudit"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
@@ -208,6 +209,7 @@ func ProvideHandlers(
 	asyncImageHandler *AsyncImageHandler,
 	batchImageHandler *BatchImageHandler,
 	iqBenchmarkHandlers *iqbenchmarkhandler.Handlers,
+	modelDegradationHandler *mdhandler.Handler,
 	_ *service.IdempotencyCoordinator,
 	_ *service.IdempotencyCleanupService,
 	_ *service.OpenAIQuotaAutoResetService,
@@ -237,6 +239,7 @@ func ProvideHandlers(
 		AsyncImage:       asyncImageHandler,
 		BatchImage:       batchImageHandler,
 		IQBenchmark:      iqBenchmarkHandlers,
+		ModelDegradation: modelDegradationHandler,
 	}
 }
 

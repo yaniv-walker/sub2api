@@ -140,6 +140,8 @@ func registerRoutes(
 	routes.RegisterPaymentRoutes(v1, h.Payment, h.PaymentWebhook, h.Admin.Payment, jwtAuth, adminAuth, auditLog, settingService, panelRateLimiter, redisClient)
 	// 模型智商检测作品展（独立垂直模块）：enabled=false 时用户侧不注册，管理侧仅 settings 可用。
 	routes.RegisterIQBenchmarkRoutes(v1, h.IQBenchmark, adminAuth, jwtAuth, auditLog)
+	// 模型降智检测（独立垂直模块）：用户自带凭据，不产生平台费用，因此常开。
+	routes.RegisterModelDegradationRoutes(v1, h.ModelDegradation, adminAuth, jwtAuth, auditLog)
 
 	handler.RegisterPageRoutes(v1, cfg.Pricing.DataDir, gin.HandlerFunc(jwtAuth), gin.HandlerFunc(adminAuth), settingService)
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	iqmodule "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/module"
+	mdmodule "github.com/Wei-Shaw/sub2api/internal/modeldegradation/module"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	"github.com/Wei-Shaw/sub2api/internal/plugin"
 	"github.com/Wei-Shaw/sub2api/internal/repository"
@@ -47,6 +48,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 		service.ProviderSet,
 		securityaudit.ProviderSet,
 		iqmodule.ProviderSet,
+		mdmodule.ProviderSet,
 		payment.ProviderSet,
 		middleware.ProviderSet,
 		handler.ProviderSet,

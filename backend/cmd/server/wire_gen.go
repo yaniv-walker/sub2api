@@ -18,6 +18,9 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/iqbenchmark/ratelimit"
 	repository2 "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/repository"
 	service2 "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/service"
+	"github.com/Wei-Shaw/sub2api/internal/modeldegradation"
+	handler3 "github.com/Wei-Shaw/sub2api/internal/modeldegradation/handler"
+	repository3 "github.com/Wei-Shaw/sub2api/internal/modeldegradation/repository"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	"github.com/Wei-Shaw/sub2api/internal/plugin"
 	"github.com/Wei-Shaw/sub2api/internal/repository"
@@ -26,8 +29,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/Wei-Shaw/sub2api/plugins/upstream-monitor"
-	handler3 "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/handler"
-	repository3 "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/repository"
+	handler4 "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/handler"
+	repository4 "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/repository"
 	service3 "github.com/Wei-Shaw/sub2api/plugins/upstream-monitor/service"
 	"github.com/redis/go-redis/v9"
 	"log"
@@ -373,9 +376,12 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	userTestService := module.ProvideUserTestService(repositoryRepository, executor, keyResolver, targetsService, settingsProvider, userTestLimiter, logger)
 	userTestHandler := module.ProvideUserTestHandler(userTestService, settingsProvider)
 	handlers := module.ProvideHandlers(adminHandler, handlerUserHandler, userTestHandler, galleryRateLimiter, settingsProvider)
+	repository5 := repository3.New(db)
+	modeldegradationService := modeldegradation.NewService(repository5, logger)
+	handlerHandler := handler3.New(modeldegradationService)
 	idempotencyCleanupService := service.ProvideIdempotencyCleanupService(idempotencyRepository, configConfig)
 	openAIQuotaAutoResetService := service.ProvideOpenAIQuotaAutoResetService(accountRepository, openAIQuotaService, rateLimitService, idempotencyCoordinator, auditLogService, settingService, leaderLockCache)
-	handlerHandlers := handler.ProvideHandlers(checkinHandler, authHandler, userHandler, apiKeyHandler, usageHandler, redeemHandler, subscriptionHandler, announcementHandler, tutorialCenterHandler, channelMonitorUserHandler, channelMonitorV2Handler, adminHandlers, gatewayHandler, openAIGatewayHandler, handlerSettingHandler, totpHandler, passkeyHandler, handlerPaymentHandler, paymentWebhookHandler, availableChannelHandler, modelPlazaHandler, asyncImageHandler, batchImageHandler, handlers, idempotencyCoordinator, idempotencyCleanupService, openAIQuotaAutoResetService)
+	handlerHandlers := handler.ProvideHandlers(checkinHandler, authHandler, userHandler, apiKeyHandler, usageHandler, redeemHandler, subscriptionHandler, announcementHandler, tutorialCenterHandler, channelMonitorUserHandler, channelMonitorV2Handler, adminHandlers, gatewayHandler, openAIGatewayHandler, handlerSettingHandler, totpHandler, passkeyHandler, handlerPaymentHandler, paymentWebhookHandler, availableChannelHandler, modelPlazaHandler, asyncImageHandler, batchImageHandler, handlers, handlerHandler, idempotencyCoordinator, idempotencyCleanupService, openAIQuotaAutoResetService)
 	jwtAuthMiddleware := middleware.NewJWTAuthMiddleware(authService, userService, settingService, auditLogService)
 	optionalJWTAuthMiddleware := middleware.NewOptionalJWTAuthMiddleware(authService, userService, settingService, auditLogService)
 	adminAuthMiddleware := middleware.NewAdminAuthMiddleware(authService, userService, settingService, auditLogService)
@@ -384,17 +390,17 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	stepUpAuthMiddleware := middleware.NewStepUpAuthMiddleware(totpService, userService, settingService)
 	upstreamMonitorPluginConfig := upstreammonitor.ProvidePluginConfig(configConfig)
 	upstreamInfoFetcher := service3.NewUpstreamInfoFetcher(logger)
-	balanceSnapshotRepository := repository3.NewBalanceSnapshotRepository(client)
+	balanceSnapshotRepository := repository4.NewBalanceSnapshotRepository(client)
 	balanceAggregator := service3.NewBalanceAggregator(upstreamInfoFetcher, balanceSnapshotRepository, logger)
-	errorRecordRepository := repository3.NewErrorRecordRepository(client)
+	errorRecordRepository := repository4.NewErrorRecordRepository(client)
 	errorAnalyzer := service3.NewErrorAnalyzer(errorRecordRepository, logger)
 	usagePredictor := upstreammonitor.ProvideUsagePredictor(upstreamMonitorPluginConfig, balanceSnapshotRepository)
 	accountProvider := upstreammonitor.ProvideAccountProvider(accountRepository)
-	upstreamRepository := repository3.NewUpstreamRepository(client)
-	credentialCipher := repository3.NewCredentialCipher(client)
-	monitorHandler := handler3.NewMonitorHandler(upstreamInfoFetcher, balanceAggregator, errorAnalyzer, usagePredictor, accountProvider, upstreamRepository, credentialCipher, upstreamMonitorPluginConfig)
-	balanceAlertRepository := repository3.NewBalanceAlertRepository(client)
-	balanceAlertHandler := handler3.NewBalanceAlertHandler(balanceAlertRepository, upstreamRepository)
+	upstreamRepository := repository4.NewUpstreamRepository(client)
+	credentialCipher := repository4.NewCredentialCipher(client)
+	monitorHandler := handler4.NewMonitorHandler(upstreamInfoFetcher, balanceAggregator, errorAnalyzer, usagePredictor, accountProvider, upstreamRepository, credentialCipher, upstreamMonitorPluginConfig)
+	balanceAlertRepository := repository4.NewBalanceAlertRepository(client)
+	balanceAlertHandler := handler4.NewBalanceAlertHandler(balanceAlertRepository, upstreamRepository)
 	balanceAlertSender := upstreammonitor.ProvideBalanceAlertSender(notificationEmailService)
 	balanceAlertChecker := service3.NewBalanceAlertChecker(balanceAlertRepository, monitorHandler, balanceAlertSender, settingService)
 	plugin := upstreammonitor.NewPluginWithHandler(upstreamMonitorPluginConfig, redisClient, client, logger, monitorHandler, errorRecordRepository, balanceSnapshotRepository, settingService, balanceAlertHandler, balanceAlertChecker)

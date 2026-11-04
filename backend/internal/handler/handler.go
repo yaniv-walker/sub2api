@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/Wei-Shaw/sub2api/internal/handler/admin"
 	iqbenchmarkhandler "github.com/Wei-Shaw/sub2api/internal/iqbenchmark/handler"
+	mdhandler "github.com/Wei-Shaw/sub2api/internal/modeldegradation/handler"
 	"github.com/Wei-Shaw/sub2api/internal/securityaudit"
 )
 
@@ -75,6 +76,9 @@ type Handlers struct {
 	// IQBenchmark 是「模型智商检测作品展」的处理器集合（独立垂直模块）。
 	// 本包只持有指针，不展开其内部结构：新模块细节不外泄到上游 handler 包。
 	IQBenchmark *iqbenchmarkhandler.Handlers
+	// ModelDegradation 是「模型降智检测」的处理器（独立垂直模块）。
+	// 与 IQBenchmark 同理，只持有指针。
+	ModelDegradation *mdhandler.Handler
 }
 
 // BuildInfo contains build-time information
