@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -195,10 +196,7 @@ func (c *UpstreamCaller) callOnce(ctx context.Context, ep Endpoint, prompt strin
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		kind := iqbenchmark.ClassifyErrorKind(nil, resp.StatusCode)
-		if kind == "" {
-			kind = iqbenchmark.ErrorKindGeneric
-		}
+		kind := classifyByStatus(resp.StatusCode)
 		return CallResult{
 			StatusCode: resp.StatusCode,
 			ErrorKind:  kind,
@@ -238,6 +236,29 @@ func (c *UpstreamCaller) callOnce(ctx context.Context, ep Endpoint, prompt strin
 	}
 }
 
+// errStatusOnly 是只为触发状态码分支而存在的哨兵错误。
+//
+// 它永远不会被返回给用户，也不代表任何真实故障 —— 见 classifyByStatus。
+var errStatusOnly = errors.New("modeldegradation: 仅按状态码分类")
+
+// classifyByStatus 按 HTTP 状态码归类上游错误。
+//
+// 为什么要这层包装：iqbenchmark.ClassifyErrorKind 的约定是
+// 「err 是传输层错误，statusCode 只是附带上下文」，它一进来就判
+// err == nil 并直接返回 generic。但本模块在拿到非 2xx 响应时
+// 恰恰没有传输层错误（err 是 nil），于是 401/403/404/429/402/5xx
+// 全都被压成 generic，用户看到的永远是「上游请求失败，请稍后重试」，
+// 指不到真正原因 —— 这本身就是一种「看起来降智」的体验。
+//
+// 传一个无关哨兵错误，让它跳过 nil 短路走到状态码分支，
+// 这样 12 类的映射规则仍然只在 iqbenchmark 里定义一份，不在此重复。
+func classifyByStatus(statusCode int) string {
+	if kind := iqbenchmark.ClassifyErrorKind(errStatusOnly, statusCode); kind != "" {
+		return kind
+	}
+	return iqbenchmark.ErrorKindGeneric
+}
+
 // userFacingError 把错误类型翻译成中文提示。
 //
 // 文案对齐参考实现（modelDegradation.upstream.*），12 类全覆盖。
@@ -274,6 +295,10 @@ func userFacingError(kind string) string {
 //
 // 只取 JSON 里的 message/error 字段，不原样贴整段 HTML ——
 // 一是长度，二是 HTML 里可能有重定向地址之类的东西，贴出去反而诱导用户。
+//
+// 关键：返回值最终会落库、并出现在所有人可见的历史墙上。有些网关
+// 会把收到的鉴权头原样回显在错误信息里（"bad key Bearer sk-xxx"），
+// 直接贴出去等于把用户的 Key 公开。所以这里必须再过一遍脱敏。
 func snippetSuffix(raw []byte) string {
 	if len(raw) == 0 {
 		return ""
@@ -281,16 +306,82 @@ func snippetSuffix(raw []byte) string {
 	var payload map[string]any
 	if err := json.Unmarshal(raw, &payload); err == nil {
 		if msg, ok := payload["message"].(string); ok && msg != "" {
-			return "：" + truncate(msg, 200)
+			return "：" + truncate(RedactSecrets(msg), 200)
 		}
 		if errObj, ok := payload["error"].(map[string]any); ok {
 			if msg, ok := errObj["message"].(string); ok && msg != "" {
-				return "：" + truncate(msg, 200)
+				return "：" + truncate(RedactSecrets(msg), 200)
 			}
 		}
 	}
 	// 非 JSON：给一句通用说明而不是贴原文。
 	return ""
+}
+
+// RedactSecrets 用的三条规则。
+//
+// 预编译在包级：这些模式在每次上游报错时都会跑，而且
+// MustCompile 放在函数里会让 panic 发生在请求路径上。
+var (
+	// Bearer 后面跟的整段 token。
+	bearerPattern = regexp.MustCompile(`(?i)\bBearer\s+[A-Za-z0-9._\-]+`)
+	// xxx-api-key: value / api_key=value 这类键值对。
+	apiKeyPattern = regexp.MustCompile(`(?i)\b([a-z0-9_\-]*(?:api[_\-]?key|authorization)["']?\s*[:=]\s*["']?)[A-Za-z0-9._\-]+`)
+	// 裸长串的候选：≥20 位字母数字下划线连字符。
+	// 这只是「候选」，真正的判定看 looksLikeSecret —— 见 RedactSecrets。
+	secretTokenPattern = regexp.MustCompile(`\b[A-Za-z0-9_\-]{20,}\b`)
+	// 纯十六进制长串（≥32 位）：会话 token / 随机 ID 的典型形态。
+	hexTokenPattern = regexp.MustCompile(`\b[0-9a-fA-F]{32,}\b`)
+	// 模型名的典型形态：全小写、用连字符和数字分段，如
+	// claude-sonnet-4-20250514。这类不该被当成密钥抹掉。
+	modelNamePattern = regexp.MustCompile(`^[a-z][a-z0-9]*(?:[-._][a-z0-9]+)*$`)
+)
+
+// looksLikeSecret 判断一个「长串」是否真的像凭据。
+//
+// 为什么要这一步：单看长度会把模型名一起抹掉。
+// claude-sonnet-4-20250514 有 24 个字符，但它显然不是密钥；
+// 抹掉它会让用户看到「模型 *** 不存在」这种更没法排查的提示。
+//
+// 判定依据：
+//   - 同时含大写和小写字母（模型名几乎全是小写）→ 是密钥
+//   - 纯十六进制且 ≥32 位 → 是 token
+//   - 其余长串（全小写 + 连字符分段）→ 当模型名放过
+func looksLikeSecret(s string) bool {
+	if hexTokenPattern.MatchString(s) {
+		return true
+	}
+	if modelNamePattern.MatchString(s) {
+		return false
+	}
+	hasUpper := strings.ToLower(s) != s
+	hasLower := strings.ToUpper(s) != s
+	return hasUpper && hasLower
+}
+
+// RedactSecrets 抹掉文本里看起来像凭据的片段。
+//
+// 为什么不能只靠「我们不发 Key」：上游可能把请求头回显回来，
+// 错误信息又会被存库并公开展示。防御必须落在写入之前这一层。
+//
+// 处理两类：
+//   - 带前缀的鉴权串（Bearer xxx / sk-xxx / x-api-key: xxx）
+//   - 独立出现的长随机串（≥20 位、字母数字混排），这几乎是 Key 的特征
+func RedactSecrets(s string) string {
+	if s == "" {
+		return s
+	}
+	// 前两步是「确定是凭据」的形态，直接抹。
+	s = bearerPattern.ReplaceAllString(s, "Bearer ***")
+	s = apiKeyPattern.ReplaceAllString(s, "${1}***")
+	// 第三步是「长串里挑出真的像凭据的」，避免误伤模型名。
+	s = secretTokenPattern.ReplaceAllStringFunc(s, func(tok string) string {
+		if looksLikeSecret(tok) {
+			return "***"
+		}
+		return tok
+	})
+	return s
 }
 
 // truncate 按字符数截断（不是字节数，避免切坏中文）。
