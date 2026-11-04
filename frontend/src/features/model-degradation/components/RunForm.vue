@@ -15,7 +15,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchModels } from '../api'
-import type { MDProtocol, MDTask, MDTaskBank } from '../types'
+import type { MDProtocol, MDTask, MDTaskBank, MDTaskType } from '../types'
 import { PROTOCOLS, REASONING_EFFORTS, supportsReasoningEffort } from '../types'
 import type { RunFormState } from '../useRunForm'
 import { nextUid } from '../useRunForm'
@@ -166,11 +166,24 @@ function onProtocolChange(p: MDProtocol) {
   emit('change-protocol', p)
 }
 
-/** 本地加入自定义逻辑题（直接改 state，父组件无需中转）。 */
+/**
+ * 当前选中的题型页签。
+ *
+ * 页签只是展示层：切换不会动 state.questions，已选的题始终保留。
+ * 这一点很重要 —— 用户先勾了生成题再切到逻辑题，生成题不该被清掉。
+ */
+const taskTab = ref<MDTaskType>('logic')
+
+/**
+ * 本地加入一道自定义题（直接改 state，父组件无需中转）。
+ *
+ * 题型跟随当前页签：在「生成题」页签下点它，加的就该是生成题 ——
+ * 否则用户在生成题页签里点出一个逻辑题，还得切回去找。
+ */
 function addCustom() {
   props.state.questions.push({
     uid: nextUid(),
-    taskType: 'logic',
+    taskType: taskTab.value,
     key: '',
     prompt: '',
     expected: '',
@@ -182,6 +195,29 @@ function addCustom() {
 function isBankSelected(task: MDTask): boolean {
   return props.state.questions.some((q) => q.fromBank && q.key === task.key && q.taskType === task.task_type)
 }
+
+/** 题型 → 文案键。 */
+function taskTypeLabelKey(type: MDTaskType): string {
+  return type === 'logic' ? 'modelDegradation.form.taskLogic' : 'modelDegradation.form.taskRender'
+}
+
+/** 页签定义，带上各题型已选题数，让用户不切页签也知道另一类选了几道。 */
+const taskTabs = computed(() =>
+  (['logic', 'render'] as MDTaskType[]).map((type) => ({
+    value: type,
+    label: t(taskTypeLabelKey(type)),
+    count: props.state.questions.filter((q) => q.taskType === type).length
+  }))
+)
+
+/** 当前页签下的题库题。 */
+const visibleBankTasks = computed(() => {
+  const list = taskTab.value === 'logic' ? props.bank.logic : props.bank.render
+  return Array.isArray(list) ? list : []
+})
+
+/** 当前页签下已选的题。 */
+const visibleQuestions = computed(() => props.state.questions.filter((q) => q.taskType === taskTab.value))
 
 /** 生成题超时 —— 用原生 select 保证移动端体验。 */
 const timeoutLabel = computed(() => t('modelDegradation.form.renderTimeoutUnit'))
@@ -317,13 +353,32 @@ const timeoutLabel = computed(() => t('modelDegradation.form.renderTimeoutUnit')
         <span class="ma-qcount">{{ state.questions.length }}</span>
       </div>
 
-      <!-- 题库题 -->
+      <!-- 题型页签：逻辑题 / 生成题。
+           参考实现按题型分栏，一次只展示一类题目；
+           这里同样只做展示层切换，已选中的题目不受页签影响。 -->
+      <div class="ma-qtab" role="tablist">
+        <button
+          v-for="tab in taskTabs"
+          :key="tab.value"
+          type="button"
+          role="tab"
+          class="ma-qtab-btn"
+          :class="{ 'is-active': taskTab === tab.value }"
+          :aria-selected="taskTab === tab.value"
+          @click="taskTab = tab.value"
+        >
+          {{ tab.label }}
+          <span v-if="tab.count" class="ma-qtab-badge">{{ tab.count }}</span>
+        </button>
+      </div>
+
+      <!-- 当前页签下的题库题 -->
       <div v-if="bankLoading" class="ma-qempty">{{ t('modelDegradation.form.taskBankLoading') }}</div>
       <div v-else-if="bankFailed" class="ma-qempty">{{ t('modelDegradation.form.taskBankEmpty') }}</div>
       <template v-else>
-        <div class="ma-chip-row">
+        <div v-if="visibleBankTasks.length" class="ma-chip-row">
           <button
-            v-for="task in [...bank.logic, ...bank.render]"
+            v-for="task in visibleBankTasks"
             :key="`${task.task_type}-${task.key}`"
             type="button"
             class="ma-chip"
@@ -334,13 +389,14 @@ const timeoutLabel = computed(() => t('modelDegradation.form.renderTimeoutUnit')
             {{ task.title }}
           </button>
         </div>
+        <div v-else class="ma-qempty">{{ t('modelDegradation.form.presetNone') }}</div>
       </template>
 
-      <!-- 已选题列表 -->
-      <div v-if="state.questions.length" class="ma-qlist">
-        <div v-for="q in state.questions" :key="q.uid" class="ma-qcard">
+      <!-- 已选题列表：只列当前页签的题型，避免两类题混在一起看不清 -->
+      <div v-if="visibleQuestions.length" class="ma-qlist">
+        <div v-for="q in visibleQuestions" :key="q.uid" class="ma-qcard">
           <div class="ma-qcard-head">
-            <span class="ma-qcard-type">{{ q.taskType === 'logic' ? t('modelDegradation.form.taskLogic') : t('modelDegradation.form.taskRender') }}</span>
+            <span class="ma-qcard-type">{{ t(taskTypeLabelKey(q.taskType)) }}</span>
             <button type="button" class="ma-qcard-del" @click="emit('remove', q.uid)" aria-label="remove">×</button>
           </div>
 
@@ -626,6 +682,53 @@ const timeoutLabel = computed(() => t('modelDegradation.form.renderTimeoutUnit')
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+/* 题型页签：与协议分段控件同源，但更轻——它只是题目的分组视图。 */
+.ma-qtab {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--ma-seg-bg);
+}
+
+.ma-qtab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ma-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.ma-qtab-btn:hover {
+  color: var(--ma-control-fg);
+}
+
+.ma-qtab-btn.is-active {
+  background: var(--ma-seg-on-bg);
+  color: var(--ma-control-fg);
+}
+
+/* 另一类题型已选了几道——不切页签也能看见，避免漏掉已选的题。 */
+.ma-qtab-badge {
+  min-width: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--ma-primary);
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
 }
 
 .ma-chip {
