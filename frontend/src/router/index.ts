@@ -280,18 +280,20 @@ const routes: RouteRecordRaw[] = [
       descriptionKey: 'availableChannels.description'
     }
   },
-  {
-    path: '/iq-gallery',
-    name: 'UserIqGallery',
-    component: () => import('@/views/user/IqGalleryView.vue'),
-    meta: {
-      requiresAuth: true,
-      requiresAdmin: false,
-      title: 'IQ Benchmark Gallery',
-      titleKey: 'iqBenchmark.title',
-      descriptionKey: 'iqBenchmark.subtitle'
-    }
-  },
+  // 旧「模型智商检测作品展」已停用，由下面的 /model-degradation 取代。
+  // 代码保留（视图与后端模块都还在），只是不再挂路由；恢复时取消注释即可。
+  // {
+  //   path: '/iq-gallery',
+  //   name: 'UserIqGallery',
+  //   component: () => import('@/views/user/IqGalleryView.vue'),
+  //   meta: {
+  //     requiresAuth: true,
+  //     requiresAdmin: false,
+  //     title: 'IQ Benchmark Gallery',
+  //     titleKey: 'iqBenchmark.title',
+  //     descriptionKey: 'iqBenchmark.subtitle'
+  //   }
+  // },
   {
     path: '/model-degradation',
     name: 'ModelDegradation',
@@ -588,18 +590,19 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/admin/TutorialsView.vue'),
     meta: { requiresAuth: true, requiresAdmin: true, title: 'Tutorial Management' }
   },
-  {
-    path: '/admin/iq-benchmark',
-    name: 'AdminIqBenchmark',
-    component: () => import('@/views/admin/IqBenchmarkView.vue'),
-    meta: {
-      requiresAuth: true,
-      requiresAdmin: true,
-      title: 'IQ Benchmark Gallery Admin',
-      titleKey: 'iqBenchmark.admin.title',
-      descriptionKey: 'iqBenchmark.subtitle'
-    }
-  },
+  // 旧作品展后台已停用（同上，代码保留、仅摘路由）。
+  // {
+  //   path: '/admin/iq-benchmark',
+  //   name: 'AdminIqBenchmark',
+  //   component: () => import('@/views/admin/IqBenchmarkView.vue'),
+  //   meta: {
+  //     requiresAuth: true,
+  //     requiresAdmin: true,
+  //     title: 'IQ Benchmark Gallery Admin',
+  //     titleKey: 'iqBenchmark.admin.title',
+  //     descriptionKey: 'iqBenchmark.subtitle'
+  //   }
+  // },
   {
     path: '/admin/model-degradation',
     name: 'AdminModelDegradation',

@@ -7,6 +7,9 @@
 export default {
   modelDegradation: {
     title: '模型降智检测',
+    // 侧边栏入口文案（用户侧 / 管理侧）。
+    nav: '模型降智检测',
+    navAdmin: '降智检测管理',
     description:
       '用你自己的上游地址与密钥，当场测一次这个模型还灵不灵。检测用的凭据只在这一次请求里使用，不会保存。',
     subtitle: '自带凭据 · 当场判定',

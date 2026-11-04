@@ -7,6 +7,9 @@
 export default {
   modelDegradation: {
     title: 'Model Degradation',
+    // Sidebar entry labels (user / admin).
+    nav: 'Model Degradation',
+    navAdmin: 'Degradation Admin',
     description:
       'Point at your own upstream with your own credentials and find out, right now, whether the model still holds up. Credentials are used for this run only and are never stored.',
     subtitle: 'Bring your own key · judged on the spot',

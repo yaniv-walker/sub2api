@@ -199,7 +199,8 @@ import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, makeSidebarFlag } from '@/utils/featureFlags'
 import { resolveSiteBillingMode } from '@/utils/siteBillingMode'
 import { useBatchImageAccess } from '@/composables/useBatchImageAccess'
-import { useIqGalleryAvailable } from '@/features/iq-benchmark/availability'
+// 作品展已停用，菜单不再探测其可用性（恢复菜单时取消注释）。
+// import { useIqGalleryAvailable } from '@/features/iq-benchmark/availability'
 
 interface NavItem {
   path: string
@@ -727,11 +728,10 @@ const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
 const flagAdminPayment = () => adminSettingsStore.paymentEnabled
 const flagBatchImageAccess = () => canUseBatchImage.value
 const flagTutorial = makeSidebarFlag(FeatureFlags.tutorial)
-// 作品展的可用性来自后端探测（功能未启用时后端不注册用户侧路由）。
-// 复用 NavItem.featureFlag 的 `!== false` 宽容语义：探测完成前（null）不显示，
-// 结论为 false 时隐藏，为 true 时显示。
-const iqGalleryAvailable = useIqGalleryAvailable()
-const flagIqGallery = () => iqGalleryAvailable.value === true
+// 作品展已停用（改由 /model-degradation 承接），相关的可用性探测与判定一并注释掉。
+// 注意：iqGalleryAvailable 仍在别处用于按需加载设置，这里只停用菜单判定。
+// const iqGalleryAvailable = useIqGalleryAvailable()
+// const flagIqGallery = () => iqGalleryAvailable.value === true
 
 // buildSelfNavItems 构造用户自己的导航项（用户端主菜单和管理员的"我的账户"子菜单共享这组声明）。
 // withDashboard=true 时包含仪表盘（用户端），false 时不含（管理员的个人区已经有独立仪表盘入口）。
@@ -747,7 +747,9 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
     { path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon },
     { path: '/batch-image', label: t('nav.batchImage'), icon: BatchImageIcon, hideInSimpleMode: true, featureFlag: flagBatchImageAccess },
     { path: '/usage', label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: true },
-    { path: '/iq-gallery', label: t('iqBenchmark.navGallery'), icon: ChartIcon, hideInSimpleMode: true, featureFlag: flagIqGallery },
+    // 旧「作品展」入口已停用，改挂新的降智检测（用户自带凭据当场测）。
+    // { path: '/iq-gallery', label: t('iqBenchmark.navGallery'), icon: ChartIcon, hideInSimpleMode: true, featureFlag: flagIqGallery },
+    { path: '/model-degradation', label: t('modelDegradation.nav'), icon: ChartIcon, hideInSimpleMode: true },
     { path: '/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },
     { path: '/monitor', label: t('nav.channelStatus'), icon: SignalIcon, featureFlag: flagChannelMonitor },
     { path: '/subscriptions', label: t('nav.mySubscriptions'), icon: CreditCardIcon, hideInSimpleMode: true, featureFlag: flagSubscription },
@@ -820,8 +822,9 @@ const adminNavItems = computed((): NavItem[] => {
     { path: '/admin/accounts', label: t('nav.accounts'), icon: GlobeIcon },
     { path: '/admin/plugins', label: t('nav.plugins'), icon: PluginIcon, featureFlag: flagPluginManagement },
     { path: '/admin/upstream-monitor', label: '上游监控', icon: ChartIcon, featureFlag: flagPluginManagement },
-    // 作品展后台常驻可见：功能未启用时页面本身会提示如何开启。
-    { path: '/admin/iq-benchmark', label: t('iqBenchmark.navAdmin'), icon: ChartIcon },
+    // 旧作品展后台入口已停用，改挂新的降智检测后台（历史墙可见性配置）。
+    // { path: '/admin/iq-benchmark', label: t('iqBenchmark.navAdmin'), icon: ChartIcon },
+    { path: '/admin/model-degradation', label: t('modelDegradation.navAdmin'), icon: ChartIcon },
     { path: '/admin/announcements', label: t('nav.announcements'), icon: BellIcon },
     { path: '/admin/proxies', label: t('nav.proxies'), icon: ServerIcon },
     {

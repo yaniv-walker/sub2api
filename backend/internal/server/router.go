@@ -138,8 +138,15 @@ func registerRoutes(
 	routes.RegisterAdminRoutes(v1, h, adminAuth, auditLog, stepUpAuth, settingService, panelRateLimiter)
 	routes.RegisterGatewayRoutes(r, h, apiKeyAuth, apiKeyService, subscriptionService, opsService, settingService, compositeResolver, cfg)
 	routes.RegisterPaymentRoutes(v1, h.Payment, h.PaymentWebhook, h.Admin.Payment, jwtAuth, adminAuth, auditLog, settingService, panelRateLimiter, redisClient)
-	// 模型智商检测作品展（独立垂直模块）：enabled=false 时用户侧不注册，管理侧仅 settings 可用。
-	routes.RegisterIQBenchmarkRoutes(v1, h.IQBenchmark, adminAuth, jwtAuth, auditLog)
+	// 模型智商检测作品展（独立垂直模块）—— 已停用。
+	//
+	// 该功能已由下面的 modeldegradation 取代：旧版是「平台定时跑题、产出进作品展」，
+	// 新版是「用户自带凭据、当场测上游」，两者的数据主体和触发方式都不同。
+	// 保留代码与数据表（不删库、不删迁移），只摘掉路由注册，
+	// 这样将来要恢复只需取消这两行注释。
+	//
+	// routes.RegisterIQBenchmarkRoutes(v1, h.IQBenchmark, adminAuth, jwtAuth, auditLog)
+	//
 	// 模型降智检测（独立垂直模块）：用户自带凭据，不产生平台费用，因此常开。
 	routes.RegisterModelDegradationRoutes(v1, h.ModelDegradation, adminAuth, jwtAuth, auditLog)
 
