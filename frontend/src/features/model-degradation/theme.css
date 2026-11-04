@@ -1,0 +1,202 @@
+/**
+ * 「模型降智检测」页面的设计令牌与全局排版。
+ *
+ * 这些变量对齐参考站点的 --ma-* 体系：一套偏冷静的灰绿，
+ * 亮色下是纸面感，暗色下是深苔色。判定用色（通过/降智）刻意
+ * 与主题色分离，避免「绿色按钮」和「通过」被混为一谈。
+ *
+ * 全部变量以 .ma-page 为作用域，不外泄到应用其它页面。
+ */
+
+.ma-page {
+  /* 底材 */
+  --ma-bar-empty: #e5eae7;
+  --ma-border: #dfe6e2;
+  --ma-border-soft: #dfe7e1;
+  --ma-line: #e7ece8;
+
+  /* 文字 */
+  --ma-control-fg: #486454;
+  --ma-label: #61746a;
+  --ma-muted: #8d9a93;
+  --ma-faint: #8a988f;
+
+  /* 面 */
+  --ma-panel: rgba(255, 255, 255, 0.7);
+  --ma-panel-soft: rgba(237, 243, 239, 0.5);
+  --ma-panel-solid: #ffffff;
+  --ma-input-bg: #f7faf8;
+  --ma-input-border: #d7dfda;
+
+  /* 主色 */
+  --ma-primary: #2f7d69;
+  --ma-primary-fg: #ffffff;
+
+  /* 分段控件 */
+  --ma-seg-bg: #edf2ee;
+  --ma-seg-on-bg: #dcebe2;
+  --ma-seg-on-border: #a3c8b5;
+
+  /* 判定 */
+  --ma-pass: #54a77b;
+  --ma-fail: #d8736b;
+
+  /* 度量 */
+  --ma-cap-height: 38px;
+}
+
+:root.dark .ma-page,
+.dark .ma-page {
+  --ma-bar-empty: #262e2b;
+  --ma-border: #2c3532;
+  --ma-border-soft: #2f3935;
+  --ma-line: #2a3330;
+
+  --ma-control-fg: #b9cdc2;
+  --ma-label: #9aaba0;
+  --ma-muted: #8a938d;
+  --ma-faint: #7f8d86;
+
+  --ma-panel: rgba(35, 40, 39, 0.72);
+  --ma-panel-soft: rgba(30, 38, 35, 0.6);
+  --ma-panel-solid: #232827;
+  --ma-input-bg: #1d2221;
+  --ma-input-border: #37413d;
+
+  --ma-primary: #154e43;
+  --ma-primary-fg: #ffffff;
+
+  --ma-seg-bg: #202724;
+  --ma-seg-on-bg: #2d4c3f;
+  --ma-seg-on-border: #45775f;
+
+  --ma-pass: #54a77b;
+  --ma-fail: #d8736b;
+}
+
+/* 页面容器 */
+.ma-page {
+  position: relative;
+  min-height: 100%;
+  padding: 22px 20px 40px;
+  overflow: hidden;
+  /* 底色微微向页面中部提亮，让玻璃面板有东西可以「透」。 */
+  background:
+    radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--ma-pass) 7%, transparent), transparent 70%),
+    var(--ma-app-bg, transparent);
+}
+
+/* 内容层必须盖在波线之上。 */
+.ma-page-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* 顶部 */
+.ma-top {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ma-top-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ma-top-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.ma-top-title-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.ma-top-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ma-control-fg);
+}
+
+.ma-top-sub {
+  margin: 0;
+  max-width: 60ch;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ma-muted);
+}
+
+.ma-top-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ma-chip {
+  padding: 3px 9px;
+  border: 1px solid var(--ma-border);
+  border-radius: 999px;
+  background: var(--ma-panel-soft);
+  color: var(--ma-label);
+  font-size: 11px;
+}
+
+/* 顶部统计 */
+.ma-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ma-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 92px;
+  padding: 9px 12px;
+  border: 1px solid var(--ma-border);
+  border-radius: 11px;
+  background: var(--ma-panel);
+  backdrop-filter: blur(8px);
+}
+
+.ma-stat-label {
+  font-size: 10px;
+  color: var(--ma-faint);
+}
+
+.ma-stat-value {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ma-control-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 主体：左表单 + 右结果 */
+.ma-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .ma-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

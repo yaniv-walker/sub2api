@@ -293,6 +293,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/model-degradation',
+    name: 'ModelDegradation',
+    component: () => import('@/views/user/ModelDegradationView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Model Degradation',
+      titleKey: 'modelDegradation.title',
+      descriptionKey: 'modelDegradation.description'
+    }
+  },
+  {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/views/user/ProfileView.vue'),
@@ -586,6 +598,18 @@ const routes: RouteRecordRaw[] = [
       title: 'IQ Benchmark Gallery Admin',
       titleKey: 'iqBenchmark.admin.title',
       descriptionKey: 'iqBenchmark.subtitle'
+    }
+  },
+  {
+    path: '/admin/model-degradation',
+    name: 'AdminModelDegradation',
+    component: () => import('@/views/admin/ModelDegradationAdminView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Model Degradation Admin',
+      titleKey: 'modelDegradation.admin.title',
+      descriptionKey: 'modelDegradation.admin.subtitle'
     }
   },
   {

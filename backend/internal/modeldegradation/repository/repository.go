@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/modeldegradation"
+	"github.com/lib/pq"
 )
 
 // Repository 是 modeldegradation.Store 的 SQL 实现。
@@ -330,7 +331,65 @@ func (r *Repository) ListRuns(ctx context.Context, f modeldegradation.RunFilter)
 		}
 		out = append(out, *run)
 	}
-	return out, total, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	// 补上历史墙需要的作品缩略图。
+	//
+	// 单独一趟查询而不是 JOIN：一趟 JOIN 会让 run 行随 item 数重复，
+	// 分页必须再包一层 DISTINCT，反而更绕。这里用 DISTINCT ON 每条只取
+	// 第一个生成题的作品，并且限制体积 —— 列表接口不该被一张大图拖慢。
+	if err := r.attachArtworkPreviews(ctx, out); err != nil {
+		return nil, 0, err
+	}
+	return out, total, nil
+}
+
+// attachArtworkPreviews 为一批 run 填充 ArtworkPreview。
+func (r *Repository) attachArtworkPreviews(ctx context.Context, runs []modeldegradation.Run) error {
+	if len(runs) == 0 {
+		return nil
+	}
+
+	ids := make([]int64, 0, len(runs))
+	for i := range runs {
+		ids = append(ids, runs[i].ID)
+	}
+
+	// 超过 32KB 的作品不带：那是列表缩略图，不是详情页。
+	const previewLimit = 32768
+
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT DISTINCT ON (run_id) run_id,
+		        CASE WHEN length(artwork) <= $2 THEN artwork ELSE '' END
+		 FROM model_degradation_items
+		 WHERE run_id = ANY($1) AND task_type = 'render' AND artwork <> ''
+		 ORDER BY run_id, sort_order, id`, pq.Array(ids), previewLimit)
+	if err != nil {
+		return fmt.Errorf("modeldegradation: 读取作品缩略图失败: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	byID := make(map[int64]string, len(runs))
+	for rows.Next() {
+		var runID int64
+		var artwork string
+		if err := rows.Scan(&runID, &artwork); err != nil {
+			return fmt.Errorf("modeldegradation: 扫描作品缩略图失败: %w", err)
+		}
+		byID[runID] = artwork
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	for i := range runs {
+		if artwork, ok := byID[runs[i].ID]; ok {
+			runs[i].ArtworkPreview = artwork
+		}
+	}
+	return nil
 }
 
 // buildRunWhere 构造 WHERE 子句与参数。

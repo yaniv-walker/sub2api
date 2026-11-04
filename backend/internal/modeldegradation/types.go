@@ -188,6 +188,11 @@ type Run struct {
 	GroupName string
 
 	IsOwner bool
+
+	// ArtworkPreview 是本次检测首个生成题的作品源码，仅供历史墙缩略图使用。
+	//
+	// 只在列表查询里填充；过大的作品不会带上，避免单条记录把列表响应拖爆。
+	ArtworkPreview string
 }
 
 // IsRunning 表示检测仍在进行。

@@ -8,6 +8,7 @@ import admin from './admin'
 import misc from './misc'
 import checkin from './checkin'
 import iqBenchmark from './iqBenchmark'
+import modelDegradation from './modelDegradation'
 
 export default {
   adminAccessKeys,
@@ -20,4 +21,5 @@ export default {
   ...misc,
   ...checkin,
   ...iqBenchmark,
+  ...modelDegradation,
 }

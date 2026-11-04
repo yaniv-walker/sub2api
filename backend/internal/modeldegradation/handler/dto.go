@@ -115,6 +115,10 @@ type RunDTO struct {
 	GroupID    int64  `json:"group_id"`
 	GroupName  string `json:"group_name"`
 	IsOwner    bool   `json:"is_owner"`
+
+	// ArtworkPreview 是首个生成题的作品源码，供历史墙缩略图使用。
+	// 逻辑题检测或作品过大时为空串。
+	ArtworkPreview string `json:"artwork_preview"`
 }
 
 // toRunDTO 转换运行记录。
@@ -141,6 +145,7 @@ func toRunDTO(r modeldegradation.Run) RunDTO {
 		GroupID:              r.GroupID,
 		GroupName:            r.GroupName,
 		IsOwner:              r.IsOwner,
+		ArtworkPreview:       r.ArtworkPreview,
 	}
 }
 
