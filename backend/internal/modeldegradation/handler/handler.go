@@ -12,6 +12,7 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/modeldegradation"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
+	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 )
 
 // Handler 提供降智检测的全部接口。
@@ -32,29 +33,18 @@ func New(svc *modeldegradation.Service) *Handler {
 	return &Handler{Service: svc}
 }
 
-// UserIDFromContext 从 gin 上下文取当前用户 ID。
+// UserIDFromContext 读取当前登录用户 ID。
 //
-// 与 iqbenchmark 用同一个注入键（中间件写入的 user_id），
-// 这样两条链路共用同一套鉴权，不需要额外的会话机制。
+// 必须走 middleware.GetAuthSubjectFromContext，不能自己 c.Get("user_id")。
+// jwt 中间件往上下文里放的是 ContextKeyUser → AuthSubject 结构体，
+// 从来没有 "user_id" 这个键 —— 自己拼键名会永远拿到 0，
+// 表现就是「带着有效 token 也一律 401」，而且编译期完全不报错。
 func UserIDFromContext(c *gin.Context) int64 {
-	v, ok := c.Get("user_id")
+	subject, ok := middleware.GetAuthSubjectFromContext(c)
 	if !ok {
 		return 0
 	}
-	switch t := v.(type) {
-	case int64:
-		return t
-	case int:
-		return int64(t)
-	case float64:
-		return int64(t)
-	case string:
-		id, err := strconv.ParseInt(t, 10, 64)
-		if err == nil {
-			return id
-		}
-	}
-	return 0
+	return subject.UserID
 }
 
 // ── 题库 ──────────────────────────────────────────────────────────────
@@ -149,7 +139,9 @@ func (h *Handler) StartRun(c *gin.Context) {
 			errors.Is(err, modeldegradation.ErrLogicNeedsExpect),
 			errors.Is(err, modeldegradation.ErrRenderTimeout),
 			errors.Is(err, modeldegradation.ErrModelMissing),
-			errors.Is(err, modeldegradation.ErrAPIKeyMissing):
+			errors.Is(err, modeldegradation.ErrAPIKeyMissing),
+			// 协议 / 思考等级 / 题型取值不合法 —— 都是用户填错，回 400。
+			errors.Is(err, modeldegradation.ErrInvalidInput):
 			response.BadRequest(c, err.Error())
 		case errors.Is(err, modeldegradation.ErrConcurrencyLimit):
 			// 409 而不是 429：这不是限流，是「已经有一个在跑」。

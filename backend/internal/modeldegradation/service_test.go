@@ -194,6 +194,18 @@ func TestStart_ValidationOrderAndMessages(t *testing.T) {
 			},
 			ErrLogicNeedsExpect,
 		},
+		// 下面三处是「取值不在允许集合内」，必须是 ErrInvalidInput，
+		// 这样 handler 才会回 400 而不是 500。用户填错一个字符串
+		// 就显示「服务器错误」是误导，也会往日志里灌 5xx。
+		{"未知协议", func(r *StartRequest) { r.Protocol = "grpc" }, ErrInvalidInput},
+		{"未知思考等级", func(r *StartRequest) { r.ReasoningEffort = "extreme" }, ErrInvalidInput},
+		{
+			"未知题型",
+			func(r *StartRequest) {
+				r.Questions = []Question{{TaskType: "telepathy", Prompt: "p", Expected: "1"}}
+			},
+			ErrInvalidInput,
+		},
 	}
 
 	for _, tc := range cases {

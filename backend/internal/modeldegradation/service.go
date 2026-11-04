@@ -35,7 +35,22 @@ var (
 	ErrConcurrencyLimit = errors.New("modeldegradation: 已有检测正在进行中，请等它结束")
 	ErrRunNotFound      = errors.New("modeldegradation: 检测记录不存在")
 	ErrRunNotRunning    = errors.New("modeldegradation: 该检测已经结束")
+
+	// ErrInvalidInput 是「参数取值不在允许集合内」的统一哨兵。
+	//
+	// 协议、思考等级、题型这三处的取值来自用户输入，越界属于用户错误，
+	// 必须回 400。之前它们各自 fmt.Errorf 裸拼，handler 认不出来就落到
+	// default 分支回 500 —— 用户填错一个字符串，界面显示「服务器错误」，
+	// 既误导用户也让日志里堆满本不该存在的 5xx。
+	ErrInvalidInput = errors.New("modeldegradation: 参数取值不合法")
 )
+
+// invalidInput 造一个可被 errors.Is(err, ErrInvalidInput) 认出的参数错误。
+//
+// 用 %w 包住哨兵再带上具体原因，这样 handler 能判类别，用户也能看到细节。
+func invalidInput(format string, args ...any) error {
+	return fmt.Errorf("%w: %s", ErrInvalidInput, fmt.Sprintf(format, args...))
+}
 
 // Service 是降智检测的编排入口。
 type Service struct {
@@ -94,10 +109,10 @@ func (s *Service) Start(ctx context.Context, userID int64, ownerEmail string, re
 		return nil, ErrNoQuestions
 	}
 	if !IsValidProtocol(req.Protocol) {
-		return nil, fmt.Errorf("modeldegradation: 未知协议 %q", req.Protocol)
+		return nil, invalidInput("未知协议 %q", req.Protocol)
 	}
 	if !IsValidReasoningEffort(req.ReasoningEffort) {
-		return nil, fmt.Errorf("modeldegradation: 未知思考等级 %q", req.ReasoningEffort)
+		return nil, invalidInput("未知思考等级 %q", req.ReasoningEffort)
 	}
 
 	wantRender := contains(req.Tasks, TaskTypeRender)
@@ -118,7 +133,7 @@ func (s *Service) Start(ctx context.Context, userID int64, ownerEmail string, re
 			return nil, ErrNoQuestions
 		}
 		if q.TaskType != TaskTypeLogic && q.TaskType != TaskTypeRender {
-			return nil, fmt.Errorf("modeldegradation: 未知题型 %q", q.TaskType)
+			return nil, invalidInput("未知题型 %q", q.TaskType)
 		}
 	}
 
