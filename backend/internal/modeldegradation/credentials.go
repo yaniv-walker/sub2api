@@ -204,18 +204,18 @@ func NewSafeDialer(timeout time.Duration) *net.Dialer {
 
 // SanitizeBaseURLForDisplay 生成写进数据库的脱敏展示形态。
 //
-// 形如 https://api.example.com/*** —— 保留 scheme 与 host，
-// 路径统一替换成 ***。理由：
+// 形如 https://api.example.com/*** —— 保留 scheme 与 host，路径统一替换成 ***。理由：
 //   - host 是历史墙「按主机隐藏」的维度，必须保留
 //   - 路径可能带用户私有信息（租户 ID、token 前缀），不该落库
+//
+// 这里刻意用 HostOf（只取 hostname、小写、不带端口），与「按主机隐藏」用的
+// 是同一个维度。若这里保留端口而隐藏维度不带端口，那么 :8443 上的上游
+// 记录就永远无法被按主机隐藏 —— 展示形态和隐藏维度必须同源。
 //
 // 不做「保留前若干字符」那种脱敏：路径前缀同样可能泄漏信息，
 // 而且会让同一上游的不同用户记录看起来不一致。
 func SanitizeBaseURLForDisplay(parsed *url.URL) string {
-	if parsed == nil {
-		return ""
-	}
-	host := parsed.Host
+	host := HostOf(parsed)
 	if host == "" {
 		return ""
 	}

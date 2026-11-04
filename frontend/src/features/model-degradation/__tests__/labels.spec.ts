@@ -144,7 +144,7 @@ describe('itemVerdictKey / renderVerdictKey', () => {
     expect(renderVerdictKey('generated')).toBe('modelDegradation.metrics.renderGenerated')
     expect(renderVerdictKey('degraded')).toBe('modelDegradation.metrics.renderDegraded')
     expect(renderVerdictKey('unknown')).toBe('modelDegradation.metrics.renderUnknown')
-    expect(renderVerdictKey('none')).toBe('modelDegradation.metrics.renderSkipped')
+    expect(renderVerdictKey('')).toBe('modelDegradation.metrics.renderSkipped')
   })
 })
 

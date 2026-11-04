@@ -77,6 +77,53 @@ func TestBuildRunWhere_HiddenHosts(t *testing.T) {
 	}
 }
 
+// TestBuildRunWhere_EscapesLikeWildcards 防「隐藏一个主机，误伤一串主机」。
+//
+// 主机名里 _ 是合法字符，但 LIKE 把它当单字符通配符。不转义的话，
+// 隐藏 foo_bar.example.com 会连带隐藏 fooxbar.example.com 的记录 ——
+// 管理员以为自己只收了一条，实际静默隐藏了别人的数据。
+func TestBuildRunWhere_EscapesLikeWildcards(t *testing.T) {
+	cases := []struct {
+		host string
+		want string
+	}{
+		// 下划线是字面量，必须转义
+		{"foo_bar.example.com", `https://foo\_bar.example.com/%`},
+		// 百分号同理
+		{"100%off.example.com", `https://100\%off.example.com/%`},
+		// 反斜杠本身要最先换，否则会二次转义
+		{`back\slash.example.com`, `https://back\\slash.example.com/%`},
+		// 普通主机名不受影响
+		{"plain.example.com", "https://plain.example.com/%"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.host, func(t *testing.T) {
+			f := modeldegradation.RunFilter{ExcludeHosts: []string{tc.host}}
+			_, args := buildRunWhere(f)
+			if len(args) != 1 {
+				t.Fatalf("args = %v", args)
+			}
+			if args[0] != tc.want {
+				t.Fatalf("LIKE 模式 = %v, want %q", args[0], tc.want)
+			}
+		})
+	}
+}
+
+// TestBuildRunWhere_HostLowercased 保证大小写不同的同一个主机能被一起隐藏。
+//
+// 落库时 host 已统一小写；若这里的模式保留大写，匹配就永远失败，
+// 表现为「点了隐藏但线上记录还在」。
+func TestBuildRunWhere_HostLowercased(t *testing.T) {
+	f := modeldegradation.RunFilter{ExcludeHosts: []string{"API.Example.COM"}}
+	_, args := buildRunWhere(f)
+	want := "https://api.example.com/%"
+	if len(args) != 1 || args[0] != want {
+		t.Fatalf("args = %v, want [%q]", args, want)
+	}
+}
+
 func TestBuildRunWhere_MixedFiltersPlaceholderOrder(t *testing.T) {
 	// 这是最容易出错的一处：多个条件时占位符编号必须连续且与 args 对齐。
 	f := modeldegradation.RunFilter{

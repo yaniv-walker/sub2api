@@ -428,7 +428,14 @@ func buildRunWhere(f modeldegradation.RunFilter) (string, []any) {
 		}
 		if len(f.ExcludeHosts) > 0 {
 			for _, host := range f.ExcludeHosts {
-				args = append(args, "https://"+host+"/%")
+				// 只转义主机名部分，末尾的 % 必须保持为通配符，
+				// 否则模式会变成「字面量百分号」，谁都匹配不上。
+				//
+				// 主机名里 _ 是合法字符，但在 LIKE 里是单字符通配符。
+				// 不转义的话，隐藏 foo_bar.example.com 会连带隐藏
+				// fooxbar.example.com 的记录 —— 静默误伤别人的数据。
+				pattern := "https://" + escapeLikePattern(strings.ToLower(host)) + "/%"
+				args = append(args, pattern)
 				conds = append(conds, "base_url_display NOT LIKE $"+strconv.Itoa(len(args)))
 			}
 		}
@@ -567,4 +574,18 @@ func (r *Repository) ListUnmatchedHosts(ctx context.Context) ([]modeldegradation
 		out = append(out, h)
 	}
 	return out, rows.Err()
+}
+
+// escapeLikePattern 转义 LIKE 模式里的通配符。
+//
+// 只用 PostgreSQL 的默认转义符（反斜杠），因此调用点不需要额外写 ESCAPE 子句。
+// 反斜杠本身要最先换，否则会把后面补进去的反斜杠再转义一遍。
+//
+// 举例：主机名 foo_bar.example.com 里的 _ 是字面下划线，但 LIKE 会把它当成
+// 「任意一个字符」。转义后只匹配真正的 foo_bar，不会连带匹配 fooxbar。
+func escapeLikePattern(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `%`, `\%`)
+	s = strings.ReplaceAll(s, `_`, `\_`)
+	return s
 }

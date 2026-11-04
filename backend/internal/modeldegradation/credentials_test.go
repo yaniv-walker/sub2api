@@ -202,6 +202,10 @@ func TestValidateBaseURL_PreservesPath(t *testing.T) {
 func TestSanitizeBaseURLForDisplay(t *testing.T) {
 	// 落库的形态必须是「scheme + host + /***」。
 	// host 要保留（它是有意义的维度），路径必须抹掉（可能带租户信息）。
+	//
+	// host 只取 hostname、小写、不带端口：这与「按主机隐藏」用的 HostOf
+	// 是同一个维度。展示形态与隐藏维度一旦不同源，带非默认端口的上游
+	// 就永远无法被隐藏，而那正是最需要隐藏的私有部署场景。
 	cases := []struct {
 		raw  string
 		want string
@@ -209,7 +213,8 @@ func TestSanitizeBaseURLForDisplay(t *testing.T) {
 		{"https://api.example.com", "https://api.example.com/***"},
 		{"https://api.example.com/v1", "https://api.example.com/***"},
 		{"https://api.example.com/v1/secret-tenant-id", "https://api.example.com/***"},
-		{"https://api.example.com:8443/v1", "https://api.example.com:8443/***"},
+		{"https://api.example.com:8443/v1", "https://api.example.com/***"},
+		{"https://API.Example.COM/v1", "https://api.example.com/***"},
 		{"https://api.example.com?token=abc", "https://api.example.com/***"},
 	}
 
@@ -227,6 +232,36 @@ func TestSanitizeBaseURLForDisplay(t *testing.T) {
 
 	if got := SanitizeBaseURLForDisplay(nil); got != "" {
 		t.Fatalf("nil URL 应返回空串，实际 %q", got)
+	}
+}
+
+// TestSanitizeBaseURLForDisplay_matchesHostOf 锁住「展示形态」与「隐藏维度」同源。
+//
+// 这两者分开演进时，历史墙会按一个维度展示、按另一个维度隐藏，
+// 表现是「管理页点了隐藏但公开墙没变」。这个测试就是防那种漂移。
+func TestSanitizeBaseURLForDisplay_matchesHostOf(t *testing.T) {
+	raws := []string{
+		"https://api.example.com/v1",
+		"https://api.example.com:8443/v1",
+		"https://API.Example.COM",
+		"https://foo_bar.example.com/v1",
+	}
+
+	for _, raw := range raws {
+		t.Run(raw, func(t *testing.T) {
+			u, err := url.Parse(raw)
+			if err != nil {
+				t.Fatalf("url.Parse 失败: %v", err)
+			}
+			host := HostOf(u)
+			if host == "" {
+				t.Fatalf("HostOf(%q) 不该为空", raw)
+			}
+			display := SanitizeBaseURLForDisplay(u)
+			if want := "https://" + host + "/***"; display != want {
+				t.Fatalf("展示形态 %q 与 HostOf %q 不同源（期望 %q）", display, host, want)
+			}
+		})
 	}
 }
 
