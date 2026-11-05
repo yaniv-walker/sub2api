@@ -66,6 +66,7 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		nil, // apiKeyService
 		nil, // authCacheInvalidationWorker
 		schedulerSnapshotSvc,
+		nil, // account model catalog queue
 		tokenRefreshSvc,
 		accountExpirySvc,
 		nil, // cnProviderBalanceCheck
@@ -82,6 +83,8 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		emailQueueSvc,
 		billingCacheSvc,
 		&service.UsageRecordWorkerPool{},
+		service.ProvideBalanceNotifyService(nil, nil, nil, nil),
+		service.NewDigestSessionStore(),
 		&service.SubscriptionService{},
 		oauthSvc,
 		openAIOAuthSvc,
