@@ -39,6 +39,7 @@
             >
               <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
             </button>
+            <button type="button" class="btn btn-secondary" @click="showOfficialPricing = true">{{ t('modelPlaza.official.title') }}</button>
             <button @click="openCreateDialog" class="btn btn-primary">
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.channels.createChannel', 'Create Channel') }}
@@ -137,6 +138,10 @@
         />
       </template>
     </TablePageLayout>
+
+    <BaseDialog :show="showOfficialPricing" :title="t('modelPlaza.official.title')" width="extra-wide" @close="closeOfficialPricing">
+      <OfficialPricingManager v-if="showOfficialPricing" ref="officialPricingManager" />
+    </BaseDialog>
 
     <!-- Create/Edit Dialog -->
     <BaseDialog
@@ -645,6 +650,7 @@ import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import OfficialPricingManager from '@/components/admin/channel/OfficialPricingManager.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import Select from '@/components/common/Select.vue'
@@ -737,6 +743,9 @@ const sortState = reactive({
 })
 
 // Dialog state
+const showOfficialPricing = ref(false)
+const officialPricingManager = ref<InstanceType<typeof OfficialPricingManager> | null>(null)
+function closeOfficialPricing() { if (officialPricingManager.value?.canClose() !== false) showOfficialPricing.value = false }
 const showDialog = ref(false)
 const editingChannel = ref<Channel | null>(null)
 const submitting = ref(false)

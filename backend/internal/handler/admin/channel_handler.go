@@ -16,14 +16,25 @@ import (
 
 // ChannelHandler handles admin channel management
 type ChannelHandler struct {
-	channelService *service.ChannelService
-	billingService *service.BillingService
-	pricingService *service.PricingService
+	channelService  *service.ChannelService
+	billingService  *service.BillingService
+	pricingService  *service.PricingService
+	officialPricing *service.OfficialPricingService
 }
 
 // NewChannelHandler creates a new admin channel handler
-func NewChannelHandler(channelService *service.ChannelService, billingService *service.BillingService, pricingService *service.PricingService) *ChannelHandler {
-	return &ChannelHandler{channelService: channelService, billingService: billingService, pricingService: pricingService}
+func NewChannelHandler(channelService *service.ChannelService, billingService *service.BillingService, pricingService *service.PricingService, official ...*service.OfficialPricingService) *ChannelHandler {
+	h := &ChannelHandler{channelService: channelService, billingService: billingService, pricingService: pricingService}
+	if len(official) > 0 {
+		h.officialPricing = official[0]
+	}
+	return h
+}
+
+// ProvideChannelHandler makes the production Wire dependency explicit while
+// preserving the constructor used by existing handler tests.
+func ProvideChannelHandler(channelService *service.ChannelService, billingService *service.BillingService, pricingService *service.PricingService, official *service.OfficialPricingService) *ChannelHandler {
+	return NewChannelHandler(channelService, billingService, pricingService, official)
 }
 
 // --- Request / Response types ---
@@ -601,6 +612,27 @@ func (h *ChannelHandler) GetModelDefaultPricing(c *gin.Context) {
 	if model == "" {
 		response.ErrorFrom(c, infraerrors.BadRequest("MISSING_PARAMETER", "model parameter is required").
 			WithMetadata(map[string]string{"param": "model"}))
+		return
+	}
+	if h.officialPricing != nil && strings.TrimSpace(c.Query("platform")) != "" {
+		entry, err := h.officialPricing.Get(c.Request.Context(), c.Query("platform"), model)
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		if entry.Pricing == nil {
+			response.Success(c, gin.H{"found": false})
+			return
+		}
+		out := officialDefaultPricingResponse(entry)
+		// Existing channel forms also use reasoning multipliers from the automatic
+		// model policy. Reference price edits do not replace that policy.
+		if h.billingService != nil {
+			if automatic, lookupErr := h.billingService.GetModelPricing(model); lookupErr == nil && automatic != nil {
+				out["reasoning_effort_multipliers"] = automatic.ReasoningEffortMultipliers
+			}
+		}
+		response.Success(c, out)
 		return
 	}
 

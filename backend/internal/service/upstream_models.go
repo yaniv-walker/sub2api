@@ -310,7 +310,7 @@ func (s *AccountTestService) SyncUpstreamModelCatalog(ctx context.Context, accou
 
 	completeMetadata := completeUpstreamModelMetadataSubset(capabilityIDs, catalog.Metadata)
 	persistedCapabilities := false
-	if len(completeMetadata) > 0 && account != nil && account.ID > 0 && s.accountRepo != nil {
+	if len(completeMetadata) > 0 && account != nil && account.ID > 0 && s.accountRepo != nil && !modelCatalogPreview(ctx) {
 		// Retain known metadata only for models still listed or explicitly mapped.
 		if previous := account.GetUpstreamModelMetadataSnapshot(); previous != nil {
 			retainedModels := capabilityIDs
@@ -845,7 +845,7 @@ func (s *AccountTestService) fetchUpstreamModelListRequest(ctx context.Context, 
 }
 
 func (s *AccountTestService) saveGrokCatalogObservation(ctx context.Context, account *Account, observation *GrokCatalogObservation) error {
-	if s == nil || account == nil || !account.IsGrok() || account.ID <= 0 || observation == nil {
+	if s == nil || account == nil || !account.IsGrok() || account.ID <= 0 || observation == nil || modelCatalogPreview(ctx) {
 		return nil
 	}
 	snap, err := PersistGrokCatalogObservation(ctx, s.accountRepo, account.ID, *observation)

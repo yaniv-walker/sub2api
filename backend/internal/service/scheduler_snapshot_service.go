@@ -144,6 +144,13 @@ type SchedulerSnapshotService struct {
 	fullRebuildRequested uint64
 	fullRebuildCompleted uint64
 	fullRebuildLastErr   error
+	modelCatalogQueue    *AccountModelCatalogQueue
+}
+
+// SetModelCatalogQueue connects model discovery before Start. The queue has no
+// dependencies on the scheduler, avoiding a gateway/account-test DI cycle.
+func (s *SchedulerSnapshotService) SetModelCatalogQueue(queue *AccountModelCatalogQueue) {
+	s.modelCatalogQueue = queue
 }
 
 func NewSchedulerSnapshotService(
@@ -466,6 +473,28 @@ func (s *SchedulerSnapshotService) cleanupConsumedOutbox(watermark int64) {
 }
 
 func (s *SchedulerSnapshotService) handleOutboxEvent(ctx context.Context, event SchedulerOutboxEvent, seen map[batchSeenKey]struct{}) error {
+	if s.modelCatalogQueue != nil {
+		switch event.EventType {
+		case SchedulerOutboxEventAccountChanged:
+			if syncModels, _ := event.Payload["model_catalog_sync"].(bool); !syncModels {
+				break
+			}
+			if event.AccountID != nil {
+				s.modelCatalogQueue.Enqueue(*event.AccountID)
+			}
+		case SchedulerOutboxEventAccountGroupsChanged:
+			if event.AccountID != nil {
+				s.modelCatalogQueue.Enqueue(*event.AccountID)
+			}
+		case SchedulerOutboxEventAccountBulkChanged:
+			if syncModels, _ := event.Payload["model_catalog_sync"].(bool); !syncModels {
+				break
+			}
+			for _, id := range parseInt64Slice(event.Payload["account_ids"]) {
+				s.modelCatalogQueue.Enqueue(id)
+			}
+		}
+	}
 	switch event.EventType {
 	case SchedulerOutboxEventAccountLastUsed:
 		return s.handleLastUsedEvent(ctx, event.Payload)

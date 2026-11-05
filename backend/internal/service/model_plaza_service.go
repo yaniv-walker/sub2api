@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// PlazaOfficialPricing 模型广场展示用的官方参考价（USD per token），与计费同源：
-// LiteLLM → 内置兜底价卡 → 模型策略。字段为 nil 表示该项缺失（0 视为未配置）。
+// PlazaOfficialPricing 是广场官方参考价（USD/token）：人工维护优先，
+// 未维护字段沿用 LiteLLM/内置价卡/模型策略。nil 表示缺失，人工零价保留。
 type PlazaOfficialPricing struct {
 	InputPrice        *float64
 	OutputPrice       *float64
@@ -63,14 +63,16 @@ type PlazaGroup struct {
 
 // ModelPlazaService 聚合模型广场数据。
 //
-// 模型枚举来自渠道配置；token 模型的展示单价与阶梯由 BillingService 的阶梯表
-// 查询给出（与扣费走同一条解析链与计费函数），图片/按次模型沿用渠道/分组档位价。
+// 模型枚举来自账号发现快照和当前分组/渠道约束。报价先复用计费解析，
+// 再以人工官方价替换未显式配置的字段；不修改网关扣费依赖或倍率。
 type ModelPlazaService struct {
-	channelRepo    ChannelRepository
-	groupRepo      GroupRepository
-	pricingService *PricingService
-	billingService *BillingService
-	resolver       *ModelPricingResolver
+	channelRepo     ChannelRepository
+	groupRepo       GroupRepository
+	pricingService  *PricingService
+	billingService  *BillingService
+	resolver        *ModelPricingResolver
+	officialPricing *OfficialPricingService
+	accountRepo     AccountRepository
 }
 
 // NewModelPlazaService 创建模型广场服务。
@@ -92,8 +94,8 @@ func NewModelPlazaService(
 
 // ListGroups 返回模型广场数据：每个活跃分组附带其可用模型与定价。
 //
-// 模型枚举口径与 ListAvailable 一致（Active 渠道、SupportedModels ∪ 全局定价回落、
-// 平台隔离），仅把顶层从渠道换成分组：
+// 生产路径按账号有效支持集合聚合；未注入账号仓储的历史测试沿用渠道枚举。
+// 分组、平台隔离和报价规则：
 //   - 渠道按 lower(name) 排序后遍历，保证同名模型去重结果确定；
 //   - 同分组同名模型「先见者胜」，仅当已存条目无定价而新条目有定价时升级替换；
 //   - token 模型的单价与阶梯按实收口径合成（见 ResolveContextPricingSchedule），
@@ -151,53 +153,85 @@ func (s *ModelPlazaService) ListGroups(ctx context.Context) ([]PlazaGroup, error
 	}
 	// modelIdx[groupID][platform+modelName] = index into byGroup[groupID].Models
 	modelIdx := make(map[int64]map[modelKey]int, len(groups))
-	for i := range channels {
-		ch := &channels[i]
-		if ch.Status != StatusActive {
-			continue
+	if s.accountRepo != nil {
+		accounts, err := s.accountRepo.ListActive(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list model plaza accounts: %w", err)
 		}
-		ch.normalizeBillingModelSource()
-		supported := ch.SupportedModels()
-		fillGlobalPricingFallback(s.pricingService, supported)
-
-		for _, gid := range ch.GroupIDs {
-			pg, ok := byGroup[gid]
-			if !ok {
+		for gid, models := range ModelPlazaAccountModels(accounts, channels) {
+			group := byGroup[gid]
+			if group == nil {
 				continue
 			}
-			idx := modelIdx[gid]
-			if idx == nil {
-				idx = make(map[modelKey]int, len(supported))
-				modelIdx[gid] = idx
+			for _, model := range models {
+				if group.Platform != PlatformComposite && group.Platform != model.Platform {
+					continue
+				}
+				group.Models = append(group.Models, PlazaModel{Name: model.Name, Platform: model.Platform, Pricing: model.Pricing})
 			}
-			for j := range supported {
-				m := supported[j]
-				if pg.Platform == PlatformComposite {
-					if !isConcreteRequestPlatform(m.Platform) {
+		}
+	} else {
+		for i := range channels {
+			ch := &channels[i]
+			if ch.Status != StatusActive {
+				continue
+			}
+			ch.normalizeBillingModelSource()
+			supported := ch.SupportedModels()
+			fillGlobalPricingFallback(s.pricingService, supported)
+
+			for _, gid := range ch.GroupIDs {
+				pg, ok := byGroup[gid]
+				if !ok {
+					continue
+				}
+				idx := modelIdx[gid]
+				if idx == nil {
+					idx = make(map[modelKey]int, len(supported))
+					modelIdx[gid] = idx
+				}
+				for j := range supported {
+					m := supported[j]
+					if pg.Platform == PlatformComposite {
+						if !isConcreteRequestPlatform(m.Platform) {
+							continue
+						}
+					} else if m.Platform != pg.Platform {
 						continue
 					}
-				} else if m.Platform != pg.Platform {
-					continue
-				}
-				key := modelKey{platform: m.Platform, name: m.Name}
-				if at, seen := idx[key]; seen {
-					// 先见者胜；仅当已存条目无定价而新条目有定价时升级。
-					if pg.Models[at].Pricing == nil && m.Pricing != nil {
-						pg.Models[at].Pricing = m.Pricing
+					key := modelKey{platform: m.Platform, name: m.Name}
+					if at, seen := idx[key]; seen {
+						// 先见者胜；仅当已存条目无定价而新条目有定价时升级。
+						if pg.Models[at].Pricing == nil && m.Pricing != nil {
+							pg.Models[at].Pricing = m.Pricing
+						}
+						continue
 					}
-					continue
+					idx[key] = len(pg.Models)
+					pg.Models = append(pg.Models, PlazaModel{
+						Name:     m.Name,
+						Platform: m.Platform,
+						Pricing:  m.Pricing,
+					})
 				}
-				idx[key] = len(pg.Models)
-				pg.Models = append(pg.Models, PlazaModel{
-					Name:     m.Name,
-					Platform: m.Platform,
-					Pricing:  m.Pricing,
-				})
 			}
 		}
 	}
 
 	officialMemo := make(map[string]*PlazaOfficialPricing)
+	var maintained map[OfficialPricingIdentity]*OfficialPricingEntry
+	if s.officialPricing != nil {
+		identities := make([]OfficialPricingIdentity, 0)
+		for _, group := range byGroup {
+			for _, model := range group.Models {
+				identities = append(identities, OfficialPricingIdentity{Platform: model.Platform, Model: model.Name})
+			}
+		}
+		maintained, err = s.officialPricing.GetMany(ctx, identities)
+		if err != nil {
+			return nil, fmt.Errorf("resolve plaza official prices: %w", err)
+		}
+	}
 	out := make([]PlazaGroup, 0, len(order))
 	for _, gid := range order {
 		pg := byGroup[gid]
@@ -212,8 +246,22 @@ func (s *ModelPlazaService) ListGroups(ctx context.Context) ([]PlazaGroup, error
 		})
 		g := groupEnt[gid]
 		for j := range pg.Models {
-			s.fillDisplayPricing(ctx, &pg.Models[j], g)
-			pg.Models[j].OfficialPricing = s.lookupOfficialPricing(ctx, pg.Models[j].Name, officialMemo)
+			model := &pg.Models[j]
+			s.fillDisplayPricing(ctx, model, g)
+			model.OfficialPricing = s.lookupOfficialPricing(ctx, model.Name, officialMemo)
+			if s.officialPricing != nil {
+				entry := maintained[OfficialPricingIdentity{Platform: model.Platform, Model: model.Name}]
+				if entry != nil {
+					model.OfficialPricing = plazaOfficialPriceDTO(entry.Pricing)
+					if entry.Override != nil {
+						configured := matchGroupModelPricing(g, model.Name)
+						if configured == nil && s.resolver != nil {
+							configured = s.resolver.lookupChannelPricingNormalized(WithResolvedTargetPlatform(ctx, model.Platform), g.ID, model.Name)
+						}
+						applyPlazaOfficialOverride(model, g, entry.Override, configured)
+					}
+				}
+			}
 		}
 		out = append(out, *pg)
 	}
