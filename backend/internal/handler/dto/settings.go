@@ -164,6 +164,7 @@ type SystemSettings struct {
 	TablePageSizeOptions        []int            `json:"table_page_size_options"`
 	CustomMenuItems             []CustomMenuItem `json:"custom_menu_items"`
 	CustomEndpoints             []CustomEndpoint `json:"custom_endpoints"`
+	ModelDegradationEnabled     bool             `json:"model_degradation_enabled"`
 	TutorialEnabled             bool             `json:"tutorial_enabled"`
 
 	DefaultConcurrency           int                          `json:"default_concurrency"`
@@ -406,6 +407,7 @@ type PublicSettings struct {
 	TablePageSizeOptions                []int                    `json:"table_page_size_options"`
 	CustomMenuItems                     []CustomMenuItem         `json:"custom_menu_items"`
 	CustomEndpoints                     []CustomEndpoint         `json:"custom_endpoints"`
+	ModelDegradationEnabled             bool                     `json:"model_degradation_enabled"`
 	TutorialEnabled                     bool                     `json:"tutorial_enabled"`
 	DingTalkOAuthEnabled                bool                     `json:"dingtalk_oauth_enabled"`
 	LinuxDoOAuthEnabled                 bool                     `json:"linuxdo_oauth_enabled"`

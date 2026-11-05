@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
+	"github.com/lib/pq"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/ent"
@@ -145,4 +147,47 @@ func (r *settingRepository) GetAll(ctx context.Context) (map[string]string, erro
 func (r *settingRepository) Delete(ctx context.Context, key string) error {
 	_, err := r.client.Setting.Delete().Where(setting.KeyEQ(key)).Exec(ctx)
 	return err
+}
+
+// SetTutorialSupport participates in the same lock order as protected asset deletion.
+// A concurrent settings save either reserves a live asset or fails without saving.
+func (r *settingRepository) SetTutorialSupport(ctx context.Context, value string, keys []string) error {
+	tx, err := r.client.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	client := tx.Client()
+	if _, err = client.ExecContext(ctx, "LOCK TABLE tutorial_documents, settings IN SHARE ROW EXCLUSIVE MODE"); err != nil {
+		return err
+	}
+	if len(keys) > 0 {
+		rows, e := client.QueryContext(ctx, "SELECT storage_key FROM tutorial_assets WHERE storage_key=ANY($1) AND kind='image'", pq.Array(keys))
+		if e != nil {
+			return e
+		}
+		found := map[string]bool{}
+		for rows.Next() {
+			var key string
+			if e = rows.Scan(&key); e != nil {
+				_ = rows.Close()
+				return e
+			}
+			found[key] = true
+		}
+		e = rows.Err()
+		_ = rows.Close()
+		if e != nil {
+			return e
+		}
+		for _, key := range keys {
+			if !found[key] {
+				return fmt.Errorf("%w: support QR asset does not exist or is not an image", service.ErrTutorialInvalidInput)
+			}
+		}
+	}
+	if err = client.Setting.Create().SetKey(service.SettingKeyTutorialSupport).SetValue(value).SetUpdatedAt(time.Now()).OnConflictColumns(setting.FieldKey).UpdateNewValues().Exec(ctx); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

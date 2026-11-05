@@ -37,6 +37,11 @@ func RegisterUserRoutes(
 		authenticated.GET("/tutorials", h.Tutorial.List)
 		authenticated.GET("/tutorials/:slug", h.Tutorial.Get)
 		v1.GET("/tutorial-assets/:token", h.Tutorial.Asset)
+		v1.HEAD("/tutorial-assets/:token", h.Tutorial.Asset)
+		authenticated.GET("/tutorial-support", h.Tutorial.Support)
+		v1.GET("/public/tutorials", h.Tutorial.PublicList)
+		v1.GET("/public/tutorials/:slug", h.Tutorial.PublicGet)
+		v1.GET("/public/tutorial-support", h.Tutorial.PublicSupport)
 
 		// 用户接口
 		user := authenticated.Group("/user")

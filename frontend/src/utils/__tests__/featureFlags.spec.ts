@@ -79,3 +79,12 @@ describe('FeatureFlags.mcp', () => {
     expect(resolveFeatureFlag({ mcp_enabled: true } as PublicSettings, FeatureFlags.mcp)).toBe(true)
   })
 })
+
+describe('FeatureFlags.modelDegradation', () => {
+  it('preserves enabled behavior for old deployments and honors an explicit disable', () => {
+    expect(FeatureFlags.modelDegradation.key).toBe('model_degradation_enabled')
+    expect(resolveFeatureFlag(undefined, FeatureFlags.modelDegradation)).toBe(true)
+    expect(resolveFeatureFlag({ model_degradation_enabled: true }, FeatureFlags.modelDegradation)).toBe(true)
+    expect(resolveFeatureFlag({ model_degradation_enabled: false }, FeatureFlags.modelDegradation)).toBe(false)
+  })
+})

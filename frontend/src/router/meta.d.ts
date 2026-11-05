@@ -62,6 +62,7 @@ declare module 'vue-router' {
     requiresSubscription?: boolean
 
     /** Whether this route requires the tutorial and support feature switch. */
+    requiresModelDegradation?: boolean
     requiresTutorial?: boolean
     /** Load settings while retaining disabled activity history access. */
     requiresCheckin?: boolean

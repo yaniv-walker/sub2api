@@ -85,3 +85,63 @@ func (s *SettingService) UpdateTutorialDocument(ctx context.Context, doc Tutoria
 	}
 	return s.settingRepo.Set(ctx, SettingKeyTutorialDocument, string(b))
 }
+
+// TutorialSupport contains only administrator-controlled public contact details.
+type TutorialSupport struct {
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	Wechat        string `json:"wechat"`
+	QQ            string `json:"qq"`
+	QQGroup       string `json:"qq_group"`
+	WechatQRURL   string `json:"wechat_qr_url"`
+	QQQRURL       string `json:"qq_qr_url"`
+	Email         string `json:"email"`
+	TicketURL     string `json:"ticket_url"`
+	ServiceHours  string `json:"service_hours"`
+	PublicEnabled bool   `json:"public_enabled"`
+}
+
+const SettingKeyTutorialSupport = "tutorial_support_v2"
+
+// Production repositories atomically validate referenced assets and update the setting.
+type tutorialSupportSettingWriter interface {
+	SetTutorialSupport(context.Context, string, []string) error
+}
+
+func (s *SettingService) GetTutorialSupport(ctx context.Context) (*TutorialSupport, error) {
+	raw, err := s.settingRepo.GetValue(ctx, SettingKeyTutorialSupport)
+	if errors.Is(err, ErrSettingNotFound) {
+		return &TutorialSupport{Title: "联系售后"}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(raw) == "" {
+		return &TutorialSupport{Title: "联系售后"}, nil
+	}
+	var settings TutorialSupport
+	if err = json.Unmarshal([]byte(raw), &settings); err != nil {
+		return nil, err
+	}
+	return &settings, nil
+}
+func (s *SettingService) UpdateTutorialSupport(ctx context.Context, t TutorialSupport) error {
+	t.WechatQRURL = CanonicalTutorialContent(t.WechatQRURL)
+	t.QQQRURL = CanonicalTutorialContent(t.QQQRURL)
+	if len([]rune(t.Title)) > 160 || len([]rune(t.Description)) > 1000 || len([]rune(t.ServiceHours)) > 300 || len([]rune(t.Wechat)) > 160 || len([]rune(t.QQ)) > 160 || len([]rune(t.QQGroup)) > 160 || len(t.Email) > 320 {
+		return ErrTutorialInvalidInput
+	}
+	for _, raw := range []string{t.WechatQRURL, t.QQQRURL, t.TicketURL} {
+		if raw != "" && !validTutorialLink(raw) {
+			return fmt.Errorf("%w: support links require HTTPS or a tutorial asset", ErrTutorialInvalidInput)
+		}
+	}
+	b, err := json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	if writer, ok := s.settingRepo.(tutorialSupportSettingWriter); ok {
+		return writer.SetTutorialSupport(ctx, string(b), TutorialAssetKeys(t.WechatQRURL+"\n"+t.QQQRURL))
+	}
+	return s.settingRepo.Set(ctx, SettingKeyTutorialSupport, string(b))
+}

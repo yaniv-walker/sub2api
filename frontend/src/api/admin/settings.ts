@@ -495,6 +495,7 @@ export interface SystemSettings {
   backend_mode_enabled: boolean;
   custom_menu_items: CustomMenuItem[];
   custom_endpoints: CustomEndpoint[];
+  model_degradation_enabled: boolean;
   tutorial_enabled: boolean;
   // SMTP settings
   smtp_host: string;
@@ -763,6 +764,7 @@ export interface SystemSettings {
 }
 
 export interface UpdateSettingsRequest {
+  model_degradation_enabled?: boolean;
   tutorial_enabled?: boolean;
   registration_enabled?: boolean;
   email_verify_enabled?: boolean;

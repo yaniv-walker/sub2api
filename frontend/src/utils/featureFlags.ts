@@ -135,6 +135,11 @@ export const FeatureFlags = {
     mode: 'opt-in',
     label: 'Affiliate',
   }),
+  modelDegradation: defineFlag({
+    key: 'model_degradation_enabled',
+    mode: 'opt-out',
+    label: 'Model degradation detection',
+  }),
   tutorial: defineFlag({
     key: 'tutorial_enabled',
     mode: 'opt-in',

@@ -6379,6 +6379,19 @@
                 <Toggle v-model="form.backend_mode_enabled" />
               </div>
 
+              <!-- Model degradation detection -->
+              <div class="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-dark-700">
+                <div>
+                  <h3 class="text-sm font-medium text-gray-900 dark:text-white">
+                    {{ localText("模型降智检测", "Model degradation detection") }}
+                  </h3>
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {{ localText("同时控制用户端检测与管理员检测管理。关闭后隐藏两侧入口，并停止相关页面与接口访问；保留已有检测记录。", "Control detection and its administration together. Disabling hides both entries and blocks related pages and APIs while preserving existing records.") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.model_degradation_enabled" data-testid="model-degradation-toggle" :aria-label="localText('模型降智检测', 'Model degradation detection')" />
+              </div>
+
               <!-- Tutorial and support -->
               <div
                 class="flex items-center justify-between rounded-lg border border-primary-200 bg-primary-50/60 p-4 dark:border-primary-800 dark:bg-primary-900/20"
@@ -9797,6 +9810,7 @@ const form = reactive<SettingsForm>({
   contact_info: "",
   doc_url: "",
   home_content: "",
+  model_degradation_enabled: true,
   tutorial_enabled: false,
   compact_home_enabled: false,
   backend_mode_enabled: false,
@@ -11505,6 +11519,7 @@ async function saveSettings() {
       contact_info: form.contact_info,
       doc_url: form.doc_url,
       home_content: form.home_content,
+      model_degradation_enabled: form.model_degradation_enabled,
       tutorial_enabled: form.tutorial_enabled,
       compact_home_enabled: form.compact_home_enabled,
       backend_mode_enabled: form.backend_mode_enabled,

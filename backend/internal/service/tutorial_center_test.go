@@ -19,10 +19,10 @@ func (tutorialRepoFake) GetByID(context.Context, int64, bool) (*Tutorial, error)
 func (tutorialRepoFake) GetBySlug(context.Context, string, bool) (*Tutorial, error) {
 	return nil, ErrTutorialNotFound
 }
-func (tutorialRepoFake) Create(context.Context, *Tutorial) error { return nil }
-func (tutorialRepoFake) Update(context.Context, *Tutorial) error { return nil }
-func (tutorialRepoFake) Delete(context.Context, int64) error     { return nil }
-func (tutorialRepoFake) SetStatus(context.Context, int64, string, *time.Time, int64) error {
+func (tutorialRepoFake) Create(context.Context, *Tutorial) error    { return nil }
+func (tutorialRepoFake) Update(context.Context, *Tutorial) error    { return nil }
+func (tutorialRepoFake) Delete(context.Context, int64, int64) error { return nil }
+func (tutorialRepoFake) SetStatus(context.Context, int64, string, *time.Time, int64, int64) error {
 	return nil
 }
 func (tutorialRepoFake) ListAssets(context.Context, int64) ([]TutorialAsset, error) { return nil, nil }
@@ -46,4 +46,17 @@ func TestTutorialServiceDefaultsCategoryAndStatus(t *testing.T) {
 	require.NoError(t, s.Create(context.Background(), tutorial))
 	require.Equal(t, "getting-started", tutorial.Category)
 	require.Equal(t, TutorialStatusDraft, tutorial.Status)
+}
+
+func (tutorialRepoFake) LinkAsset(context.Context, int64, int64) error                { return nil }
+func (tutorialRepoFake) UpdateAssetLabel(context.Context, int64, int64, string) error { return nil }
+func (tutorialRepoFake) AssetReferences(context.Context, int64) ([]Tutorial, error)   { return nil, nil }
+func (tutorialRepoFake) Revisions(context.Context, int64) ([]TutorialRevision, error) {
+	return nil, nil
+}
+func (tutorialRepoFake) GetRevision(context.Context, int64, int64) (*TutorialRevision, error) {
+	return nil, ErrTutorialNotFound
+}
+func (tutorialRepoFake) CanReadAsset(context.Context, string, int64, int64, string) (bool, error) {
+	return false, nil
 }

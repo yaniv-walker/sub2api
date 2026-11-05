@@ -1,29 +1,554 @@
 <template>
   <AppLayout>
-    <div class="space-y-5"><header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 class="text-xl font-semibold text-gray-900 dark:text-white">教程高级设置</h1><p class="mt-1 text-sm text-gray-500 dark:text-gray-400">管理教程路径、状态、排序和正文内容。</p></div><button class="btn btn-primary" @click="newTutorial">＋ 新建教程</button></header>
-      <div class="grid min-h-[650px] gap-4 lg:grid-cols-[280px_minmax(0,1fr)]"><aside class="card overflow-auto p-3"><input v-model="search" class="input mb-3" placeholder="搜索教程" aria-label="搜索教程"><button v-for="item in filtered" :key="item.id" class="mb-1 block w-full rounded-lg border p-3 text-left" :class="selected?.id===item.id?'border-primary-300 bg-primary-50 dark:bg-primary-900/20':'border-transparent hover:bg-gray-50 dark:hover:bg-dark-700'" @click="select(item)"><span class="block truncate text-sm font-medium text-gray-900 dark:text-white"><span class="mr-1 inline-block h-2 w-2 rounded-full" :class="item.status==='published'?'bg-emerald-500':'bg-slate-400'"></span>{{ item.title }}</span><span class="mt-1 block truncate text-xs text-gray-400">/tutorial/{{ item.slug }} · {{ statusLabel(item.status) }}</span></button></aside>
-        <main class="card flex min-w-0 flex-col overflow-hidden"><form class="flex min-h-0 flex-1 flex-col" @submit.prevent="save"><div class="grid gap-4 border-b border-gray-100 p-5 dark:border-dark-700 md:grid-cols-2"><label class="input-label">标题<input v-model.trim="form.title" class="input mt-1" maxlength="160" required></label><label class="input-label">分享路径<div class="mt-1 flex items-center rounded-lg border border-gray-200 dark:border-dark-600"><span class="pl-3 text-sm text-gray-400">/tutorial/</span><input v-model.trim="form.slug" class="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm outline-none" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required></div></label><label class="input-label">分类<select v-model="form.category" class="input mt-1"><option value="getting-started">开始使用</option><option value="clients">客户端接入</option><option value="billing">充值与订阅</option><option value="troubleshooting">问题排查</option></select></label><label class="input-label">状态<select v-model="form.status" class="input mt-1"><option value="draft">草稿</option><option value="published">已发布</option><option value="offline">已下线</option></select></label><label class="input-label md:col-span-2">摘要<textarea v-model.trim="form.summary" class="input mt-1 min-h-20" maxlength="400"></textarea></label></div><div class="border-b border-gray-100 p-4 dark:border-dark-700"><div class="flex flex-wrap gap-2"><button v-for="tool in tools" :key="tool.label" type="button" class="btn btn-secondary btn-sm" @click="insert(tool.before,tool.after)">{{ tool.label }}</button><button type="button" class="btn btn-secondary btn-sm" @click="preview=!preview">{{ preview?'编辑':'预览' }}</button></div></div><textarea v-if="!preview" v-model="form.content_markdown" class="min-h-[24rem] flex-1 resize-none border-0 bg-transparent p-5 font-mono text-sm leading-7 outline-none" spellcheck="false" required></textarea><div v-else class="tutorial-preview flex-1 p-5" v-html="previewHtml"></div><footer class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-5 py-3 dark:border-dark-700 dark:bg-dark-900"><span class="text-xs text-gray-400">{{ saving?'保存中…':selected?'编辑中':'新教程' }}</span><div class="flex gap-2"><button v-if="selected" type="button" class="btn btn-danger" @click="remove">删除</button><button type="submit" class="btn btn-primary" :disabled="saving">保存更改</button></div></footer></form></main>
-      </div></div>
+    <div class="space-y-5">
+      <header class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+            教程与售后管理
+          </h1>
+          <p class="mt-1 text-sm text-gray-500">
+            先保存草稿，确认后发布。已发布内容在再次发布前保持不变。
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <button
+            class="btn btn-secondary"
+            @click="tab = tab === 'support' ? 'documents' : 'support'"
+          >
+            {{ tab === "support" ? "返回教程" : "售后与分享设置" }}</button
+          ><button class="btn btn-primary" @click="newTutorial">
+            新建教程
+          </button>
+        </div>
+      </header>
+      <TutorialSupportSettings v-if="tab === 'support'" />
+      <div
+        v-else
+        class="grid items-start gap-4 xl:grid-cols-[260px_minmax(0,1fr)]"
+      >
+        <aside class="card space-y-3 p-3">
+          <input
+            v-model="search"
+            class="input"
+            placeholder="搜索教程"
+            aria-label="搜索管理教程"
+          />
+          <p v-if="listError" class="text-sm text-red-600">{{ listError }}</p>
+          <button
+            v-for="item in items"
+            :key="item.id"
+            class="block w-full rounded-lg border p-3 text-left"
+            :class="
+              selected?.id === item.id
+                ? 'border-primary-400 bg-primary-50 dark:bg-primary-900/20'
+                : 'border-transparent hover:bg-gray-50 dark:hover:bg-dark-700'
+            "
+            @click="select(item.id)"
+          >
+            <span class="block truncate text-sm font-medium">{{
+              item.title
+            }}</span
+            ><span class="mt-1 block text-xs text-gray-500"
+              >{{ statusLabel(item.status) }} · /{{ item.slug }}</span
+            >
+          </button>
+          <p
+            v-if="!items.length && !loading"
+            class="py-4 text-center text-sm text-gray-500"
+          >
+            还没有匹配的教程
+          </p>
+          <div class="flex items-center justify-between text-xs text-gray-500">
+            <button
+              class="btn btn-secondary btn-sm"
+              :disabled="page <= 1"
+              @click="
+                page--;
+                loadList();
+              "
+            >
+              上一页</button
+            ><span>{{ page }} / {{ Math.max(pages, 1) }}</span
+            ><button
+              class="btn btn-secondary btn-sm"
+              :disabled="page >= pages"
+              @click="
+                page++;
+                loadList();
+              "
+            >
+              下一页
+            </button>
+          </div>
+        </aside>
+        <main class="card min-w-0 space-y-5 p-4 sm:p-5">
+          <p
+            v-if="error"
+            class="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300"
+            role="alert"
+          >
+            {{ error }}
+          </p>
+          <p v-if="loading" class="py-8 text-sm text-gray-500">正在加载教程…</p>
+          <form v-else class="space-y-5" @submit.prevent="save()">
+            <div
+              class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-4 dark:border-dark-700"
+            >
+              <div class="text-xs text-gray-500">
+                {{
+                  selected
+                    ? `${statusLabel(selected.status)} · 版本 ${selected.version}`
+                    : "新教程"
+                }}<span v-if="dirty" class="ml-2 font-semibold text-amber-600"
+                  >有未保存更改</span
+                >
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-if="selected"
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  @click="
+                    showHistory = !showHistory;
+                    loadHistory();
+                  "
+                >
+                  历史版本</button
+                ><a
+                  v-if="selected?.status === 'published'"
+                  :href="`/tutorial/${selected.slug}`"
+                  target="_blank"
+                  class="btn btn-secondary btn-sm"
+                  >查看已发布页面 ↗</a
+                >
+              </div>
+            </div>
+            <section
+              v-if="showHistory && selected"
+              class="space-y-2 rounded-lg bg-gray-50 p-4 dark:bg-dark-900"
+              aria-label="历史版本"
+            >
+              <h2 class="text-sm font-semibold">历史版本</h2>
+              <p class="text-xs text-gray-500">
+                恢复会生成草稿，不立即改变已发布页面。
+              </p>
+              <div
+                v-for="revision in revisions"
+                :key="revision.id"
+                class="flex items-center justify-between gap-3 text-sm"
+              >
+                <span
+                  >版本 {{ revision.version }} ·
+                  {{
+                    new Date(revision.created_at).toLocaleString("zh-CN")
+                  }}</span
+                ><button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  :disabled="saving"
+                  @click="restore(revision.id)"
+                >
+                  恢复为草稿
+                </button>
+              </div>
+              <p v-if="!revisions.length" class="text-xs text-gray-500">
+                暂无历史版本
+              </p>
+            </section>
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="input-label"
+                >标题<input
+                  v-model.trim="form.title"
+                  class="input mt-1"
+                  maxlength="160"
+                  required /></label
+              ><label class="input-label"
+                >分享路径<input
+                  v-model.trim="form.slug"
+                  class="input mt-1"
+                  pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                  placeholder="例如：codex"
+                  required /></label
+              ><label class="input-label"
+                >分类<select v-model="form.category" class="input mt-1">
+                  <option
+                    v-for="item in tutorialCategories"
+                    :key="item.value"
+                    :value="item.value"
+                  >
+                    {{ item.label }}
+                  </option>
+                </select></label
+              ><label class="input-label"
+                >排序（数值小的在前）<input
+                  v-model.number="form.sort_order"
+                  type="number"
+                  class="input mt-1" /></label
+              ><label class="input-label md:col-span-2"
+                >摘要<textarea
+                  v-model="form.summary"
+                  class="input mt-1"
+                  maxlength="400"
+                  rows="2"
+                ></textarea></label
+              ><label class="flex items-center gap-2 text-sm md:col-span-2"
+                ><input
+                  v-model="form.is_public"
+                  type="checkbox"
+                />允许公开分享（需同时开启全局分享设置）</label
+              >
+            </div>
+            <TutorialEditor
+              :key="selected?.id || 'new'"
+              v-model="form.content_markdown"
+              :tutorial-id="selected?.id"
+              :document-version="selected?.version"
+            />
+            <section
+              class="space-y-3 border-t border-gray-200 pt-4 dark:border-dark-700"
+            >
+              <div class="flex items-center justify-between">
+                <h2 class="text-sm font-semibold">下载与参考资源</h2>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm"
+                  @click="
+                    form.resources.push({
+                      label: '',
+                      url: '',
+                      version: '',
+                      platform: '',
+                      sha256: '',
+                    })
+                  "
+                >
+                  添加资源
+                </button>
+              </div>
+              <div
+                v-for="(resource, index) in form.resources"
+                :key="index"
+                class="grid gap-2 rounded-lg bg-gray-50 p-3 dark:bg-dark-900 md:grid-cols-2"
+              >
+                <input
+                  v-model="resource.label"
+                  class="input"
+                  aria-label="资源名称"
+                  placeholder="名称"
+                  required
+                /><input
+                  v-model="resource.url"
+                  class="input"
+                  aria-label="资源地址"
+                  placeholder="https:// 或本站路径"
+                  required
+                /><input
+                  v-model="resource.platform"
+                  class="input"
+                  aria-label="资源平台"
+                  placeholder="Windows / macOS / Linux"
+                /><input
+                  v-model="resource.version"
+                  class="input"
+                  aria-label="资源版本"
+                  placeholder="版本"
+                /><input
+                  v-model="resource.sha256"
+                  class="input md:col-span-2"
+                  aria-label="资源 SHA256"
+                  placeholder="SHA-256（可选）"
+                /><button
+                  type="button"
+                  class="text-left text-xs text-red-600"
+                  @click="form.resources.splice(index, 1)"
+                >
+                  移除资源卡片
+                </button>
+              </div>
+            </section>
+            <footer
+              class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4 dark:border-dark-700"
+            >
+              <button
+                v-if="selected"
+                type="button"
+                class="btn btn-secondary text-red-600"
+                :disabled="saving"
+                @click="remove"
+              >
+                删除教程
+              </button>
+              <div class="ml-auto flex flex-wrap gap-2">
+                <button
+                  v-if="selected?.status === 'published'"
+                  type="button"
+                  class="btn btn-secondary"
+                  :disabled="saving"
+                  @click="changeStatus('offline')"
+                >
+                  下线</button
+                ><button class="btn btn-secondary" :disabled="saving">
+                  {{ saving ? "处理中…" : "保存草稿" }}</button
+                ><button
+                  type="button"
+                  class="btn btn-primary"
+                  :disabled="saving"
+                  @click="publish"
+                >
+                  保存并发布
+                </button>
+              </div>
+            </footer>
+          </form>
+        </main>
+      </div>
+    </div>
   </AppLayout>
 </template>
-
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
-import DOMPurify from 'dompurify';import { marked } from 'marked';import AppLayout from '@/components/layout/AppLayout.vue';import { useAppStore } from '@/stores';import { createTutorial, deleteTutorial, listAdminTutorials, setTutorialStatus, updateTutorial, type Tutorial } from '@/api/tutorial'
-const appStore=useAppStore();const items=ref<Tutorial[]>([]);const selected=ref<Tutorial|null>(null);const search=ref('');const preview=ref(false);const saving=ref(false)
-const form=reactive<{slug:string;title:string;summary:string;category:string;content_html:string;content_markdown:string;is_public:boolean;sort_order:number;status:Tutorial['status']}>({slug:'new-tutorial',title:'新教程',summary:'',category:'getting-started',content_html:'',content_markdown:'# 新教程\n\n在这里填写教程正文。',is_public:false,sort_order:100,status:'draft'})
-const tools=[{label:'H2',before:'## ',after:''},{label:'B',before:'**',after:'**'},{label:'链接',before:'[',after:'](https://)'},{label:'图片',before:'![图片](',after:')'},{label:'视频',before:'<video controls src="',after:'"></video>'}]
-const filtered=computed(()=>items.value.filter(x=>!search.value||`${x.title} ${x.slug} ${x.summary}`.toLowerCase().includes(search.value.toLowerCase())))
-const previewHtml=computed(()=>DOMPurify.sanitize(marked.parse(form.content_markdown||'') as string,{ADD_TAGS:['video'],ADD_ATTR:['controls','src','preload']}))
-const statusLabel=(s:string)=>({draft:'草稿',published:'已发布',offline:'已下线'}[s]||s)
-function fill(t:Tutorial){selected.value=t;Object.assign(form,{slug:t.slug,title:t.title,summary:t.summary,category:t.category,content_markdown:t.content_markdown||t.content_html,is_public:t.is_public,sort_order:t.sort_order,status:t.status});preview.value=false}
-function select(t:Tutorial){fill(t)}
-function newTutorial(){selected.value=null;Object.assign(form,{slug:'new-tutorial',title:'新教程',summary:'',category:'getting-started',content_markdown:'# 新教程\n\n在这里填写教程正文。',is_public:false,sort_order:100,status:'draft'});preview.value=false}
-function insert(before:string,after:string){const el=document.querySelector('textarea') as HTMLTextAreaElement|null;if(!el)return;const s=el.selectionStart,e=el.selectionEnd;form.content_markdown=form.content_markdown.slice(0,s)+before+form.content_markdown.slice(s,e)+after+form.content_markdown.slice(e);requestAnimationFrame(()=>el.focus())}
-async function load(){const res=await listAdminTutorials({page:1,page_size:100});items.value=res.items;if(!selected.value&&items.value[0])fill(items.value[0])}
-async function save(){saving.value=true;try{const input={...form,content_html:previewHtml.value};const saved=selected.value?await updateTutorial(selected.value.id,input):await createTutorial(input);if(saved.status!==form.status){await setTutorialStatus(saved.id,form.status)};appStore.showSuccess(form.status==='published'?'教程已发布':form.status==='offline'?'教程已下线':'教程已保存');await load()}catch(e:any){appStore.showError(e?.message||'保存失败')}finally{saving.value=false}}
-async function remove(){if(!selected.value)return;if(!confirm('确认删除当前教程？'))return;await deleteTutorial(selected.value.id);appStore.showSuccess('教程已删除');newTutorial();await load()}
-onMounted(load)
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
+import { onBeforeRouteLeave, useRoute, useRouter } from "vue-router";
+import AppLayout from "@/components/layout/AppLayout.vue";
+import TutorialEditor from "@/components/tutorial/TutorialEditor.vue";
+import TutorialSupportSettings from "@/components/tutorial/TutorialSupportSettings.vue";
+import {
+  errorMessage,
+  htmlToMarkdown,
+  statusLabel,
+  tutorialCategories,
+} from "@/components/tutorial/content";
+import {
+  createTutorial,
+  deleteTutorial,
+  getAdminTutorial,
+  listAdminTutorials,
+  listTutorialRevisions,
+  restoreTutorialRevision,
+  setTutorialStatus,
+  updateTutorial,
+  type Tutorial,
+  type TutorialInput,
+  type TutorialRevision,
+} from "@/api/tutorial";
+import { useAppStore } from "@/stores";
+const route = useRoute();
+const router = useRouter();
+const app = useAppStore();
+const items = ref<Tutorial[]>([]);
+const selected = ref<Tutorial>();
+const search = ref("");
+const page = ref(1);
+const pages = ref(1);
+const loading = ref(false);
+const saving = ref(false);
+const error = ref("");
+const listError = ref("");
+const tab = ref("documents");
+const showHistory = ref(false);
+const revisions = ref<TutorialRevision[]>([]);
+const blank = (): TutorialInput => ({
+  slug: "",
+  title: "",
+  summary: "",
+  category: "getting-started",
+  content_markdown: "# 新教程\n\n在这里填写教程正文。",
+  is_public: false,
+  sort_order: 100,
+  resources: [],
+});
+const form = reactive<TutorialInput>(blank());
+const baseline = ref(JSON.stringify(form));
+const dirty = computed(() => JSON.stringify(form) !== baseline.value);
+function fill(tutorial: Tutorial) {
+  selected.value = tutorial;
+  Object.assign(form, {
+    slug: tutorial.slug,
+    title: tutorial.title,
+    summary: tutorial.summary,
+    category: tutorial.category,
+    content_markdown:
+      tutorial.content_markdown || htmlToMarkdown(tutorial.content_html || ""),
+    is_public: tutorial.is_public,
+    sort_order: tutorial.sort_order,
+    resources: structuredClone(tutorial.resources || []),
+    version: tutorial.version,
+  });
+  baseline.value = JSON.stringify(form);
+  error.value = "";
+}
+function discardAllowed() {
+  return !dirty.value || confirm("当前更改尚未保存，确认离开编辑内容？");
+}
+async function loadList() {
+  listError.value = "";
+  try {
+    const result = await listAdminTutorials({
+      query: search.value,
+      page: page.value,
+      page_size: 20,
+    });
+    items.value = result.items;
+    pages.value = result.pages;
+  } catch (e) {
+    listError.value = errorMessage(e, "列表加载失败");
+  }
+}
+async function select(id: number, force = false) {
+  if (!force && !discardAllowed()) return;
+  tab.value = "documents";
+  loading.value = true;
+  error.value = "";
+  try {
+    const result = await getAdminTutorial(id);
+    fill(result.tutorial);
+    showHistory.value = false;
+    await router.replace({ query: { ...route.query, id: String(id) } });
+  } catch (e) {
+    error.value = errorMessage(e, "教程加载失败");
+  } finally {
+    loading.value = false;
+  }
+}
+function newTutorial() {
+  if (!discardAllowed()) return;
+  tab.value = "documents";
+  selected.value = undefined;
+  Object.keys(form).forEach(
+    (key) => delete (form as unknown as Record<string, unknown>)[key],
+  );
+  Object.assign(form, blank());
+  baseline.value = JSON.stringify(form);
+  showHistory.value = false;
+  void router.replace({ query: {} });
+}
+async function save(): Promise<Tutorial | undefined> {
+  if (saving.value) return;
+  if (
+    !form.title.trim() ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug) ||
+    !form.content_markdown.trim()
+  ) {
+    error.value = "请填写标题、有效分享路径和正文。";
+    return;
+  }
+  saving.value = true;
+  error.value = "";
+  try {
+    const result = selected.value
+      ? await updateTutorial(selected.value.id, { ...form })
+      : await createTutorial({ ...form });
+    fill(result);
+    await router.replace({ query: { ...route.query, id: String(result.id) } });
+    await loadList();
+    app.showSuccess("草稿已保存");
+    return result;
+  } catch (e) {
+    error.value = errorMessage(e, "保存失败，内容仍保留在编辑器中。");
+    return undefined;
+  } finally {
+    saving.value = false;
+  }
+}
+async function publish() {
+  const saved = await save();
+  if (!saved) return;
+  await changeStatus("published");
+}
+async function changeStatus(status: Tutorial["status"]) {
+  if (!selected.value) return;
+  saving.value = true;
+  error.value = "";
+  try {
+    const result = await setTutorialStatus(
+      selected.value.id,
+      status,
+      selected.value.version,
+    );
+    fill(result);
+    await loadList();
+    app.showSuccess(status === "published" ? "教程已发布" : "教程已下线");
+  } catch (e) {
+    error.value = errorMessage(e, "状态修改失败");
+  } finally {
+    saving.value = false;
+  }
+}
+async function remove() {
+  if (
+    !selected.value ||
+    !confirm("确认删除这篇教程？分享链接将失效，仍被引用的素材会保留。")
+  )
+    return;
+  saving.value = true;
+  try {
+    await deleteTutorial(selected.value.id, selected.value.version);
+    baseline.value = JSON.stringify(form);
+    newTutorial();
+    await loadList();
+  } catch (e) {
+    error.value = errorMessage(e, "删除失败");
+  } finally {
+    saving.value = false;
+  }
+}
+async function loadHistory() {
+  if (!selected.value || !showHistory.value) return;
+  try {
+    revisions.value = await listTutorialRevisions(selected.value.id);
+  } catch (e) {
+    error.value = errorMessage(e, "版本加载失败");
+  }
+}
+async function restore(revisionId: number) {
+  if (!selected.value || !discardAllowed()) return;
+  saving.value = true;
+  try {
+    fill(
+      await restoreTutorialRevision(
+        selected.value.id,
+        revisionId,
+        selected.value.version,
+      ),
+    );
+    await loadList();
+    app.showSuccess("历史版本已恢复为草稿，请检查后发布");
+  } catch (e) {
+    error.value = errorMessage(e, "恢复失败");
+  } finally {
+    saving.value = false;
+  }
+}
+let timer: ReturnType<typeof setTimeout> | undefined;
+watch(search, () => {
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    page.value = 1;
+    void loadList();
+  }, 300);
+});
+function beforeUnload(event: BeforeUnloadEvent) {
+  if (dirty.value) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
+}
+onBeforeRouteLeave(() => discardAllowed());
+onMounted(async () => {
+  window.addEventListener("beforeunload", beforeUnload);
+  await loadList();
+  const id = Number(route.query.id);
+  if (id) await select(id, true);
+  else if (items.value[0]) await select(items.value[0].id, true);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("beforeunload", beforeUnload);
+  clearTimeout(timer);
+});
 </script>
-
-<style scoped>:deep(.tutorial-preview h1){font-size:2rem;font-weight:700}:deep(.tutorial-preview h2){font-size:1.4rem;font-weight:700;margin:1.5rem 0 .6rem}:deep(.tutorial-preview p),:deep(.tutorial-preview li){line-height:1.8;font-size:.95rem}:deep(.tutorial-preview ul){list-style:disc;padding-left:1.4rem}:deep(.tutorial-preview img),:deep(.tutorial-preview video){max-width:100%;margin:1rem auto;display:block;border-radius:.7rem}</style>

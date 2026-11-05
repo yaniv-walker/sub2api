@@ -341,6 +341,9 @@ func diffSettings(before *service.SystemSettings, after *service.SystemSettings,
 	if before.CompactHomeEnabled != after.CompactHomeEnabled {
 		changed = append(changed, "compact_home_enabled")
 	}
+	if before.ModelDegradationEnabled != after.ModelDegradationEnabled {
+		changed = append(changed, service.SettingKeyModelDegradationEnabled)
+	}
 	if before.TutorialEnabled != after.TutorialEnabled {
 		changed = append(changed, service.SettingKeyTutorialEnabled)
 	}

@@ -195,6 +195,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		SettingKeyTablePageSizeOptions,
 		SettingKeyCustomMenuItems,
 		SettingKeyCustomEndpoints,
+		SettingKeyModelDegradationEnabled,
 		SettingKeyTutorialEnabled,
 		SettingKeyLinuxDoConnectEnabled,
 		SettingKeyDingTalkConnectEnabled,
@@ -340,6 +341,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		TablePageSizeOptions:                tablePageSizeOptions,
 		CustomMenuItems:                     settings[SettingKeyCustomMenuItems],
 		CustomEndpoints:                     settings[SettingKeyCustomEndpoints],
+		ModelDegradationEnabled:             settings[SettingKeyModelDegradationEnabled] != "false",
 		TutorialEnabled:                     settings[SettingKeyTutorialEnabled] == "true",
 		CheckinEnabled:                      s.CheckinEnabled(ctx),
 		LinuxDoOAuthEnabled:                 linuxDoEnabled,
@@ -603,6 +605,7 @@ type PublicSettingsInjectionPayload struct {
 	TablePageSizeOptions                []int                    `json:"table_page_size_options"`
 	CustomMenuItems                     json.RawMessage          `json:"custom_menu_items"`
 	CustomEndpoints                     json.RawMessage          `json:"custom_endpoints"`
+	ModelDegradationEnabled             bool                     `json:"model_degradation_enabled"`
 	TutorialEnabled                     bool                     `json:"tutorial_enabled"`
 	LinuxDoOAuthEnabled                 bool                     `json:"linuxdo_oauth_enabled"`
 	DingTalkOAuthEnabled                bool                     `json:"dingtalk_oauth_enabled"`
@@ -699,6 +702,7 @@ func (s *SettingService) GetPublicSettingsForInjection(ctx context.Context) (any
 		TablePageSizeOptions:                settings.TablePageSizeOptions,
 		CustomMenuItems:                     filterUserVisibleMenuItems(settings.CustomMenuItems),
 		CustomEndpoints:                     safeRawJSONArray(settings.CustomEndpoints),
+		ModelDegradationEnabled:             settings.ModelDegradationEnabled,
 		TutorialEnabled:                     settings.TutorialEnabled,
 		CheckinEnabled:                      settings.CheckinEnabled,
 		LinuxDoOAuthEnabled:                 settings.LinuxDoOAuthEnabled,

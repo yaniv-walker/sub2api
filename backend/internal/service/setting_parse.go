@@ -75,6 +75,7 @@ func (s *SettingService) InitializeDefaultSettings(ctx context.Context) error {
 		SettingKeyTablePageSizeOptions:                      "[10,20,50,100]",
 		SettingKeyCustomMenuItems:                           "[]",
 		SettingKeyCustomEndpoints:                           "[]",
+		SettingKeyModelDegradationEnabled:                   "true",
 		SettingKeyTutorialEnabled:                           "false",
 		SettingKeyTutorialDocument:                          defaultTutorialDocumentJSON(),
 		SettingKeyWeChatConnectEnabled:                      "false",
@@ -374,6 +375,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		PurchaseSubscriptionURL:                strings.TrimSpace(settings[SettingKeyPurchaseSubscriptionURL]),
 		CustomMenuItems:                        settings[SettingKeyCustomMenuItems],
 		CustomEndpoints:                        settings[SettingKeyCustomEndpoints],
+		ModelDegradationEnabled:                settings[SettingKeyModelDegradationEnabled] != "false",
 		TutorialEnabled:                        settings[SettingKeyTutorialEnabled] == "true",
 		BackendModeEnabled:                     settings[SettingKeyBackendModeEnabled] == "true",
 	}

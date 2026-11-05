@@ -300,6 +300,7 @@ const routes: RouteRecordRaw[] = [
     name: 'ModelDegradation',
     component: () => import('@/views/user/ModelDegradationView.vue'),
     meta: {
+      requiresModelDegradation: true,
       requiresAuth: true,
       requiresAdmin: false,
       title: 'Model Degradation',
@@ -347,7 +348,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Tutorial',
     component: () => import('@/views/user/TutorialView.vue'),
     meta: {
-      requiresAuth: true,
+      requiresAuth: false,
       requiresAdmin: false,
       requiresTutorial: true,
       title: 'Tutorial and Support'
@@ -357,7 +358,7 @@ const routes: RouteRecordRaw[] = [
     path: '/tutorial/:slug',
     name: 'TutorialDetail',
     component: () => import('@/views/user/TutorialDetailView.vue'),
-    meta: { requiresAuth: true, requiresAdmin: false, requiresTutorial: true, title: 'Tutorial' }
+    meta: { requiresAuth: false, requiresAdmin: false, requiresTutorial: true, title: 'Tutorial' }
   },
   {
     path: '/subscriptions',
@@ -612,7 +613,7 @@ const routes: RouteRecordRaw[] = [
     path: '/admin/tutorials',
     name: 'AdminTutorials',
     component: () => import('@/views/admin/TutorialsView.vue'),
-    meta: { requiresAuth: true, requiresAdmin: true, title: 'Tutorial Management' }
+    meta: { requiresAuth: true, requiresAdmin: true, title: '教程与售后管理' }
   },
   // 旧作品展后台已停用（同上，代码保留、仅摘路由）。
   // {
@@ -632,6 +633,7 @@ const routes: RouteRecordRaw[] = [
     name: 'AdminModelDegradation',
     component: () => import('@/views/admin/ModelDegradationAdminView.vue'),
     meta: {
+      requiresModelDegradation: true,
       requiresAuth: true,
       requiresAdmin: true,
       title: 'Model Degradation Admin',
@@ -1016,7 +1018,7 @@ router.beforeEach(async (to, _from, next) => {
   // 公共设置可能尚未加载（App.vue 的 onMounted 异步拉取晚于首次导航，且纯静态部署
   // 无 __APP_CONFIG__ 注入）。此时 cachedPublicSettings 为空会把 payment/risk_control
   // 误判为“未启用”而错误拦截，故这里先确保设置加载完成。
-  if ((to.meta.requiresCheckin || to.meta.requiresPayment || to.meta.requiresRiskControl || to.meta.requiresSubscription || to.meta.requiresTutorial) && !appStore.publicSettingsLoaded) {
+  if ((to.meta.requiresCheckin || to.meta.requiresPayment || to.meta.requiresRiskControl || to.meta.requiresSubscription || to.meta.requiresTutorial || to.meta.requiresModelDegradation) && !appStore.publicSettingsLoaded) {
     try {
       await appStore.fetchPublicSettings()
     } catch (error) {
@@ -1059,6 +1061,15 @@ router.beforeEach(async (to, _from, next) => {
     !authStore.isAdmin &&
     appStore.publicSettingsLoaded &&
     appStore.cachedPublicSettings?.[FeatureFlags.tutorial.key] !== true
+  ) {
+    next(authStore.isAdmin ? '/admin/settings' : '/dashboard')
+    return
+  }
+
+  if (
+    to.meta.requiresModelDegradation &&
+    appStore.publicSettingsLoaded &&
+    appStore.cachedPublicSettings?.model_degradation_enabled === false
   ) {
     next(authStore.isAdmin ? '/admin/settings' : '/dashboard')
     return

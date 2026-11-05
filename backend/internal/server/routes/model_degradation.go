@@ -1,27 +1,26 @@
 package routes
 
 import (
+	"context"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 
 	mdhandler "github.com/Wei-Shaw/sub2api/internal/modeldegradation/handler"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
+	"github.com/Wei-Shaw/sub2api/internal/service"
 )
 
 // RegisterModelDegradationRoutes 注册「模型降智检测」的路由。
 //
-// 挂载策略与 iqbenchmark 的差异（有意为之）：
-//   - 用户侧**不需要开关**：这个功能不产生平台费用（用户自带凭据），
-//     没有「悄悄烧钱」的风险，因此常开。
-//   - 管理侧的可见性配置需要 adminAuth，因为它影响所有用户看到的内容。
-//
-// 该文件是纯新增，不修改既有 routes 的任何逻辑；调用方（router.go）
-// 只需追加一行 RegisterModelDegradationRoutes(...)。
+// 用户侧与管理侧共同受站点开关控制；认证在开关检查之前完成。
 func RegisterModelDegradationRoutes(
 	v1 *gin.RouterGroup,
 	h *mdhandler.Handler,
 	adminAuth middleware.AdminAuthMiddleware,
 	jwtAuth middleware.JWTAuthMiddleware,
 	auditLog middleware.AuditLogMiddleware,
+	settings *service.SettingService,
 ) {
 	if h == nil {
 		return
@@ -34,6 +33,7 @@ func RegisterModelDegradationRoutes(
 	admin := v1.Group("/admin/model-degradation")
 	admin.Use(gin.HandlerFunc(adminAuth))
 	admin.Use(gin.HandlerFunc(auditLog))
+	admin.Use(modelDegradationFeatureGate(settings.ModelDegradationEnabled))
 	{
 		vis := admin.Group("/history-visibility")
 		{
@@ -49,6 +49,7 @@ func RegisterModelDegradationRoutes(
 	// 匿名开放等于给了一个免费的 SSRF/凭据试探跳板。
 	runs := v1.Group("/model-degradation")
 	runs.Use(gin.HandlerFunc(jwtAuth))
+	runs.Use(modelDegradationFeatureGate(settings.ModelDegradationEnabled))
 	{
 		// 题库只读。
 		runs.GET("/tasks", h.GetTasks)
@@ -68,5 +69,20 @@ func RegisterModelDegradationRoutes(
 		// 详情与中止。
 		runs.GET("/runs/:id", h.GetRun)
 		runs.POST("/runs/:id/cancel", h.CancelRun)
+	}
+}
+
+func modelDegradationFeatureGate(enabled func(context.Context) (bool, error)) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		on, err := enabled(c.Request.Context())
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"code": http.StatusServiceUnavailable, "message": "Feature settings unavailable"})
+			return
+		}
+		if !on {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"code": http.StatusNotFound, "message": "Model degradation detection is disabled"})
+			return
+		}
+		c.Next()
 	}
 }

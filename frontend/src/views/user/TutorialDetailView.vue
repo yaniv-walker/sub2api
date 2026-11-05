@@ -1,33 +1,207 @@
 <template>
-  <AppLayout>
-    <div v-if="loading" class="grid min-h-[36rem] place-items-center"><div class="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent"></div></div>
-    <div v-else-if="error" class="card p-10 text-center"><p class="text-red-500">{{ error }}</p><button class="btn btn-secondary mt-4" @click="load">返回重试</button></div>
-    <div v-else-if="tutorial" class="space-y-5">
-      <div class="text-sm text-gray-500"><button class="hover:text-primary-600" @click="router.push('/tutorial')">教程与售后</button>　/　{{ tutorial.title }}</div>
-      <header class="flex flex-col gap-4 border-b border-gray-200 pb-6 dark:border-dark-700 md:flex-row md:items-start md:justify-between"><div><p class="text-xs font-semibold text-orange-600">{{ categoryLabel(tutorial.category) }}</p><h1 class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">{{ tutorial.title }}</h1><p class="mt-3 max-w-3xl text-sm leading-6 text-gray-500 dark:text-gray-400">{{ tutorial.summary }}</p><p class="mt-3 text-xs text-gray-400">更新于 {{ formatDate(tutorial.updated_at) }}</p></div><div class="flex gap-2"><button class="btn btn-secondary" @click="copyLink">▣ 复制链接</button><button v-if="authStore.isAdmin" class="btn btn-primary" @click="router.push('/admin/tutorials')">编辑本页</button></div></header>
-      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_15rem]"><article class="card min-w-0 px-5 py-7 sm:px-8" v-html="rendered"></article><aside v-if="toc.length" class="hidden lg:block"><div class="sticky top-24 border-l-2 border-gray-200 pl-4 dark:border-dark-700"><p class="mb-3 text-xs font-semibold uppercase text-gray-400">本页目录</p><button v-for="item in toc" :key="item.id" class="block w-full py-1 text-left text-xs text-gray-500 hover:text-primary-600" :class="item.level>2?'pl-3':''" @click="scrollTo(item.id)">{{ item.text }}</button></div></aside></div>
+  <component :is="auth.isAuthenticated ? AppLayout : PublicLayout">
+    <div v-if="loading" class="space-y-4" aria-busy="true">
+      <div
+        class="h-10 w-2/3 animate-pulse rounded bg-gray-100 dark:bg-dark-800"
+      ></div>
+      <div
+        class="h-96 animate-pulse rounded bg-gray-100 dark:bg-dark-800"
+      ></div>
     </div>
-  </AppLayout>
+    <section v-else-if="error" class="card p-8 text-center">
+      <h1 class="font-semibold">教程暂时无法加载</h1>
+      <p class="mt-2 text-sm text-red-600" role="alert">{{ error }}</p>
+      <div class="mt-4 flex justify-center gap-3">
+        <button class="btn btn-secondary" @click="load">重试</button
+        ><RouterLink to="/tutorial" class="btn btn-secondary"
+          >返回教程中心</RouterLink
+        >
+      </div>
+    </section>
+    <div v-else-if="tutorial" class="space-y-5">
+      <nav class="text-sm text-gray-500">
+        <RouterLink to="/tutorial" class="hover:text-primary-600"
+          >教程与售后</RouterLink
+        ><span class="mx-2">/</span>{{ tutorial.title }}
+      </nav>
+      <header
+        class="flex flex-col justify-between gap-4 border-b border-gray-200 pb-6 dark:border-dark-700 md:flex-row md:items-end"
+      >
+        <div>
+          <p class="text-xs font-medium text-primary-600">
+            {{ categoryLabel(tutorial.category) }}
+          </p>
+          <h1 class="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">
+            {{ tutorial.title }}
+          </h1>
+          <p class="mt-3 max-w-3xl text-sm leading-6 text-gray-500">
+            {{ tutorial.summary }}
+          </p>
+          <p class="mt-3 text-xs text-gray-400">
+            更新于
+            {{ new Date(tutorial.updated_at).toLocaleDateString("zh-CN") }}
+          </p>
+        </div>
+        <div class="flex shrink-0 gap-2">
+          <button class="btn btn-secondary" @click="copyLink">
+            {{ copied ? "链接已复制" : "复制链接" }}</button
+          ><RouterLink
+            v-if="auth.isAdmin"
+            :to="`/admin/tutorials?id=${tutorial.id}`"
+            class="btn btn-primary"
+            >编辑本页</RouterLink
+          >
+        </div>
+      </header>
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_14rem]">
+        <main class="card min-w-0 !p-5 sm:!p-8">
+          <section
+            v-if="tutorial.resources?.length"
+            class="mb-6 space-y-3 border-b border-gray-200 pb-6 dark:border-dark-700"
+            aria-label="下载与参考资源"
+          >
+            <h2 class="text-sm font-semibold">下载与参考资源</h2>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <a
+                v-for="(resource, index) in tutorial.resources"
+                :key="index"
+                :href="resource.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="rounded-lg border border-gray-200 p-3 hover:border-primary-400 dark:border-dark-700"
+                ><span class="block text-sm font-medium text-primary-600"
+                  >{{ resource.label }} ↗</span
+                ><span class="mt-1 block text-xs text-gray-500">{{
+                  [resource.version, resource.platform]
+                    .filter(Boolean)
+                    .join(" · ")
+                }}</span
+                ><span
+                  v-if="resource.sha256"
+                  class="mt-1 block break-all font-mono text-[10px] text-gray-500"
+                  >SHA256 {{ resource.sha256 }}</span
+                ></a
+              >
+            </div>
+          </section>
+          <details
+            class="mb-5 rounded-lg bg-gray-50 p-3 dark:bg-dark-900 lg:hidden"
+          >
+            <summary class="cursor-pointer text-sm font-medium">
+              本页目录
+            </summary>
+            <nav class="mt-3 space-y-2">
+              <a
+                v-for="heading in rendered.toc"
+                :key="heading.id"
+                :href="`#${heading.id}`"
+                class="block text-sm text-gray-500"
+                :class="heading.level > 2 ? 'pl-3' : ''"
+                >{{ heading.text }}</a
+              >
+            </nav>
+          </details>
+          <TutorialContent
+            :html="tutorial.content_html"
+            :markdown="tutorial.content_markdown"
+            @retry="load"
+          />
+          <div class="mt-8 border-t border-gray-200 pt-5 dark:border-dark-700">
+            <button class="btn btn-secondary" @click="supportOpen = true">
+              仍未解决？联系售后
+            </button>
+          </div>
+        </main>
+        <aside v-if="rendered.toc.length" class="hidden lg:block">
+          <nav
+            class="sticky top-24 max-h-[75vh] space-y-2 overflow-y-auto border-l border-gray-200 pl-4 dark:border-dark-700"
+            aria-label="本页目录"
+          >
+            <p class="mb-3 text-xs font-semibold text-gray-400">本页目录</p>
+            <a
+              v-for="heading in rendered.toc"
+              :key="heading.id"
+              :href="`#${heading.id}`"
+              class="block text-sm text-gray-500 hover:text-primary-600"
+              :class="heading.level > 2 ? 'pl-3 text-xs' : ''"
+              >{{ heading.text }}</a
+            >
+          </nav>
+        </aside>
+      </div>
+    </div>
+    <TutorialSupportDialog :show="supportOpen" @close="supportOpen = false" />
+  </component>
 </template>
-
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import DOMPurify from 'dompurify'
-import { marked } from 'marked'
-import AppLayout from '@/components/layout/AppLayout.vue'
-import { getTutorial, type Tutorial } from '@/api/tutorial'
-import { useAuthStore } from '@/stores/auth'
-
-const route=useRoute();const router=useRouter();const authStore=useAuthStore();const tutorial=ref<Tutorial|null>(null);const loading=ref(true);const error=ref('')
-const toc=ref<{id:string;text:string;level:number}[]>([])
-const rendered=computed(()=>{if(!tutorial.value)return '';const html=DOMPurify.sanitize(tutorial.value.content_html||marked.parse(tutorial.value.content_markdown||'') as string,{ADD_TAGS:['video','source'],ADD_ATTR:['controls','preload','playsinline','poster','src','data-width']});let i=0;return html.replace(/<(h[1-4])>(.*?)<\/h[1-4]>/gi,(_,tag:string,content:string)=>{const text=content.replace(/<[^>]+>/g,'').trim();const id=`tutorial-heading-${i++}`;toc.value.push({id,text,level:Number(tag[1])});return `<${tag} id="${id}">${content}</${tag}>`})})
-const categoryLabel=(v:string)=>({ 'getting-started':'开始使用',clients:'客户端接入',billing:'充值与订阅',troubleshooting:'问题排查'}[v]||v);const formatDate=(v:string)=>new Intl.DateTimeFormat('zh-CN',{year:'numeric',month:'long',day:'numeric'}).format(new Date(v))
-async function load(){loading.value=true;error.value='';toc.value=[];try{tutorial.value=await getTutorial(String(route.params.slug));document.title=`${tutorial.value.title} - 教程与售后`}catch(e:any){error.value=e?.message||'教程加载失败'}finally{loading.value=false}}
-function scrollTo(id:string){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'})};async function copyLink(){try{await navigator.clipboard.writeText(location.href)}catch{}}
-onMounted(load)
+import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { useRoute } from "vue-router";
+import AppLayout from "@/components/layout/AppLayout.vue";
+import PublicLayout from "@/components/tutorial/TutorialPublicLayout.vue";
+import TutorialContent from "@/components/tutorial/TutorialContent.vue";
+import TutorialSupportDialog from "@/components/tutorial/TutorialSupportDialog.vue";
+import {
+  categoryLabel,
+  errorMessage,
+  renderTutorial,
+} from "@/components/tutorial/content";
+import { getTutorial, type Tutorial } from "@/api/tutorial";
+import { useAuthStore } from "@/stores/auth";
+const route = useRoute();
+const auth = useAuthStore();
+const tutorial = ref<Tutorial>();
+const loading = ref(true);
+const error = ref("");
+const copied = ref(false);
+const supportOpen = ref(false);
+const rendered = computed(() =>
+  renderTutorial(
+    tutorial.value?.content_markdown || "",
+    tutorial.value?.content_html || undefined,
+  ),
+);
+let request = 0;
+let copyTimer: ReturnType<typeof setTimeout> | undefined;
+async function load() {
+  const current = ++request;
+  loading.value = true;
+  error.value = "";
+  try {
+    const result = await getTutorial(
+      String(route.params.slug),
+      !auth.isAuthenticated,
+    );
+    if (current === request) {
+      tutorial.value = result;
+      document.title = `${result.title} - 教程与售后`;
+    }
+  } catch (e) {
+    if (current === request)
+      error.value = errorMessage(
+        e,
+        "该教程尚未发布、需要登录，或分享链接已经失效。",
+      );
+  } finally {
+    if (current === request) loading.value = false;
+  }
+}
+async function copyLink() {
+  try {
+    await navigator.clipboard.writeText(
+      `${location.origin}/tutorial/${encodeURIComponent(String(route.params.slug))}`,
+    );
+    copied.value = true;
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => {
+      copied.value = false;
+    }, 1800);
+  } catch {
+    error.value = "复制失败，请从浏览器地址栏复制链接。";
+  }
+}
+watch(() => route.params.slug, load, { immediate: true });
+onBeforeUnmount(() => {
+  request++;
+  clearTimeout(copyTimer);
+});
 </script>
-
-<style scoped>
-:deep(article h1),:deep(article h2),:deep(article h3),:deep(article h4){scroll-margin-top:90px}:deep(article h1){font-size:2rem;font-weight:700;margin-bottom:1.3rem}:deep(article h2){font-size:1.4rem;font-weight:700;margin:2rem 0 .75rem}:deep(article h3){font-size:1.1rem;font-weight:650;margin:1.4rem 0 .5rem}:deep(article p),:deep(article ul),:deep(article ol){margin:.85rem 0;line-height:1.85;font-size:.95rem}:deep(article ul){list-style:disc;padding-left:1.4rem}:deep(article ol){list-style:decimal;padding-left:1.4rem}:deep(article img),:deep(article video){display:block;max-width:100%;margin:1rem auto;border-radius:.7rem}:deep(article video){width:100%;background:#0f172a;min-height:18rem}:deep(article a){color:#0284c7;text-decoration:underline}
-</style>

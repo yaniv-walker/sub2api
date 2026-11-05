@@ -149,8 +149,8 @@ func registerRoutes(
 	//
 	// routes.RegisterIQBenchmarkRoutes(v1, h.IQBenchmark, adminAuth, jwtAuth, auditLog)
 	//
-	// 模型降智检测（独立垂直模块）：用户自带凭据，不产生平台费用，因此常开。
-	routes.RegisterModelDegradationRoutes(v1, h.ModelDegradation, adminAuth, jwtAuth, auditLog)
+	// 模型降智检测：用户与管理接口共同受站点开关控制。
+	routes.RegisterModelDegradationRoutes(v1, h.ModelDegradation, adminAuth, jwtAuth, auditLog, settingService)
 
 	handler.RegisterPageRoutes(v1, cfg.Pricing.DataDir, gin.HandlerFunc(jwtAuth), gin.HandlerFunc(adminAuth), settingService)
 }

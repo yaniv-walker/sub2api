@@ -750,6 +750,19 @@ describe("admin SettingsView payment visible method controls", () => {
     wrapper.unmount();
   });
 
+  it("loads and saves the shared model degradation switch", async () => {
+    getSettings.mockResolvedValue({ ...baseSettingsResponse, model_degradation_enabled: true });
+    const wrapper = mountView();
+    await flushPromises();
+    const toggle = wrapper.get('[data-testid="model-degradation-toggle"]');
+    expect((toggle.element as HTMLInputElement).checked).toBe(true);
+    await toggle.setValue(false);
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+    expect(updateSettings).toHaveBeenCalledWith(expect.objectContaining({ model_degradation_enabled: false }));
+    wrapper.unmount();
+  });
+
   it("submits the compact home page toggle", async () => {
     const wrapper = mountView();
     await flushPromises();

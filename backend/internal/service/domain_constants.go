@@ -389,6 +389,7 @@ const (
 	SettingKeyTablePageSizeOptions        = "table_page_size_options"       // 表格可选每页条数（JSON 数组）
 	SettingKeyCustomMenuItems             = "custom_menu_items"             // 自定义菜单项（JSON 数组）
 	SettingKeyCustomEndpoints             = "custom_endpoints"              // 自定义端点列表（JSON 数组）
+	SettingKeyModelDegradationEnabled     = "model_degradation_enabled"     // 用户与管理端降智检测总开关
 	SettingKeyTutorialEnabled             = "tutorial_enabled"              // 教程与售后入口开关
 	SettingKeyTutorialDocument            = "tutorial_document"             // 教程与售后文档（JSON）
 

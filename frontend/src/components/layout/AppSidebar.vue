@@ -732,6 +732,7 @@ const flagMCP = makeSidebarFlag(FeatureFlags.mcp)
 const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
 const flagAdminPayment = () => adminSettingsStore.paymentEnabled
 const flagBatchImageAccess = () => canUseBatchImage.value
+const flagModelDegradation = makeSidebarFlag(FeatureFlags.modelDegradation)
 const flagTutorial = makeSidebarFlag(FeatureFlags.tutorial)
 // 作品展已停用（改由 /model-degradation 承接），相关的可用性探测与判定一并注释掉。
 // 注意：iqGalleryAvailable 仍在别处用于按需加载设置，这里只停用菜单判定。
@@ -748,13 +749,16 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
   if (withDashboard) {
     items.push({ path: '/dashboard', label: t('nav.dashboard'), icon: DashboardIcon })
   }
+  if (!authStore.isAdmin) {
+    items.push({ path: '/tutorial', label: '教程与售后', icon: TutorialIcon, featureFlag: flagTutorial })
+  }
   items.push(
     { path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon },
     { path: '/batch-image', label: t('nav.batchImage'), icon: BatchImageIcon, hideInSimpleMode: true, featureFlag: flagBatchImageAccess },
     { path: '/usage', label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: true },
     // 旧「作品展」入口已停用，改挂新的降智检测（用户自带凭据当场测）。
     // { path: '/iq-gallery', label: t('iqBenchmark.navGallery'), icon: ChartIcon, hideInSimpleMode: true, featureFlag: flagIqGallery },
-    { path: '/model-degradation', label: t('modelDegradation.nav'), icon: ChartIcon, hideInSimpleMode: true },
+    { path: '/model-degradation', label: t('modelDegradation.nav'), icon: ChartIcon, hideInSimpleMode: true, featureFlag: flagModelDegradation },
     { path: '/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },
     { path: '/monitor', label: t('nav.channelStatus'), icon: SignalIcon, featureFlag: flagChannelMonitor },
     { path: '/subscriptions', label: t('nav.mySubscriptions'), icon: CreditCardIcon, hideInSimpleMode: true, featureFlag: flagSubscription },
@@ -764,7 +768,6 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
     { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true },
     { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate },
     { path: '/profile', label: t('nav.profile'), icon: UserIcon },
-    ...(authStore.isAdmin ? [] : [{ path: '/tutorial', label: '教程与售后', icon: TutorialIcon, featureFlag: flagTutorial }]),
     { path: '/settings/mcp', label: t('mcp.title'), icon: MCPIcon, featureFlag: flagMCP },
     ...customMenuItemsForUser.value.map((item): NavItem => ({
       path: `/custom/${item.id}`,
@@ -830,7 +833,7 @@ const adminNavItems = computed((): NavItem[] => {
     { path: '/admin/upstream-monitor', label: '上游监控', icon: ChartIcon, featureFlag: flagPluginManagement },
     // 旧作品展后台入口已停用，改挂新的降智检测后台（历史墙可见性配置）。
     // { path: '/admin/iq-benchmark', label: t('iqBenchmark.navAdmin'), icon: ChartIcon },
-    { path: '/admin/model-degradation', label: t('modelDegradation.navAdmin'), icon: ChartIcon },
+    { path: '/admin/model-degradation', label: t('modelDegradation.navAdmin'), icon: ChartIcon, featureFlag: flagModelDegradation },
     { path: '/admin/announcements', label: t('nav.announcements'), icon: BellIcon },
     { path: '/admin/proxies', label: t('nav.proxies'), icon: ServerIcon },
     {

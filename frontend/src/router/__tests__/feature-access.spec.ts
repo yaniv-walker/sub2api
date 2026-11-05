@@ -26,6 +26,7 @@ const appStore = vi.hoisted(() => ({
     payment_enabled?: boolean
     risk_control_enabled?: boolean
     subscription_enabled?: boolean
+    model_degradation_enabled?: boolean
     custom_menu_items?: []
   },
   fetchPublicSettings: vi.fn(),
@@ -176,6 +177,32 @@ describe('feature route guard', () => {
     expect(appStore.fetchPublicSettings).not.toHaveBeenCalled()
     expect(next).toHaveBeenCalledOnce()
     expect(next).toHaveBeenCalledWith(target)
+  })
+})
+
+describe('model degradation route access', () => {
+  it.each([false, true])('blocks direct detection access when disabled for admin=%s', async (admin) => {
+    authStore.isAuthenticated = true
+    authStore.isAdmin = admin
+    appStore.publicSettingsLoaded = true
+    appStore.cachedPublicSettings = { model_degradation_enabled: false }
+    const { navigation, next } = runGuard({ requiresModelDegradation: true }, admin ? '/admin/model-degradation' : '/model-degradation')
+    await navigation
+    expect(next).toHaveBeenCalledWith(admin ? '/admin/settings' : '/dashboard')
+  })
+
+  it('waits for settings and allows detection when enabled', async () => {
+    authStore.isAdmin = false
+    appStore.publicSettingsLoaded = false
+    appStore.cachedPublicSettings = null
+    appStore.fetchPublicSettings.mockImplementation(async () => {
+      appStore.cachedPublicSettings = { model_degradation_enabled: true }
+      appStore.publicSettingsLoaded = true
+    })
+    const { navigation, next } = runGuard({ requiresModelDegradation: true }, '/model-degradation')
+    await navigation
+    expect(appStore.fetchPublicSettings).toHaveBeenCalled()
+    expect(next).toHaveBeenCalledWith()
   })
 })
 

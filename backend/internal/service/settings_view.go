@@ -164,6 +164,7 @@ type SystemSettings struct {
 	TablePageSizeOptions        []int
 	CustomMenuItems             string // JSON array of custom menu items
 	CustomEndpoints             string // JSON array of custom endpoints
+	ModelDegradationEnabled     bool
 	TutorialEnabled             bool
 
 	DefaultConcurrency           int
@@ -369,6 +370,7 @@ type PublicSettings struct {
 	TablePageSizeOptions        []int
 	CustomMenuItems             string // JSON array of custom menu items
 	CustomEndpoints             string // JSON array of custom endpoints
+	ModelDegradationEnabled     bool
 	TutorialEnabled             bool
 
 	LinuxDoOAuthEnabled      bool
