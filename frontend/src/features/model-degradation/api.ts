@@ -16,19 +16,16 @@ import type {
   MDVisibility
 } from './types'
 
-interface Envelope<T> {
-  code: number
-  message: string
-  data: T
-}
+// apiClient 已在响应拦截器中解包 { code, message, data }。
+// 此处的 response.data 直接是业务数据，不再读取第二层 data。
 
 const BASE = '/model-degradation'
 const ADMIN_BASE = '/admin/model-degradation'
 
 /** 读取题库。 */
 export async function fetchTaskBank(): Promise<MDTaskBank> {
-  const { data } = await apiClient.get<Envelope<MDTaskBank>>(`${BASE}/tasks`)
-  const bank = data?.data
+  const { data } = await apiClient.get<MDTaskBank>(`${BASE}/tasks`)
+  const bank = data
   return {
     // 显式兜成空数组：模板里直接 .length / v-for，undefined 会当场炸。
     logic: Array.isArray(bank?.logic) ? bank.logic : [],
@@ -43,8 +40,8 @@ export async function fetchTaskBank(): Promise<MDTaskBank> {
  * 拉不到就该让用户手输，不该卡住表单），因此这里也按「可能为空」处理。
  */
 export async function fetchModels(input: MDModelsInput): Promise<MDModelsResult> {
-  const { data } = await apiClient.post<Envelope<MDModelsResult>>(`${BASE}/models`, input)
-  const result = data?.data
+  const { data } = await apiClient.post<MDModelsResult>(`${BASE}/models`, input)
+  const result = data
   return {
     models: Array.isArray(result?.models) ? result.models : [],
     error: result?.error
@@ -53,14 +50,14 @@ export async function fetchModels(input: MDModelsInput): Promise<MDModelsResult>
 
 /** 发起一次检测。返回 running 状态的详情，前端据此开始轮询。 */
 export async function startRun(input: MDStartInput): Promise<MDRunDetail> {
-  const { data } = await apiClient.post<Envelope<MDRunDetail>>(`${BASE}/runs`, input)
-  return data.data
+  const { data } = await apiClient.post<MDRunDetail>(`${BASE}/runs`, input)
+  return data
 }
 
 /** 读取检测详情。 */
 export async function fetchRunDetail(id: number): Promise<MDRunDetail> {
-  const { data } = await apiClient.get<Envelope<MDRunDetail>>(`${BASE}/runs/${id}`)
-  return data.data
+  const { data } = await apiClient.get<MDRunDetail>(`${BASE}/runs/${id}`)
+  return data
 }
 
 export interface ListRunsParams {
@@ -81,8 +78,8 @@ export async function fetchRuns(params: ListRunsParams = {}): Promise<MDRunList>
   if (params.verdict) query.verdict = params.verdict
   if (params.task_type) query.task_type = params.task_type
 
-  const { data } = await apiClient.get<Envelope<MDRunList>>(`${BASE}/runs`, { params: query })
-  const list = data?.data
+  const { data } = await apiClient.get<MDRunList>(`${BASE}/runs`, { params: query })
+  const list = data
   return {
     items: Array.isArray(list?.items) ? list.items : [],
     total: typeof list?.total === 'number' ? list.total : 0
@@ -93,8 +90,8 @@ export async function fetchRuns(params: ListRunsParams = {}): Promise<MDRunList>
 export async function fetchStats(mine = false): Promise<MDStats> {
   const params: Record<string, string | number> = {}
   if (mine) params.mine = 1
-  const { data } = await apiClient.get<Envelope<MDStats>>(`${BASE}/stats`, { params })
-  const stats = data?.data
+  const { data } = await apiClient.get<MDStats>(`${BASE}/stats`, { params })
+  const stats = data
   return {
     pass_rate: typeof stats?.pass_rate === 'number' ? stats.pass_rate : 0,
     last_duration_ms: typeof stats?.last_duration_ms === 'number' ? stats.last_duration_ms : 0,
@@ -125,8 +122,8 @@ function isAlreadyEnded(err: unknown): boolean {
 
 /** 读取可见性配置（管理端）。 */
 export async function fetchVisibility(): Promise<MDVisibility> {
-  const { data } = await apiClient.get<Envelope<MDVisibility>>(`${ADMIN_BASE}/history-visibility`)
-  const vis = data?.data
+  const { data } = await apiClient.get<MDVisibility>(`${ADMIN_BASE}/history-visibility`)
+  const vis = data
   return {
     hidden_group_ids: Array.isArray(vis?.hidden_group_ids) ? vis.hidden_group_ids : [],
     hidden_hosts: Array.isArray(vis?.hidden_hosts) ? vis.hidden_hosts : [],

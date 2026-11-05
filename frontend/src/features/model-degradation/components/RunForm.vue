@@ -6,13 +6,13 @@
  * 思考等级/生成超时 → 题目选择 → 提交。
  *
  * 两处刻意的设计取舍：
- *   1. 密钥框 type=password 且 autocomplete="off"，并且**不回显**
- *      已经提交过的值 —— 它只在内存里活到提交那一刻。
+ *   1. 密钥框 type=password 且 autocomplete="new-password"；
+ *      输入仅保留在当前页面内存，方便连续检测，不持久化。
  *   2. 模型列表拉不到不算错误。上游的 /models 接口各家实现不一，
  *      拉不到就让用户手输。把「拉不到列表」当成阻断会让功能对
  *      一批上游永远不可用。
  */
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchModels } from '../api'
 import type { MDProtocol, MDTask, MDTaskBank, MDTaskType } from '../types'
@@ -74,6 +74,8 @@ function scheduleClose() {
   }, 150)
 }
 
+onBeforeUnmount(cancelClose)
+
 const protocolOptions = computed(() =>
   PROTOCOLS.map((p) => ({
     value: p,
@@ -127,6 +129,8 @@ const modelIsCustom = computed(() => {
 /** 拉取模型列表。 */
 async function loadModels() {
   if (!canFetchModels.value || modelsLoading.value) return
+  // 点击刷新前输入框会失焦，取消旧计时器，避免快速响应打开的列表随后被关闭。
+  cancelClose()
   modelsLoading.value = true
   modelsError.value = ''
   try {
@@ -313,7 +317,7 @@ const timeoutLabel = computed(() => t('modelDegradation.form.renderTimeoutUnit')
 
           <ul v-if="modelOpen && filteredModels.length" class="ma-combo-list" role="listbox">
             <li v-for="m in filteredModels.slice(0, 50)" :key="m">
-              <button type="button" class="ma-combo-item" @mousedown.prevent="pickModel(m)">{{ m }}</button>
+              <button type="button" class="ma-combo-item" @mousedown.prevent="pickModel(m)" @click="pickModel(m)">{{ m }}</button>
             </li>
           </ul>
         </div>

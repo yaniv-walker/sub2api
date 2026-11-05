@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { nextTick } from 'vue'
 import RunForm from '../components/RunForm.vue'
@@ -118,6 +118,22 @@ describe('RunForm 模型下拉：拉到列表后必须能看见', () => {
     const items = wrapper.findAll('.ma-combo-item')
     expect(items[0].text()).toBe('deepseek-v4.1-flash')
 
+    wrapper.unmount()
+  })
+
+  it('刷新请求在失焦关闭计时器到期前返回时，列表持续可选', async () => {
+    vi.useFakeTimers()
+    fetchModels.mockResolvedValue({ models: ['deepseek-v4.1-flash'] })
+    const state = filledState()
+    const wrapper = mountForm(state)
+    await modelInput(wrapper).trigger('focus')
+    await modelInput(wrapper).trigger('blur')
+    await refreshButton(wrapper).trigger('click')
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(200)
+    expect(wrapper.findAll('.ma-combo-item')).toHaveLength(1)
+    await wrapper.find('.ma-combo-item').trigger('click')
+    expect(state.modelId).toBe('deepseek-v4.1-flash')
     wrapper.unmount()
   })
 

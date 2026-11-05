@@ -11,7 +11,7 @@ export default {
     nav: '模型降智检测',
     navAdmin: '降智检测管理',
     description:
-      '用你自己的上游地址与密钥，当场测一次这个模型还灵不灵。检测用的凭据只在这一次请求里使用，不会保存。',
+      '用你自己的上游地址与密钥，当场测一次这个模型还灵不灵。凭据仅保留在当前页面内存中，不会持久化保存。',
     subtitle: '自带凭据 · 当场判定',
     running: '检测中',
 
@@ -64,7 +64,7 @@ export default {
       baseUrlHint: '只接受 https。内网地址与云元数据地址会被拒绝。',
       apiKey: 'API 密钥',
       apiKeyPlaceholder: 'sk-...',
-      apiKeyHint: '只在这次检测中使用，不落库、不回显。',
+      apiKeyHint: '仅保留在当前页面内存中，可连续检测；刷新或离开页面后需重新填写。',
       protocolLabel: {
         chat_completions: 'Chat',
         responses: 'Responses',
@@ -102,7 +102,7 @@ export default {
       taskBankLoading: '正在加载题库……',
       taskBankEmpty: '题库暂时不可用，你可以写自定义题。',
       securityNote:
-        '地址与密钥只用于这一次检测：密钥不写入数据库，地址只保留域名部分用于历史展示。',
+        '密钥仅保留在当前页面内存中，不写入数据库；地址只保留域名部分用于历史展示。',
       submit: '开始检测',
       submitting: '正在发起……'
     },

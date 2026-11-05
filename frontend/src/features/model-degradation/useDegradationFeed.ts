@@ -67,6 +67,18 @@ export function useDegradationFeed() {
   /** 是否有正在跑的自有检测。 */
   const busy = computed(() => current.value?.status === 'running')
 
+  /** 运行中使用连续的本地时钟；结束后才采用后端的最终耗时。 */
+  function updateElapsed(detail: MDRunDetail, reset = false) {
+    if (reset) {
+      const createdAt = Date.parse(detail.created_at)
+      startedAt = Number.isFinite(createdAt) ? Math.min(createdAt, Date.now()) : Date.now() - detail.duration_ms
+      elapsedMs.value = 0
+    }
+    elapsedMs.value = detail.status === 'running'
+      ? Math.max(elapsedMs.value, Date.now() - startedAt, detail.duration_ms)
+      : detail.duration_ms
+  }
+
   /** 加载题库。题库加载失败不阻断：用户仍可写自定义题。 */
   async function loadBank() {
     bankLoading.value = true
@@ -140,10 +152,8 @@ export function useDegradationFeed() {
     try {
       const detail = await fetchRunDetail(id)
       current.value = detail
-      elapsedMs.value = detail.duration_ms
+      updateElapsed(detail, true)
       if (detail.status === 'running') {
-        // 从创建时间起算，避免切回来时进度条从 0 开始。
-        startedAt = new Date(detail.created_at).getTime()
         startPolling(id)
       }
     } catch {
@@ -162,9 +172,8 @@ export function useDegradationFeed() {
     try {
       const detail = await startRun(payload)
       current.value = detail
-      elapsedMs.value = 0
-      startedAt = Date.now()
-      startPolling(detail.id)
+      updateElapsed(detail, true)
+      if (detail.status === 'running') startPolling(detail.id)
       // 新记录入列，让用户立刻在历史里看到自己这次。
       await Promise.all([loadRuns(), loadStats()])
       return true
@@ -207,7 +216,7 @@ export function useDegradationFeed() {
     try {
       const detail = await fetchRunDetail(id)
       current.value = detail
-      elapsedMs.value = detail.duration_ms
+      updateElapsed(detail)
     } catch {
       // 单次刷新失败留待下次轮询，不打断用户。
     }
@@ -230,7 +239,7 @@ export function useDegradationFeed() {
       try {
         const detail = await fetchRunDetail(id)
         current.value = detail
-        elapsedMs.value = detail.duration_ms
+        updateElapsed(detail)
         if (detail.status !== 'running') {
           stopPolling()
           // 结束后刷新统计与列表（判定变了）。
@@ -243,7 +252,7 @@ export function useDegradationFeed() {
 
     elapsedTimer = window.setInterval(() => {
       if (current.value?.status === 'running' && startedAt > 0) {
-        elapsedMs.value = Date.now() - startedAt
+        elapsedMs.value = Math.max(elapsedMs.value, Date.now() - startedAt)
       }
     }, 1000)
   }

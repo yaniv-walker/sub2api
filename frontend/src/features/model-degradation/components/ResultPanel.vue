@@ -297,12 +297,21 @@ function openArtwork(item: MDItem) {
     </template>
 
     <!-- 作品放大 -->
-    <div v-if="zoomItem" class="ma-zoom" @click.self="zoomItem = null">
-      <div class="ma-zoom-panel">
-        <button type="button" class="ma-zoom-close" @click="zoomItem = null" aria-label="close">×</button>
-        <ArtworkFrame :source="zoomItem.artwork ?? ''" zoom />
+    <Teleport to="body">
+      <div
+        v-if="zoomItem"
+        class="ma-page ma-zoom"
+        role="dialog"
+        aria-modal="true"
+        aria-label="artwork"
+        @click.self="zoomItem = null"
+      >
+        <div class="ma-zoom-panel">
+          <button type="button" class="ma-zoom-close" @click="zoomItem = null" aria-label="close">×</button>
+          <ArtworkFrame :source="zoomItem.artwork ?? ''" zoom />
+        </div>
       </div>
-    </div>
+    </Teleport>
   </section>
 </template>
 
@@ -717,19 +726,20 @@ function openArtwork(item: MDItem) {
 .ma-zoom {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 1000;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: 16px;
   background: rgba(0, 0, 0, 0.62);
   backdrop-filter: blur(4px);
 }
 
 .ma-zoom-panel {
   position: relative;
-  width: min(640px, 100%);
-  max-height: 100%;
+  width: min(1100px, 100%);
+  max-height: calc(100dvh - 32px);
   padding: 12px;
   overflow: auto;
   border-radius: 14px;

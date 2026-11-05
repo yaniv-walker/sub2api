@@ -49,10 +49,8 @@ async function onSubmit() {
   const ok = await feed.submit(form.toPayload())
   form.submitting.value = false
 
-  // 只有成功才清空题目与密钥；失败时保留输入，让用户改一处重试，
-  // 而不是把整张表单连同他贴的密钥一起清掉。
+  // 成功后只清空已测题目，凭据留在当前页面内存中，方便继续测其它题。
   if (ok) {
-    form.state.apiKey = ''
     form.state.questions = []
   }
 }

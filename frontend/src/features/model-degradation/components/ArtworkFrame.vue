@@ -42,7 +42,25 @@ const safe = computed(() => sanitizeSVG(props.source))
 const usable = computed(() => isUsableSVG(safe.value))
 
 /** 可见帧的 srcdoc。 */
-const srcdoc = computed(() => (usable.value ? svgDocument(safe.value) : ''))
+const srcdoc = computed(() => {
+  if (!usable.value) return ''
+  if (!props.zoom) return svgDocument(safe.value)
+  const doc = new DOMParser().parseFromString(safe.value, 'text/html')
+  const svg = doc.querySelector('svg')
+  if (!svg) return ''
+  // 固定像素尺寸的 SVG 也需要 viewBox 才能完整缩放到视口内。
+  if (!svg.hasAttribute('viewBox')) {
+    const width = svg.getAttribute('width') || ''
+    const height = svg.getAttribute('height') || ''
+    if (/^\d+(?:\.\d+)?(?:px)?$/.test(width) && /^\d+(?:\.\d+)?(?:px)?$/.test(height)
+      && parseFloat(width) > 0 && parseFloat(height) > 0) {
+      svg.setAttribute('viewBox', `0 0 ${parseFloat(width)} ${parseFloat(height)}`)
+    }
+  }
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+  return svgDocument(new XMLSerializer().serializeToString(svg)).replace('</head>',
+    '<style>html,body{height:100%;overflow:hidden}body>svg{width:100%!important;height:100%!important;max-width:100%;max-height:100%}</style></head>')
+})
 
 /** 测量帧，用来量出内容真实高度。 */
 const measureFrame = ref<HTMLIFrameElement | null>(null)
@@ -98,6 +116,7 @@ function readAspect(svg: Element): number {
 
 /** 最终应用到可见帧的高度。 */
 const frameHeight = computed(() => {
+  if (props.zoom) return 'min(80dvh, 900px)'
   if (props.aspect > 0) {
     // 调用方指定了比例（历史卡片缩略图），按比例算，避免抖动。
     return undefined
@@ -143,6 +162,7 @@ watch(safe, () => {
         class="ma-artwork-measure"
         :srcdoc="srcdoc"
         :sandbox="MEASURE_SANDBOX"
+        @load="measure"
         aria-hidden="true"
         tabindex="-1"
       />

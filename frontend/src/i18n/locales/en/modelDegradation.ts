@@ -11,7 +11,7 @@ export default {
     nav: 'Model Degradation',
     navAdmin: 'Degradation Admin',
     description:
-      'Point at your own upstream with your own credentials and find out, right now, whether the model still holds up. Credentials are used for this run only and are never stored.',
+      'Point at your own upstream with your own credentials and find out, right now, whether the model still holds up. Credentials stay in memory on this page and are never persisted.',
     subtitle: 'Bring your own key · judged on the spot',
     running: 'Running',
 
@@ -65,7 +65,7 @@ export default {
       baseUrlHint: 'HTTPS only. Private networks and cloud metadata addresses are rejected.',
       apiKey: 'API key',
       apiKeyPlaceholder: 'sk-...',
-      apiKeyHint: 'Used for this run only. Never stored, never echoed back.',
+      apiKeyHint: 'Kept in memory for repeated runs on this page. Re-enter after refreshing or leaving.',
       protocolLabel: {
         chat_completions: 'Chat',
         responses: 'Responses',
@@ -103,7 +103,7 @@ export default {
       taskBankLoading: 'Loading task bank…',
       taskBankEmpty: 'The task bank is unavailable right now. You can still write your own.',
       securityNote:
-        'URL and key are used for this run only: the key is never written to the database, and the URL is stored as host only.',
+        'The key stays in memory on this page and is never written to the database. Only the URL host is stored in history.',
       submit: 'Start',
       submitting: 'Starting…'
     },
